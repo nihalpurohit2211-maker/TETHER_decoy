@@ -137,5 +137,49 @@ class TestTextGate(unittest.TestCase):
                 self.assertLessEqual(self.gate.cosine(text), COSINE_THRESHOLD)
 
 
+class TestRunParams(unittest.TestCase):
+    """API /run parameter parsing: clean 400s on malformed input."""
+
+    def test_defaults(self) -> None:
+        from tether.api import parse_run_params
+
+        self.assertEqual(parse_run_params({}),
+                         ("a1_pdf_injection", "tether", 1, 7, True))
+
+    def test_n_clamped_to_1_20(self) -> None:
+        from tether.api import parse_run_params
+
+        self.assertEqual(parse_run_params({"n": "99"})[2], 20)
+        self.assertEqual(parse_run_params({"n": "0"})[2], 1)
+
+    def test_bad_n_and_seed_raise(self) -> None:
+        from tether.api import parse_run_params
+
+        with self.assertRaises(ValueError):
+            parse_run_params({"n": "abc"})
+        with self.assertRaises(ValueError):
+            parse_run_params({"seed": "xyz"})
+
+    def test_bad_mode_raises(self) -> None:
+        from tether.api import parse_run_params
+
+        with self.assertRaises(ValueError):
+            parse_run_params({"mode": "tetherx"})
+
+    def test_phase2_string_and_bool(self) -> None:
+        from tether.api import parse_run_params
+
+        self.assertFalse(parse_run_params({"phase2": "false"})[4])
+        self.assertTrue(parse_run_params({"phase2": "true"})[4])
+        self.assertFalse(parse_run_params({"phase2": False})[4])
+
+    def test_known_scenario(self) -> None:
+        from tether.api import known_scenario
+
+        self.assertTrue(known_scenario("benign"))
+        self.assertTrue(known_scenario("a6_delegation"))
+        self.assertFalse(known_scenario("a7_future"))
+
+
 if __name__ == "__main__":
     unittest.main()

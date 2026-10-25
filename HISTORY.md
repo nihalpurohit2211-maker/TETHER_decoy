@@ -77,3 +77,19 @@ are recorded as approximate wall-clock text from the session clock
   (deterministic); latency p50 0.15 ms / p95 0.79 ms / max ~108 ms warmup.
 - HANDOFF.md rewritten as FINAL: results table, misses and why, CLAIMS
   CHECK, exact commands, caveats. TODO.md Final box checked. Tagged final.
+
+## Checkpoint (post-final): TRANSFER.md + API hardening
+
+- Added TRANSFER.md: single self-contained transfer doc for the team and
+  future LLM sessions — all HTTP endpoints with live-captured request/
+  response payloads (/health /contract /scenarios /run GET+POST /stream SSE
+  /results), field glossaries (timeline, alert card, results.json),
+  dashboard panel->endpoint->DOM-id map, ground rules, and the
+  do-not-"fix" caveat list.
+- API hardening (D32): parse_run_params() validates mode in
+  (none|textgate|tether) — an unknown mode previously fell into the tether
+  branch with gateway=None and crashed with a 500; malformed n/seed now
+  return clean 400 JSON instead of an unhandled traceback; /run path match
+  tightened to exact /run; POST rejects non-dict bodies. 6 new tests;
+  suite now 45/45 OK. Verified live: 400 bad mode, 400 bad n, 404 unknown
+  scenario, valid run unchanged (a1 mild: detected, alert score 70).

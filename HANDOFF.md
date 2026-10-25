@@ -3,12 +3,15 @@
 ## Status: COMPLETE
 
 All milestones M0–M7 are implemented, measured, and verified end to end.
-39/39 unittests pass. The full evaluation (`python -m tether.evaluate --seed 7`,
+45/45 unittests pass. The full evaluation (`python -m tether.evaluate --seed 7`,
 ~11 s) writes results/ from real measured runs. Demo (3 modes), API
 (/health, /contract, /scenarios, /run, /results, /stream SSE) and the
 dashboard (http://127.0.0.1:8765/) were all re-verified live this session.
 Sample artifacts results/sample_alert.json and results/sample_session_log.jsonl
 are genuine A1 outputs (12 ledger rows: 6 events + 6 decisions, hash-chained).
+
+For team UI work and LLM handoff, read `TRANSFER.md` — every endpoint with
+live-captured payloads, field glossaries, dashboard map, ground rules.
 
 ## Measured results (seed 7, Phase 2 enabled)
 
@@ -63,7 +66,7 @@ textgate stand-in on A1  : plain 0%, mild 100%, mimic 0% (measured lexical
 ## Exact commands
 
 ```
-python -m unittest discover -s tests -t .          # 39/39 OK
+python -m unittest discover -s tests -t .          # 45/45 OK
 python -m tether.evaluate --seed 7                 # writes results/ (~11 s)
 python -m tether.demo --scenario a1_pdf_injection --mode tether   # also --mode none|textgate
 python -m tether.api                               # then open http://127.0.0.1:8765/
@@ -114,6 +117,8 @@ Windows note: run tests via
 - tether/evaluate.py — evaluation CLI writing results/
 - tether/demo.py — colored step-by-step demo CLI
 - tether/api.py — stdlib JSON API + SSE + static dashboard server
+  (parse_run_params: mode/n/seed/phase2 validation, 400 on malformed input)
+- TRANSFER.md — team/LLM transfer doc: all endpoints + payloads + dashboard map
 - dashboard.html — single-file dark-theme dashboard (phase1/phase2 chart,
   taint labels + detector reasons in the timeline, alert card inline)
 - tests/ — unittest suite (39 tests)

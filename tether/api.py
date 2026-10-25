@@ -124,6 +124,41 @@ def handle_get_contract() -> dict:
                          "bytes_out_per_session": contract.bytes_out_per_session}}
 
 
+VALID_MODES = ("none", "textgate", "tether")
+
+
+def parse_run_params(params: dict) -> tuple[str, str, int, int, bool]:
+    """Parse and validate /run parameters (GET query or POST JSON body).
+
+    Returns (scenario, mode, n, seed, phase2). Raises ValueError with a
+    human-readable message on malformed input — the HTTP shell maps that to
+    a clean 400 instead of an unhandled 500. Unknown scenario names are NOT
+    raised here; callers keep their existing 404 for those.
+    """
+    scenario = str(params.get("scenario", "a1_pdf_injection"))
+    mode = str(params.get("mode", "tether"))
+    if mode not in VALID_MODES:
+        raise ValueError(f"mode must be one of {', '.join(VALID_MODES)}")
+    try:
+        n = int(params.get("n", 1))
+    except (TypeError, ValueError):
+        raise ValueError("n must be an integer")
+    try:
+        seed = int(params.get("seed", 7))
+    except (TypeError, ValueError):
+        raise ValueError("seed must be an integer")
+    raw_phase2 = params.get("phase2", True)
+    if isinstance(raw_phase2, str):
+        phase2 = raw_phase2.lower() != "false"
+    else:
+        phase2 = bool(raw_phase2)
+    return scenario, mode, max(1, min(n, 20)), seed, phase2
+
+
+def known_scenario(scenario: str) -> bool:
+    return scenario in ("benign", "legit_change", *ATTACK_BUILDERS)
+
+
 # ------------------------------------------------------------------- shell
 class Handler(BaseHTTPRequestHandler):
     server_version = "TetherAPI/0.1"
@@ -156,14 +191,14 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/stream":
             params = dict(p.split("=", 1) for p in query.split("&") if "=" in p)
             self._stream(params)
-        elif path.startswith("/run"):
+        elif path in ("/run", "/run/"):
             params = dict(p.split("=", 1) for p in query.split("&") if "=" in p)
-            scenario = params.get("scenario", "a1_pdf_injection")
-            mode = params.get("mode", "tether")
-            n = max(1, min(int(params.get("n", "1")), 20))
-            seed = int(params.get("seed", "7"))
-            phase2 = params.get("phase2", "true").lower() != "false"
-            if scenario not in ("benign", "legit_change") and scenario not in ATTACK_BUILDERS:
+            try:
+                scenario, mode, n, seed, phase2 = parse_run_params(params)
+            except ValueError as exc:
+                self._json({"error": str(exc)}, 400)
+                return
+            if not known_scenario(scenario):
                 self._json({"error": "unknown scenario"}, 404)
                 return
             self._json({"sessions": run_scenario_sessions(scenario, mode, n, seed, phase2)})
@@ -171,15 +206,16 @@ class Handler(BaseHTTPRequestHandler):
             self._json({"error": "not found"}, 404)
 
     def do_POST(self) -> None:  # noqa: N802
-        path, _, query = self.path.partition("?")
         length = int(self.headers.get("Content-Length") or 0)
         body = json.loads(self.rfile.read(length) or b"{}")
-        scenario = body.get("scenario", "a1_pdf_injection")
-        mode = body.get("mode", "tether")
-        n = max(1, min(int(body.get("n", 1)), 20))
-        seed = int(body.get("seed", 7))
-        phase2 = bool(body.get("phase2", True))
-        if scenario not in ("benign", "legit_change", *ATTACK_BUILDERS):
+        if not isinstance(body, dict):
+            body = {}
+        try:
+            scenario, mode, n, seed, phase2 = parse_run_params(body)
+        except ValueError as exc:
+            self._json({"error": str(exc)}, 400)
+            return
+        if not known_scenario(scenario):
             self._json({"error": "unknown scenario"}, 404)
             return
         self._json({"sessions": run_scenario_sessions(scenario, mode, n, seed, phase2)})

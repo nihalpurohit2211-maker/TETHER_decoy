@@ -161,3 +161,11 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   shipped events without decisions. Decisions are now attributed to the
   session of the event row they follow (the gateway appends them
   adjacently); regression test test_rows_for_session_includes_decisions.
+- D32 (API parameter hardening, post-final). /run params are parsed by
+  parse_run_params(): mode must be none|textgate|tether (an unknown mode
+  previously reached the tether branch with gateway=None and crashed the
+  server with a 500), malformed n/seed return 400 {"error": "..."} instead
+  of an unhandled traceback, n stays clamped 1..20, phase2 accepts JSON
+  bool or "true"/"false" string, and the GET path match is exact /run.
+  Unknown scenario names keep their 404. TRANSFER.md documents every
+  endpoint with live-captured payloads for team UI work.

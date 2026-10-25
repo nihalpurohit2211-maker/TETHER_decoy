@@ -15,6 +15,11 @@ milestone and at least every 10 minutes. Tests must pass after each milestone.
 - [x] M7 Phase 2: drift budget, context (stolen-token) checks, delegation checks; A5/A6 scenarios in the evaluation
 - [x] Final: RUN TESTS, results table from REAL results, CLAIMS CHECK in HANDOFF.md, git tag final
 
+## Post-final additions
+
+- [x] TRANSFER.md written (all endpoints + live payloads + dashboard map for team UI work)
+- [x] API hardening (D32): /run param validation, clean 400s, mode whitelist; 45/45 tests
+
 ## BLOCKER STATUS (shell broken -- exit 53 on everything)
 
 All milestone source is written. Remaining work is execution-only and needs a
