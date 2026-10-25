@@ -58,3 +58,22 @@ are recorded as approximate wall-clock text from the session clock
 - Learned: latch-without-review converts one statistical fluke into hundreds
   of false alerts; review-with-evidence keeps attack containment near 100%
   while bounding benign damage to R sessions per fluke.
+- Final milestone executed: dashboard fixed (all-6-attack chart with
+  phase1/phase2 bars + legend, taint labels and detector reasons shown in
+  the replay timeline and live stream, alert card rendered from the /run
+  response directly instead of a refetch, skipped-step pill style); API
+  /run timeline rebuilt from decision_events (real decisions, labels,
+  reasons[:2]) instead of raw planned-step tuples; alert card gained
+  baseline_maturity (learned/(learned+10)).
+- Found and fixed D31: ledger rows_for_session() dropped every decision
+  row (Decision bodies carry only event_id, no session). Decisions are now
+  attributed to the session of the event they follow; regression test
+  added; sample_session_log.jsonl regenerated with 6 events + 6 decisions.
+- Verified live: /health, /run (tether+none, labels/reasons/skipped),
+  /results (6 attacks, phase2 blocks), /stream SSE (8 events incl. alert
+  card), dashboard served with all new markup; a1 mild run shows NARROW at
+  hr_db.query (score 70), BLOCK at http.post, leak 0, utility 4/4.
+- Tests: 39/39 OK. Evaluation re-run seed 7: identical detection numbers
+  (deterministic); latency p50 0.15 ms / p95 0.79 ms / max ~108 ms warmup.
+- HANDOFF.md rewritten as FINAL: results table, misses and why, CLAIMS
+  CHECK, exact commands, caveats. TODO.md Final box checked. Tagged final.

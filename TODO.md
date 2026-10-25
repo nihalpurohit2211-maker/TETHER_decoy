@@ -13,7 +13,7 @@ milestone and at least every 10 minutes. Tests must pass after each milestone.
 - [x] M5 API: stdlib http.server JSON API + SSE event stream
 - [x] M6 dashboard: dashboard.html served by the same server
 - [x] M7 Phase 2: drift budget, context (stolen-token) checks, delegation checks; A5/A6 scenarios in the evaluation
-- [ ] Final: RUN TESTS, results table from REAL results, CLAIMS CHECK in HANDOFF.md, git tag final
+- [x] Final: RUN TESTS, results table from REAL results, CLAIMS CHECK in HANDOFF.md, git tag final
 
 ## BLOCKER STATUS (shell broken -- exit 53 on everything)
 

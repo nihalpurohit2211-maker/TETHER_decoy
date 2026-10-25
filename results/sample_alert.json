@@ -1,5 +1,6 @@
 {
   "action_taken": "narrow",
+  "baseline_maturity": 0.0,
   "baseline_vs_now": {
     "external_send_event_ids": [],
     "learned_sessions": 0,

@@ -156,3 +156,8 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   stated send pattern (1-2 emails/session, ~30% portal, ~1 record each) as
   a service owner would declare it; it is not fitted to observed traffic
   and is refreshed only by an approved change.
+- D31 (ledger session attribution). Decision rows store only event_id, so
+  rows_for_session() filtered them all out and the sample session log
+  shipped events without decisions. Decisions are now attributed to the
+  session of the event row they follow (the gateway appends them
+  adjacently); regression test test_rows_for_session_includes_decisions.

@@ -40,23 +40,25 @@ def handle_list_scenarios() -> dict:
     return {"scenarios": scenarios}
 
 
+def _build_plans(scenario: str, n: int, seed: int) -> list:
+    """Deterministic plan list for one scenario (shared by /run and /stream)."""
+    if scenario == "benign":
+        return [benign_plan(f"api-benign-{seed}-{i}", _api_rng(seed, i)) for i in range(n)]
+    if scenario == "legit_change":
+        return [legit_change_plan(f"api-legit-{seed}-{i}", _api_rng(seed, i)) for i in range(n)]
+    builder = ATTACK_BUILDERS.get(scenario)
+    if builder is None:
+        return []
+    return [builder(f"api-{scenario}-{seed}-{i}", _api_rng(seed, i)) for i in range(n)]
+
+
 def run_scenario_sessions(scenario: str, mode: str, n: int, seed: int, phase2: bool) -> list[dict]:
     contract = load_contract()
-    rng_seed = seed
-    if scenario == "benign":
-        plans = [benign_plan(f"api-benign-{seed}-{i}", _api_rng(seed, i)) for i in range(n)]
-    elif scenario == "legit_change":
-        plans = [legit_change_plan(f"api-legit-{seed}-{i}", _api_rng(seed, i)) for i in range(n)]
-    else:
-        builder = ATTACK_BUILDERS.get(scenario)
-        if builder is None:
-            return []
-        plans = [builder(f"api-{scenario}-{seed}-{i}", _api_rng(seed, i)) for i in range(n)]
-    from tether.sim.scenarios import BENIGN_STATEMENTS as _B
+    plans = _build_plans(scenario, n, seed)
     from tether.alert import card_from_result
 
     ledger = Ledger(":memory:")
-    cfg = make_config(mode, phase2, _B, contract, None)
+    cfg = make_config(mode, phase2, BENIGN_STATEMENTS, contract, None)
     summaries = []
     for plan in plans:
         if scenario == "a1_pdf_injection" and plan.tier == "":
@@ -71,14 +73,10 @@ def run_scenario_sessions(scenario: str, mode: str, n: int, seed: int, phase2: b
             "first_alert_step": res.first_alert_step,
             "leak_records": res.leak_records,
             "utility": f"{res.legit_executed}/{res.legit_total}",
-            "timeline": [
-                {"step": s[0], "tool": s[1], "action": s[2], "score": s[3]} for s in res.steps
-            ],
+            "timeline": _timeline(res),
             "alert": card_from_result(res, contract, plan.change,
                                       learned_sessions=cfg.tracker.learned_sessions),
         })
-    ledger.close()
-    return summaries
     ledger.close()
     return summaries
 
@@ -87,6 +85,25 @@ def _api_rng(seed: int, i: int):
     import random
 
     return random.Random(seed * 1000 + i)
+
+
+def _timeline(res) -> list[dict]:
+    """Timeline entries from decision_events (real decisions, taint labels,
+    detector reasons). Steps that were never evaluated — quarantined injected
+    steps or steps after isolation — are marked `skipped`."""
+    by_step = {ev.step: (ev, dec) for ev, dec in res.decision_events}
+    out = []
+    for step_idx, tool, _action, _score in res.steps:
+        pair = by_step.get(step_idx)
+        if pair is None:
+            out.append({"step": step_idx, "tool": tool, "action": "skipped",
+                        "score": 0.0, "labels": [], "reasons": []})
+        else:
+            ev, dec = pair
+            out.append({"step": step_idx, "tool": ev.tool, "action": dec.action,
+                        "score": dec.score, "labels": list(ev.labels),
+                        "reasons": list(dec.reasons)[:2]})
+    return out
 
 
 def handle_get_results() -> tuple[bool, dict | None]:
@@ -187,13 +204,13 @@ class Handler(BaseHTTPRequestHandler):
 
             from tether.alert import card_from_result
 
-            rng = random.Random(7)
-            from tether.sim.scenarios import a1_plan, a2_plan
-
-            if scenario == "a2_tool_poisoning":
-                plan = a2_plan("stream-demo", rng)
-            else:
-                plan = a1_plan("stream-demo", "plain", rng)
+            plans = _build_plans(scenario, 1, 7)
+            if not plans:
+                emit({"type": "error", "message": "unknown scenario"})
+                return
+            plan = plans[0]
+            if scenario == "a1_pdf_injection" and plan.tier == "":
+                plan.tier = "plain"
             cfg = make_config(mode, True, BENIGN_STATEMENTS, contract, plan.change)
             ledger = Ledger(":memory:")
             res = run_session(plan, mode, cfg, ledger)

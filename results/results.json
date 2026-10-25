@@ -119,9 +119,9 @@
     "measured miss or partial: low-and-slow drip detected 0.0%"
   ],
   "latency_ms": {
-    "max": 64.697,
-    "p50": 0.144,
-    "p95": 0.801
+    "max": 108.046,
+    "p50": 0.146,
+    "p95": 0.789
   },
   "meta": {
     "benign_sessions": 900,
@@ -139,5 +139,5 @@
     "phase2": true,
     "seed": 7
   },
-  "wall_seconds": 10.93
+  "wall_seconds": 11.14
 }

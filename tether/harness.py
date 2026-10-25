@@ -150,6 +150,7 @@ def run_session(
                 injection_landed = True
             result.legit_executed += 1 if step.legitimate else 0
             result.max_score = max(result.max_score, 0.0)
+            result.decision_events.append((ev, _no_defense_dec(ev)))
 
         elif mode == "textgate":
             if step.tool == "pdf.read" and step.content:
@@ -157,7 +158,7 @@ def run_session(
                 # step only; it has no other visibility (comparison defense).
                 cosine = config.gate.cosine(step.content)  # type: ignore[union-attr]
                 executed = cosine >= COSINE_THRESHOLD
-                score = 0.0 if executed else round(1.0 - cosine, 3)
+                score = 0.0 if executed else round(100.0 * (1.0 - cosine), 2)
                 if not executed:
                     result.detected = True
                     if result.first_alert_step is None:
@@ -173,6 +174,17 @@ def run_session(
                 injection_landed = True
             if executed:
                 result.legit_executed += 1 if step.legitimate else 0
+            result.decision_events.append((ev, Decision(
+                event_id=ev.event_id,
+                action="allow" if executed else "hold",
+                rung="log" if executed else "annotate",
+                score=score,
+                confidence=1.0,
+                reasons=[] if executed else [
+                    "content is off the declared purpose (stand-in text gate)"
+                ],
+                evidence=[] if executed else [f"cosine below threshold"],
+            )))
 
         else:  # tether
             state = gateway.state_for(plan.session)  # type: ignore[union-attr]

@@ -109,4 +109,5 @@ def card_from_result(result, contract, change=None, learned_sessions=0) -> dict 
     card["session"] = worst_ev.session
     card["role"] = worst_ev.role
     card["lineage"] = list(worst_ev.lineage)
+    card["baseline_maturity"] = round(learned / (learned + 10.0), 2)  # D13
     return card

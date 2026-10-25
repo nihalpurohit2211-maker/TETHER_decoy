@@ -62,15 +62,26 @@ class Ledger:
         return True
 
     def rows_for_session(self, session: str) -> list[dict]:
+        """All event and decision rows for one session.
+
+        Decision bodies carry only event_id (no session), so each decision is
+        attributed to the session of the event row it follows — the gateway
+        appends an event and its decision adjacently.
+        """
         rows = self.conn.execute(
             "SELECT kind, body FROM ledger ORDER BY seq"
         ).fetchall()
         out = []
+        last_session = ""
         for kind, body in rows:
             payload = json.loads(body)
-            blob = payload.get("event") or payload.get("decision") or {}
-            if blob.get("session") == session:
-                out.append({"kind": kind, **payload})
+            if kind == "event":
+                last_session = payload["event"].get("session", "")
+            if last_session != session:
+                continue
+            if kind == "decision":
+                payload["decision"]["session"] = last_session
+            out.append({"kind": kind, **payload})
         return out
 
     def close(self) -> None:

@@ -1,65 +1,99 @@
-# HANDOFF.md — Tether simulation (rewrite-at-every-checkpoint)
+# HANDOFF.md — Tether simulation (FINAL)
 
-## Status
+## Status: COMPLETE
 
-All milestones M0–M7 source exists and now RUNS. The shell works (the prior
-model's shell was broken; this one is healthy). 38/38 unittests pass. The full
-evaluation (`python -m tether.evaluate --seed 7`) runs in ~11 s and writes
-results/. Four measurement bugs were found by reading the first real numbers
-and fixed (see DECISIONS D26–D29): textgate mode now screens document content
-at the ingestion step only (tier metric was degenerate at 100/100/100), the
-drift budget was rebuilt as a per-session standardized CUSUM on outbound
-RECORD volume with h calibrated on null traffic (h=8, 0.13 null trips/1000
-sessions) plus a latched alarm with modeled sponsor review (R=10 sessions,
-reset unless attempted volume stays above anchor), A6's delegation envelope is
-now counted as a leak, and poisoned steps now execute only when the injection
-vector executed. Measured headline (seed 7): A1/A2/A5/A6 detected 100% with
-zero leak; A3 mimicry 0% Phase 1 (bounded, by design) and 99.5% Phase 2; A4
-low-and-slow 0% Phase 1 (expected) and 92.5% Phase 2; benign false alerts
-0/1000 in both phases, benign utility 100%; attack-session utility 93.2%
-(loss = routine emails held while a destination is under drift containment);
-latency p50 0.14 ms, p95 0.80 ms, max ~65 ms (first-decision warmup).
+All milestones M0–M7 are implemented, measured, and verified end to end.
+39/39 unittests pass. The full evaluation (`python -m tether.evaluate --seed 7`,
+~11 s) writes results/ from real measured runs. Demo (3 modes), API
+(/health, /contract, /scenarios, /run, /results, /stream SSE) and the
+dashboard (http://127.0.0.1:8765/) were all re-verified live this session.
+Sample artifacts results/sample_alert.json and results/sample_session_log.jsonl
+are genuine A1 outputs (12 ledger rows: 6 events + 6 decisions, hash-chained).
 
-## NEXT ACTION
+## Measured results (seed 7, Phase 2 enabled)
 
-Verify the remaining unexecuted deliverables end to end, in this order:
-1. `python -m tether.demo --scenario a1_pdf_injection --mode tether` (and
-   `--mode none`, `--mode textgate`) — confirm colored step log + alert card.
-2. `python -m tether.api` — hit /run, /results, /stream SSE, / dashboard.
-3. Read results/sample_alert.json and sample_session_log.jsonl are real A1
-   artifacts. Then write the FINAL message (results table, misses, CLAIMS
-   CHECK per tether_build_prompt.md) into HANDOFF.md, update TODO.md, commit
-   and `git tag final`.
+```
+attack              | phase1 det% | phase2 det% | leak none | leak p1 | leak p2
+--------------------+-------------+-------------+-----------+---------+--------
+a1_pdf_injection    | 100.0       | 100.0       | 148       | 0       | 0
+a2_tool_poisoning   | 100.0       | 100.0       | 131       | 0       | 0
+a3_mimicry          |   0.0       |  99.5       |  18       | 18      | 0
+a4_low_and_slow     |   0.0       |  92.5       |   2       |  2      | 0
+a5_stolen_token     | 100.0       | 100.0       | 328.5     | 0       | 0
+a6_delegation       | 100.0       | 100.0       | 150       | 0       | 0
 
-## How to run and test
+benign false alerts      : 0/1000 ordinary, 0/1000 incl. legit change (both phases)
+benign utility preserved : 100% (both phases)
+attack-session utility   : 93.2% (loss = routine emails held while a
+                           destination is drift-latched under review)
+gateway latency          : p50 0.15 ms, p95 0.79 ms, max ~108 ms (first-decision
+                           warmup; every later decision is sub-ms)
+textgate stand-in on A1  : plain 0%, mild 100%, mimic 0% (measured lexical
+                           artifact — plain text contains the purpose verb
+                           "send"; deliberately NOT retuned, reported as a
+                           caveat about lexical gates)
+```
 
-(from the repo root, Python 3.10+; Windows PowerShell or bash)
+## Which attacks missed and why
 
-- Tests: `python -m unittest discover -s tests -t .`
-- Evaluation: `python -m tether.evaluate --seed 7` (writes results/)
-- Demo: `python -m tether.demo --scenario a1_pdf_injection --mode tether`
-- API + dashboard: `python -m tether.api` then open http://127.0.0.1:8765/
-- Drift h calibration (null traffic): `python calibrate_drift.py`
+- A3 mimicry, Phase 1: 0% detected — BY DESIGN. Every step is inside tools,
+  data classes, egress allowlist and per-session ceilings, so no per-session
+  detector may fire without penalizing identical benign work. It IS bounded
+  (per-session ceilings cap the damage at ~18 records). The lever is the
+  Phase-2 drift budget: 99.5% detected, 0 median leak.
+- A4 low-and-slow, Phase 1: 0% detected — expected. A 1–3 record drip inside
+  ceilings looks exactly like routine mail. Phase 2 drift budget: 92.5%
+  detected, 0 median leak. The residual 7.5%: sessions whose drip volume
+  stays inside the CUSUM threshold are indistinguishable from null traffic
+  by design; catching them would require unacceptable false-alert rates.
+- A3 Phase 2 residual 0.5% (1/200 sessions): drift stayed under h in that
+  draw. Honest miss, kept (attacks are never retuned after seeing results).
 
-## Last test result
+## CLAIMS CHECK
 
-38/38 pass (`python -m unittest discover -s tests -t .`), exit 0, ~0.5 s.
+| Claim | Verdict | Evidence |
+|---|---|---|
+| Gate latency < 5 ms | SUPPORTED | p50 0.15 ms, p95 0.79 ms; max ~108 ms is first-decision warmup (caveat) |
+| Zero bytes leaked on A1/A2 | SUPPORTED | 0 median leak p1+p2, 100% caught before harmful send |
+| Zero false alerts on legit_change | SUPPORTED | 0/1000 incl. change, both phases; utility 100% |
+| Core work continues under containment | PARTIAL | benign 100%; attack-session utility 93.2% — while a destination is drift-latched, ALL sends there are held, including routine legit email |
+| Mimicry bounded, not detected | SUPPORTED | Phase 1 0% det with 18-record ceiling; Phase 2 drift budget 99.5% |
+| Low-and-slow caught | NOT SUPPORTED Phase 1 / SUPPORTED Phase 2 | 0% p1 (drip invisible per-session); 92.5% p2, 0 median leak |
 
-## Known bugs
+## Exact commands
 
-- None open. Watch items: gateway latency max ~65 ms is first-decision
-  warmup (p95 is 0.8 ms); A3 Phase-1 detection is 0% BY DESIGN (in-contract
-  mimicry is bounded, not detected); the textgate tier result is a measured
-  lexical artifact (plain-tier text contains the purpose verb "send" and
-  scores above threshold) — do not "fix" it, report it.
+```
+python -m unittest discover -s tests -t .          # 39/39 OK
+python -m tether.evaluate --seed 7                 # writes results/ (~11 s)
+python -m tether.demo --scenario a1_pdf_injection --mode tether   # also --mode none|textgate
+python -m tether.api                               # then open http://127.0.0.1:8765/
+python calibrate_drift.py                          # h=8 null-traffic evidence
+```
+
+Windows note: run tests via
+`cmd /c "python -m unittest discover -s tests -t . 2>&1"; echo "EXIT=$LASTEXITCODE"`
+(plain PowerShell shows exit 1 even on OK because unittest writes to stderr).
+
+## Known bugs / caveats
+
+- None open. Watch items:
+  - gateway latency max ~108 ms is first-decision warmup; p95 is 0.79 ms.
+  - A3 Phase-1 detection is 0% BY DESIGN (bounded, not detected).
+  - The textgate tier artifact (plain 0%, mild 100%, mimic 0%) is measured,
+    not tuned — it demonstrates why lexical gates fail on paraphrase.
+  - The A6 delegation attack uses a fixed parent/child pair, not a
+    discovery test.
+  - The dashboard's "skipped" timeline state exists for poisoned steps that
+    follow a blocked injection vector; it is rare in this corpus because the
+    vector (pdf.read) usually executes and gets narrowed instead.
 
 ## File map
 
 - tether_build_prompt.md — operative build spec (read first)
 - PROJECT_BRIEF.md — full project context (read second)
-- TODO.md — milestone checklist with boxes
+- TODO.md — milestone checklist (all boxes checked)
 - HISTORY.md — append-only checkpoint log
-- DECISIONS.md — numbered design decisions and deviations (D1–D29)
+- DECISIONS.md — numbered design decisions and deviations (D1–D31)
 - RESUME_PROMPT.md — paste-into-another-model resume prompt
 - HANDOFF.md — this file
 - calibrate_drift.py — null-traffic calibration for the drift h (kept as
@@ -80,6 +114,7 @@ Verify the remaining unexecuted deliverables end to end, in this order:
 - tether/evaluate.py — evaluation CLI writing results/
 - tether/demo.py — colored step-by-step demo CLI
 - tether/api.py — stdlib JSON API + SSE + static dashboard server
-- dashboard.html — single-file dark-theme dashboard
-- tests/ — unittest suite (38 tests)
+- dashboard.html — single-file dark-theme dashboard (phase1/phase2 chart,
+  taint labels + detector reasons in the timeline, alert card inline)
+- tests/ — unittest suite (39 tests)
 - results/ — written by the evaluation CLI (measured, seed 7)

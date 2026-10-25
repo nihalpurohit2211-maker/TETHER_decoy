@@ -90,6 +90,27 @@ class TestLedger(unittest.TestCase):
         self.assertFalse(ledger2.verify_chain())
         ledger2.close()
 
+    def test_rows_for_session_includes_decisions(self) -> None:
+        # Decision bodies carry only event_id; they must still be attributed
+        # to the session of the event they follow (regression: the sample
+        # session log used to drop every decision row).
+        ledger = Ledger(":memory:")
+        ev = make_event()
+        other = make_event(session="other-session")
+        ledger.append_event(ev)
+        ledger.append_decision(Decision(event_id=ev.event_id, action="narrow",
+                                        rung="narrow", score=70.0, confidence=0.5))
+        ledger.append_event(other)
+        ledger.append_decision(Decision(event_id=other.event_id, action="allow",
+                                        rung="log", score=0.0, confidence=1.0))
+        rows = ledger.rows_for_session(ev.session)
+        kinds = [r["kind"] for r in rows]
+        self.assertEqual(kinds, ["event", "decision"])
+        self.assertEqual(rows[1]["decision"]["session"], ev.session)
+        self.assertEqual(rows[1]["decision"]["action"], "narrow")
+        self.assertEqual([r["kind"] for r in ledger.rows_for_session("nope")], [])
+        ledger.close()
+
 
 class TestTextGate(unittest.TestCase):
     def setUp(self) -> None:
