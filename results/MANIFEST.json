@@ -1,0 +1,96 @@
+{
+  "counts": {
+    "a1_pdf_injection": 200,
+    "a2_tool_poisoning": 200,
+    "a3_mimicry": 200,
+    "a4_low_and_slow": 200,
+    "a5_stolen_token": 200,
+    "a6_delegation": 200,
+    "a7_persistent": 200,
+    "a8_composition": 200,
+    "a9_impersonation": 200,
+    "benign": 900,
+    "legit_change": 100
+  },
+  "git_commit": "66d6dca9a13cbb2cb7d2aed7c4d553a04555d78d",
+  "hypotheses": {
+    "H1": {
+      "detail": "caught before harmful send >=95%, Wilson lo >=90",
+      "status": "PASS",
+      "supported": true,
+      "value": "a1_pdf_injection=100.0% (lo 98.12); a2_tool_poisoning=100.0% (lo 98.12)"
+    },
+    "H2": {
+      "detail": "fp <= 1.0 per 1000 and utility >= 99%",
+      "status": "PASS",
+      "supported": true,
+      "value": "fp/1000 incl legit=0.0; utility=100.0%"
+    },
+    "H3": {
+      "detail": "identity arm: 0% on a1-a4 (hi<=5), >=95% on a5/a6/a9",
+      "status": "PASS",
+      "supported": true,
+      "value": "a1_pdf_injection=0.0% (hi 1.88); a2_tool_poisoning=0.0% (hi 1.88); a3_mimicry=0.0% (hi 1.88); a4_low_and_slow=0.0% (hi 1.88); a5_stolen_token=100.0%; a6_delegation=100.0%; a9_impersonation=100.0%"
+    },
+    "H4": {
+      "detail": "each rung >=1 decision",
+      "status": "PASS",
+      "supported": true,
+      "value": "allow=2545, hold=577, narrow=4, quarantine=6, isolate=1382"
+    },
+    "H5": {
+      "detail": "p95 < 5 ms; max includes first-decision warm-up",
+      "status": "PASS",
+      "supported": true,
+      "value": "p95=0.873 ms (n=11105)"
+    },
+    "H6": {
+      "detail": "two seed-7 runs must produce one manifest hash",
+      "status": "PASS",
+      "supported": true,
+      "value": "identical manifest hash"
+    },
+    "H7": {
+      "detail": "a3/a4 p2 >=90% at seed 7 and replication",
+      "status": "PASS",
+      "supported": true,
+      "value": "a3_mimicry seed7=99.5%; a4_low_and_slow seed7=92.5%; a3_mimicry seed11=99.5%; a4_low_and_slow seed11=97.0%"
+    },
+    "H8": {
+      "detail": "no benign/legit-change session may be isolated",
+      "status": "PASS",
+      "supported": true,
+      "value": "isolate decisions on clean corpora=0"
+    },
+    "H9": {
+      "detail": "a8 >=90% while every step passes the contract check",
+      "status": "PASS",
+      "supported": true,
+      "value": "a8 detected=100.0% (steps contract-legal by test)"
+    }
+  },
+  "payload_sha256_scope": [
+    "ablation",
+    "attack_session_utility_pct",
+    "attacks",
+    "benign",
+    "caveats",
+    "drift_trajectory",
+    "identity_arm",
+    "ladder_usage",
+    "ladder_usage_total",
+    "meta",
+    "threshold_sweep"
+  ],
+  "phase2": true,
+  "platform": "win32",
+  "python_version": "3.12.10",
+  "results_sha256": "e1b8fef23abf39c5cacef25b53fd2e015da53362be8a0bb46c7a9eaca97ac9aa",
+  "schema_version": 2,
+  "seed": 7,
+  "units": {
+    "detection": "session",
+    "latency": "ms per gateway decision",
+    "leak": "records"
+  }
+}

@@ -1,0 +1,9 @@
+removed_detector,delta_false_alerts_per_1000,delta_caught_pp_a1_pdf_injection,delta_caught_pp_a2_tool_poisoning,delta_caught_pp_a3_mimicry,delta_caught_pp_a4_low_and_slow,delta_caught_pp_a5_stolen_token,delta_caught_pp_a6_delegation,delta_caught_pp_a7_persistent,delta_caught_pp_a8_composition,delta_caught_pp_a9_impersonation
+contract,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+provenance,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0
+identity,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+delegation,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+context,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+drift,0.0,0.0,0.0,99.5,92.5,0.0,0.0,4.0,0.0,0.0
+intent,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0

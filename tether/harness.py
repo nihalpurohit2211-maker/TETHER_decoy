@@ -74,6 +74,7 @@ class RunConfig:
     phase2: bool
     identity: object | None = None   # IdentityAuthority (typed loosely: no cycle)
     escalation: EscalationState | None = None
+    enabled: set[str] | None = None   # ablation only; None = all detectors
 
 
 @dataclass
@@ -169,6 +170,7 @@ def run_session(
             phase2=config.phase2,
             identity=config.identity,  # type: ignore[arg-type]
             escalation=config.escalation,
+            enabled=config.enabled,
             arm=mode,
         )
         gateway.begin_session()

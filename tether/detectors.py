@@ -300,6 +300,8 @@ class DriftBudget:
         self.latched: set[str] = set()  # alarmed destinations stay contained
         self.review_counters: dict[str, int] = {}
         self.review_attempts: dict[str, int] = {}
+        self.trajectory: list[list] = []  # [session, dest, records, cusum, latched]
+        self.sessions_seen = 0
 
     def refresh(self, anchor: dict[str, dict[str, float]]) -> None:
         """Only an approved change may re-freeze the anchor; it also clears
@@ -325,11 +327,12 @@ class DriftBudget:
                 self.review_attempts.get(destination, 0) + records
             )
 
-    def end_session(self) -> None:
+    def end_session(self, session: str = "") -> None:
         """Commit the session's per-destination volume into the CUSUM, latch
         alarms at the decision interval and run the sponsor-review clock.
         Every anchor destination updates every session: zero volume is
         evidence too (otherwise untouched destinations could never decay)."""
+        self.sessions_seen += 1
         for dest, a in self.anchor.items():
             mu = a.get("mu_records", self.DEFAULT_ANCHOR["mu_records"])
             sg = a.get("sigma_records", self.DEFAULT_ANCHOR["sigma_records"])
@@ -340,6 +343,10 @@ class DriftBudget:
                 self.latched.add(dest)
                 self.review_counters[dest] = 0
                 self.review_attempts[dest] = 0
+            self.trajectory.append([
+                session or str(self.sessions_seen), dest, records,
+                round(self.cusum[dest], 3), 1 if dest in self.latched else 0,
+            ])
         self.pending.clear()
         for dest in list(self.latched):
             self.review_counters[dest] = self.review_counters.get(dest, 0) + 1

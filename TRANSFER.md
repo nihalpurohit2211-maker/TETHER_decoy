@@ -8,14 +8,16 @@ Read order if you want depth later: `PROJECT_BRIEF.md` (context) →
 `tether_build_prompt.md` (operative spec) → `HANDOFF.md` (current status and
 NEXT ACTION) → `DECISIONS.md` (why things are the way they are, D1–D40).
 
-> **v2 note (M8).** This document describes the v1 system, which is complete and
+> **v2 note (M11).** This document describes the v1 system, which is complete and
 > tagged `final`. v2 is being built on top of it in strict order M9 → M14; the
 > authoritative plan is `PLAN_V2.md` and the frozen metrics are `PREREG.md`.
-> v2 adds: an identity layer (signed envelopes, nonce cache, delegation certs,
-> key→role binding), identity-scoped escalation, attacks a7–a9, evaluation v2
-> (Wilson CIs, ablation, ladder usage), and a D3COY dark-theme dashboard with
-> generated exhibits. Sections below that describe endpoints/modes remain
-> accurate until M9/M12 land; this banner will be replaced at M13a.
+> Landed so far: identity layer (signed envelopes, nonce cache, delegation
+> certs, key→role binding), identity-scoped escalation, attacks a7–a9, and the
+> v2 evaluation (Wilson CIs, full leak vectors, latency CDF, CUSUM trajectory,
+> ablation, MANIFEST + `verify.py` + `docs_check.py`; seed 7, n=200/attack,
+> H1–H9 all PASS). The M12 dashboard rewrite and the M13a doc refresh will
+> replace the UI/endpoint sections below; today `/run`, `/stream`, `/results`
+> and the v1 dashboard still work unchanged.
 
 ---
 

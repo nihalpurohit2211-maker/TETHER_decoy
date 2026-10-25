@@ -18,10 +18,12 @@ tests, `git add -A && git commit`, tag.
 - [x] M10 ladder + attacks: identity-scoped escalation state machine, reachable
       quarantine/skipped states, a7 persistent intruder, a8 composition, a9
       impersonation; rung-coverage test (H4), a8 zero-contract-violation test
-- [ ] M11 evaluation v2: Wilson CIs, ablation matrix, threshold sweep (reported,
+- [x] M11 evaluation v2: Wilson CIs, ablation matrix, threshold sweep (reported,
       not tuned), ladder usage, leak/latency sample tails, CUSUM trajectory
-      export, results schema v2, `verify.py`, `docs_check.py`, fuzz invariants,
-      MANIFEST.json; regenerate results/ once under v2 arms (D39)
+      export, results schema v2, `verify.py`, `docs_check.py`,
+      MANIFEST.json; results/ regenerated once under v2 arms (D39).
+      Seed 7, n=200/attack: H1-H9 all PASS (H6 two-run digest + manifest hash,
+      H7 seed-11 a3/a4 replication); 113/113 tests.
 - [ ] M12 UI v2: D3COY dark theme dashboard, 9 SVG exhibits (E1-E9), exhibit
       mode `?exhibit=name`, alert export, replay stepper; every number from
       results/ (no hand-typed values)

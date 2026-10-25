@@ -210,3 +210,54 @@ are recorded as approximate wall-clock text from the session clock
   ~2 records before the drift latch. Both are reported, not suppressed.
 - Tests: 65 -> 76 green in 4 files (escalation policy, rung coverage, benign
   never isolated, a8 legality + catch, hard-phase exfil blocked).
+
+## 2026-10-25 22:20 — v2 M11: evaluation v2 (CIs, ablation, determinism, honest verdicts)
+
+- New measurement modules: tether/stats.py (Wilson 95% CI, nearest-rank
+  percentile, CDF points, rate_with_ci), tether/ablation.py (leave-one-out over
+  the 8 detectors via Gateway.enabled; floors follow the contract detector),
+  tether/verdicts.py (H1-H9 against the frozen PREREG thresholds),
+  tether/report.py (deterministic digest, MANIFEST.json, RESULTS_TABLE.md,
+  generated claims block).
+- results.json schema v2: per attack n + Wilson CI on detected and caught, full
+  leak sample vectors (none/tether) + p90, Phase-2 CI row; latency p50/p95/p99/
+  max + n + CDF + samples; per-corpus drift_trajectory; report-only
+  threshold_sweep (20..95); ablation matrix. MANIFEST digest excludes only
+  wall_seconds and latency_ms (stopwatch values) and contains no timestamp/path.
+- verify.py: two full ablation-enabled runs -> identical results digest AND
+  identical manifest hash (H6); seed-11 a3/a4 replication (H7); rewrites
+  MANIFEST/RESULTS_TABLE with full verdicts and writes results/VERIFY.json.
+  docs_check.py: manifest-vs-results, table byte-identity, generated claims
+  block, test-count claims, local links, PREREG freeze since tag m8.
+- results/ regenerated ONCE under the v2 arms (D39): seed 7, 900 benign, 100
+  approved-change, 200/attack (a1-a9), 11 105 gateway decisions, 77.49 s.
+  Results digest e1b8fef23abf39c5cacef25b53fd2e015da53362be8a0bb46c7a9eaca97ac9aa;
+  manifest hash 0b17ec142526c4e4de1e99adf17b6b5b652b8d367bce5eded6b428b308ec622e.
+- H1-H9: ALL PASS.
+  H1 a1/a2 caught-before-send 100.0 % (Wilson lo 98.1); H2 0 fp/1000 incl.
+  approved change, utility 100.0 %; H3 identity arm 0.0 % a1-a4 (hi 1.88) and
+  100.0 % a5/a6/a9; H4 every rung counted (allow 2545, hold 577, narrow 4,
+  quarantine 6, isolate 1382, block 3); H5 p95 0.873 ms (n=11105); H6 identical
+  digest + manifest; H7 a3 99.5 % / a4 92.5 % at seed 7 and 99.5 % / 97.0 % at
+  seed 11; H8 zero isolations on benign+approved-change; H9 a8 100 % detected
+  with every step contract-legal.
+- Honest findings kept, not tuned away:
+  * a3/a4 are 0.0 % in Phase 1 (leak unchanged) and 99.5 %/92.5 % only with the
+    Phase-2 drift budget. The primary v1-compatible `detected_pct` shows the
+    miss; the Phase-2 row is reported separately.
+  * a7 persistent: detected 95.0 %, caught 94.5 %; 3/200 sessions leak 3-4
+    records in the low-and-slow phase before the drift latch (median 0, p90 0).
+  * attack-session utility 58.8 % (benign/approved-change 100 %): repeated
+    incidents on one role identity escalate quickly across separately-evaluated
+    corpora. D55 states the boundary; no post-hoc code change.
+  * ablation: drift removal costs 99.5/92.5 pp on a3/a4; provenance removal
+    costs 1.0 pp on a8 (cumulative drift backstops after session 1); a1 shows
+    defence in depth (contract and provenance each independently sufficient).
+- Fuzz/invariant tests: random sessions stay inside score/action/rung bounds,
+  ledger chain survives, malformed/tampered envelopes never raise or authorize,
+  Wilson/percentile/CDF stay ordered, digest ignores stopwatch fields.
+- Tests: 76 -> 113 green (stats/report/verdict/schema + invariants). Added
+  .gitignore and untracked the 25 committed __pycache__ files.
+- DECISIONS: D51 schema v2, D52 digest scope, D53 ablation mechanics, D54
+  verdicts frozen, D55 escalation-across-corpora limitation, D56 docs drift is
+  machine-checked. docs_check.py reports 7/7 PASS.

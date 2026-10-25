@@ -289,3 +289,51 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   counts of decisions by action and by rung. Reason: H4 is only meaningful if
   the rungs are counted from decisions, not asserted in prose; EXHIBITS E5 reads
   this block directly.
+
+## v2 decisions (M11)
+
+- D51 (results schema v2). results.json now carries, per attack: n, Wilson 95%
+  CI on detection and on caught-before-harmful-send, full leak sample vectors
+  (none and tether), leak p90, and the same CI fields for the Phase-2 row; plus
+  latency p99/n/CDF/samples, per-corpus drift_trajectory, ladder_usage, a
+  threshold_sweep, an optional ablation matrix, and an identity_arm with CIs.
+  Reason: v1 reported medians and point estimates only, which hid the tail and
+  made 0 %/100 % look exact. The schema is declared in PREREG section 3.
+- D52 (deterministic digest scope). The MANIFEST digest covers the whole result
+  payload except `wall_seconds` and `latency_ms` (a stopwatch measurement is
+  real but not reproducible to the microsecond; latency keeps its own n, p99
+  and warm-up caveat). MANIFEST.json contains no timestamp and no absolute path,
+  so two runs at one seed produce the same manifest hash. verify.py checks both
+  the payload digest and the manifest hash. Reason: H6 must be mechanical, not
+  a promise.
+- D53 (ablation mechanics). Leave-one-out over the eight detectors by passing an
+  `enabled` set into Gateway; disabled detectors simply do not report. Fusion
+  weights, bands and attack plans are untouched. Canonical floors follow the
+  contract detector, because a floor is contract policy, not a separate signal -
+  so removing `contract` removes the floors as well. Reason: the only honest
+  question is "what stops being caught if this signal is absent", and an
+  ablation that quietly keeps the floors would overstate the detector.
+- D54 (verdicts are code, thresholds are frozen). H1-H9 thresholds live in
+  PREREG.md (frozen at tag m8) and are implemented in tether/verdicts.py.
+  A FAIL changes the document's claim, never the threshold, the detector or the
+  attack. verify.py prints FAILs and still exits 0 when the measurement itself
+  is deterministic; a non-deterministic build is the only hard failure.
+- D55 (escalation across separately-evaluated corpora - honest limitation).
+  Corpora are evaluated separately and every attack session uses the same role
+  identity, so `EscalationState` sees independent incidents as repeat offenses:
+  from the third incident onward a1/a2/a8 sessions isolate on their first alert
+  (198/200 each), which inflates the isolate count and drops attack-session
+  utility to 58.8 % (benign/approved-change utility stays 100 %, zero benign
+  isolations). In a mixed deployment a clean session decays the history after
+  25 offense-free sessions, which corpora never provide. We do NOT claim the
+  gateway can distinguish "same victim, new injection" from "same attacker
+  returned"; that is a stated boundary, not something to retune after seeing
+  the number. No code was changed after this was observed.
+- D56 (docs drift is machine-checked). docs_check.py fails when: the MANIFEST
+  digest disagrees with results.json; RESULTS_TABLE.md is not byte-identical to
+  a fresh render; the generated claims block in HANDOFF/README is stale; a
+  documented test count differs from the collected count; a local markdown link
+  is broken; or PREREG.md changed after tag m8 without a "PREREG deviation:"
+  line in this file. Reason: v1's docs drifted (39 vs 45 tests, stale TODO), and
+  hand-copied numbers are the easiest way for a judge-facing claim to become
+  false.

@@ -80,6 +80,7 @@ class Gateway:
         identity: IdentityAuthority | None = None,
         arm: str = "tether",
         escalation: EscalationState | None = None,
+        enabled: set[str] | None = None,
     ) -> None:
         self.contract = contract
         self.tracker = tracker
@@ -90,9 +91,14 @@ class Gateway:
         self.identity = identity      # signed-envelope authority (M9)
         self.arm = arm                # "tether" | "identity" (control arm, D36/D41)
         self.escalation = escalation or EscalationState()
+        # Ablation support (M11): None = all detectors. Never used to tune.
+        self.enabled = enabled
         if arm == "identity" and identity is None:
             raise ValueError("identity arm requires an IdentityAuthority")
         self.states: dict[str, SessionState] = {}
+
+    def _on(self, name: str) -> bool:
+        return self.enabled is None or name in self.enabled
 
     def begin_session(self) -> None:
         """Advance the escalation clock (decay lives here, not in wall time)."""
@@ -106,7 +112,7 @@ class Gateway:
     def end_session(self, session: str) -> None:
         """Commit per-session drift volume when the harness closes a session."""
         if self.budget is not None:
-            self.budget.end_session()
+            self.budget.end_session(session)
 
     # ------------------------------------------------------------------ main
     def evaluate(self, ev: Event) -> tuple[Decision, SessionState]:
@@ -143,24 +149,29 @@ class Gateway:
             # floors, which are policy rather than identity.
             results["identity"] = identity_check(ev, self.identity)  # type: ignore[arg-type]
         else:
-            results["contract"] = contract_check(ev, self.contract, state, self.change)
-            results["provenance"] = provenance_check(ev, state)
-            if self.identity is not None:
+            if self._on("contract"):
+                results["contract"] = contract_check(ev, self.contract, state, self.change)
+            if self._on("provenance"):
+                results["provenance"] = provenance_check(ev, state)
+            if self.identity is not None and self._on("identity"):
                 results["identity"] = identity_check(ev, self.identity)
-            results["baseline"] = self.tracker.score_event(
-                ev, state.executed_records, state.executed_bytes_out
-            )
-            results["intent"] = intent_check(ev, self.gate)
+            if self._on("baseline"):
+                results["baseline"] = self.tracker.score_event(
+                    ev, state.executed_records, state.executed_bytes_out
+                )
+            if self._on("intent"):
+                results["intent"] = intent_check(ev, self.gate)
             if self.phase2:
-                context_res = context_check(ev, self.contract, state)
-                if context_res.score > 0.0:
-                    results["context"] = context_res
-                if self.budget is not None:
+                if self._on("context"):
+                    context_res = context_check(ev, self.contract, state)
+                    if context_res.score > 0.0:
+                        results["context"] = context_res
+                if self.budget is not None and self._on("drift"):
                     results["drift"] = drift_check(ev, self.budget)
-                    if ev.destination:
-                        # proposed volume feeds the sponsor-review evidence window
-                        self.budget.record_attempt(ev.destination, ev.records)
-                if len(ev.lineage) > 1:
+                if self.budget is not None and ev.destination:
+                    # proposed volume feeds the sponsor-review evidence window
+                    self.budget.record_attempt(ev.destination, ev.records)
+                if len(ev.lineage) > 1 and self._on("delegation"):
                     results["delegation"] = delegation_check(ev, self.contract, None)
 
         restricted_now = self.contract.is_restricted_class(ev.data_class)
@@ -176,7 +187,7 @@ class Gateway:
             state.restricted_read,
             state.off_allowlist_egress,
             ev_change_status,
-            floors=(self.arm != "identity"),
+            floors=(self.arm != "identity" and self._on("contract")),
         )
         conf = confidence(results, self.tracker.effective_maturity())
 

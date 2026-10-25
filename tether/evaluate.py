@@ -22,6 +22,7 @@ from tether.harness import RunConfig, SessionResult, run_session
 from tether.identity import IdentityAuthority, new_authority
 from tether.ledger import Ledger
 from tether.sim.scenarios import ATTACK_NAMES, BENIGN_STATEMENTS, build_sessions
+from tether.stats import cdf_points, percentile, rate_with_ci
 from tether.textgate import TextGate
 
 PHASE1_ATTACKS = ["a1_pdf_injection", "a2_tool_poisoning", "a3_mimicry", "a4_low_and_slow"]
@@ -110,7 +111,10 @@ def _latency_pct(values: list[float], p: float) -> float:
     return round(s[idx], 3)
 
 
-def evaluate(seed: int, counts: dict[str, int], phase2: bool, minimal: bool = False) -> dict:
+def evaluate(
+    seed: int, counts: dict[str, int], phase2: bool, minimal: bool = False,
+    ablation: bool = False,
+) -> dict:
     t_start = time.perf_counter()
     contract = load_contract()
     counts = dict(counts)
@@ -150,6 +154,7 @@ def evaluate(seed: int, counts: dict[str, int], phase2: bool, minimal: bool = Fa
     ledger.close()
 
     per_mode["tether_p2"] = per_mode["tether_p1"]
+    p2_cfgs: dict[str, RunConfig] = {}
     if phase2:
         ledger = Ledger(":memory:")
         auth2 = new_authority(contract)
@@ -158,6 +163,7 @@ def evaluate(seed: int, counts: dict[str, int], phase2: bool, minimal: bool = Fa
         for aid in sessions:
             cfg2 = make_config("tether", True, BENIGN_STATEMENTS, contract, None,
                                authority=auth2)
+            p2_cfgs[aid] = cfg2
             per_mode["tether_p2"][aid] = _run_plan_list(sessions[aid], "tether", cfg2, ledger)
         ledger.close()
 
@@ -174,7 +180,14 @@ def evaluate(seed: int, counts: dict[str, int], phase2: bool, minimal: bool = Fa
 
     lat = [l for atk in per_mode["tether_p2"].values() for r in atk for l in r.latencies]
     latency = {
-        "p50": _latency_pct(lat, 0.50), "p95": _latency_pct(lat, 0.95), "max": _latency_pct(lat, 1.0),
+        "p50": _latency_pct(lat, 0.50),
+        "p95": _latency_pct(lat, 0.95),
+        "p99": _latency_pct(lat, 0.99),
+        "max": _latency_pct(lat, 1.0),
+        "n": len(lat),
+        "unit": "ms per gateway decision",
+        "cdf": cdf_points(lat, 60),
+        "samples_ms": [round(v, 3) for v in sorted(lat)],
     }
 
     attacks_out = []
@@ -192,16 +205,27 @@ def evaluate(seed: int, counts: dict[str, int], phase2: bool, minimal: bool = Fa
         cauh1 = [r for r in tether1 if r.caught_all_leaks]
         steps1 = [r.first_alert_step for r in det1 if r.first_alert_step is not None]
         leaks1 = sorted(r.leak_records for r in tether1)
+        leak_none = sorted(r.leak_records for r in none_res)
+        det1_rate = rate_with_ci(len(det1), len(tether1))
+        cauh1_rate = rate_with_ci(len(cauh1), len(tether1))
         entry: dict = {
             "id": aid,
             "name": name,
             "covered_in_phase1": aid in PHASE1_ATTACKS,
-            "detected_pct": round(100.0 * len(det1) / len(tether1), 1) if tether1 else 0.0,
-            "caught_before_harmful_send_pct": round(100.0 * len(cauh1) / len(tether1), 1) if tether1 else 0.0,
+            "n": len(tether1),
+            "detected_pct": det1_rate["pct"],
+            "detected_ci95": det1_rate["ci95"],
+            "caught_before_harmful_send_pct": cauh1_rate["pct"],
+            "caught_ci95": cauh1_rate["ci95"],
+            "k_detected": det1_rate["k"],
+            "k_caught": cauh1_rate["k"],
             "median_steps_to_detect": float(statistics.median(steps1)) if steps1 else None,
-            "records_out_none": round(float(statistics.median([r.leak_records for r in none_res])), 1)
-                                if none_res else 0.0,
+            "records_out_none": round(float(statistics.median(leak_none)), 1) if leak_none else 0.0,
             "records_out_tether_median": round(float(statistics.median(leaks1)), 1) if leaks1 else 0.0,
+            "leak_p90_none": percentile(leak_none, 0.90),
+            "leak_p90_tether": percentile(leaks1, 0.90),
+            "leak_samples_none": leak_none,
+            "leak_samples_tether": leaks1,
         }
         if aid == "a1_pdf_injection":
             by_tier = {}
@@ -214,10 +238,19 @@ def evaluate(seed: int, counts: dict[str, int], phase2: bool, minimal: bool = Fa
             det2 = [r for r in tether2 if r.detected]
             cauh2 = [r for r in tether2 if r.caught_all_leaks]
             leaks2 = sorted(r.leak_records for r in tether2)
+            det2_rate = rate_with_ci(len(det2), len(tether2))
+            cauh2_rate = rate_with_ci(len(cauh2), len(tether2))
             entry["phase2"] = {
-                "detected_pct": round(100.0 * len(det2) / len(tether2), 1) if tether2 else 0.0,
-                "caught_before_harmful_send_pct": round(100.0 * len(cauh2) / len(tether2), 1) if tether2 else 0.0,
+                "n": len(tether2),
+                "detected_pct": det2_rate["pct"],
+                "detected_ci95": det2_rate["ci95"],
+                "caught_before_harmful_send_pct": cauh2_rate["pct"],
+                "caught_ci95": cauh2_rate["ci95"],
+                "k_detected": det2_rate["k"],
+                "k_caught": cauh2_rate["k"],
                 "records_out_tether_median": round(float(statistics.median(leaks2)), 1) if leaks2 else 0.0,
+                "leak_p90_tether": percentile(leaks2, 0.90),
+                "leak_samples_tether": leaks2,
             }
         if aid == "a3_mimicry":
             entry["note"] = ties_desc["a3_mimicry"]
@@ -228,12 +261,24 @@ def evaluate(seed: int, counts: dict[str, int], phase2: bool, minimal: bool = Fa
         legit = runs.get("legit_change", [])
         all_clean = benign + legit
         flagged = sum(1 for r in all_clean if r.detected)
+        flagged_ordinary = sum(1 for r in benign if r.detected)
         executed = sum(r.legit_executed for r in all_clean)
         planned = max(1, sum(r.legit_total for r in all_clean))
+        incl = rate_with_ci(flagged, len(all_clean))
+        util = rate_with_ci(executed, planned)
         return {
-            "false_alerts_per_1000_ordinary": round(1000.0 * sum(1 for r in benign if r.detected) / max(1, len(benign)), 1),
+            "false_alerts_per_1000_ordinary": round(1000.0 * flagged_ordinary / max(1, len(benign)), 1),
             "false_alerts_per_1000_incl_legit_change": round(1000.0 * flagged / max(1, len(all_clean)), 1),
             "utility_preserved_pct": round(100.0 * executed / planned, 1),
+            "flagged_ordinary": flagged_ordinary,
+            "n_ordinary": len(benign),
+            "flagged_incl_legit_change": flagged,
+            "n_incl_legit_change": len(all_clean),
+            "false_alert_ci95_pct": incl["ci95"],
+            "legit_steps_executed": executed,
+            "legit_steps_planned": planned,
+            "utility_ci95_pct": util["ci95"],
+            "unit": "% of sessions flagged / % of legitimate planned steps executed",
         }
 
     benign_main = benign_block(per_mode["tether_p1"])
@@ -261,11 +306,14 @@ def evaluate(seed: int, counts: dict[str, int], phase2: bool, minimal: bool = Fa
     identity_attacks = []
     for aid in PHASE2_ATTACKS:
         runs = per_mode["identity"].get(aid) or []
+        det = [r for r in runs if r.detected]
+        rate = rate_with_ci(len(det), len(runs))
         identity_attacks.append({
             "id": aid,
             "n": len(runs),
-            "detected_pct": round(100.0 * sum(1 for r in runs if r.detected) / len(runs), 1)
-                            if runs else 0.0,
+            "detected_pct": rate["pct"],
+            "ci95": rate["ci95"],
+            "k": rate["k"],
         })
     id_benign = benign_block(per_mode["identity"])
     identity_arm = {
@@ -298,14 +346,67 @@ def evaluate(seed: int, counts: dict[str, int], phase2: bool, minimal: bool = Fa
         r for aid in PHASE2_ATTACKS for r in per_mode["tether_p2"].get(aid, [])
     ])
 
+    # --- cumulative-drift trajectory (EXHIBITS E3) --------------------------
+    drift_trajectory: dict[str, list] = {}
+    for aid, cfg in p2_cfgs.items():
+        budget = cfg.budget
+        if budget is not None and getattr(budget, "trajectory", None):
+            drift_trajectory[aid] = budget.trajectory
+
+    # --- threshold sweep (REPORT ONLY, never used to pick a band) -----------
+    # For each candidate raw-score cutoff, how many sessions would have been
+    # flagged. This is a sensitivity readout of the measured score
+    # distribution. The shipped ladder still uses 30/60/80/92 plus
+    # corroboration and identity-scoped escalation; the sweep does not.
+    sweep_thresholds = [20, 30, 40, 50, 60, 70, 80, 90, 92, 95]
+    sweep_attacks = {aid: per_mode["tether_p2"].get(aid, [])
+                     for aid in PHASE2_ATTACKS}
+    sweep_clean = (per_mode["tether_p2"].get("benign", [])
+                   + per_mode["tether_p2"].get("legit_change", []))
+    threshold_sweep = {
+        "note": ("report-only sensitivity of the measured max-score distribution; "
+                 "the shipped bands (30/60/80/92), corroboration rule and "
+                 "identity-scoped escalation are unchanged and were not chosen "
+                 "from this table"),
+        "unit": "score threshold -> % of sessions with max score >= threshold",
+        "rows": [
+            {
+                "threshold": t,
+                "attacks": {
+                    aid: round(100.0 * sum(1 for r in rs if r.max_score >= t)
+                               / max(1, len(rs)), 1)
+                    for aid, rs in sweep_attacks.items() if rs
+                },
+                "clean_false_alerts_per_1000": round(
+                    1000.0 * sum(1 for r in sweep_clean if r.max_score >= t)
+                    / max(1, len(sweep_clean)), 1
+                ),
+            }
+            for t in sweep_thresholds
+        ],
+    }
+
+    abl = None
+    if ablation:
+        from tether.ablation import run_ablation
+
+        abl = run_ablation(contract, sessions)
+
     return {
         "meta": {"seed": seed, "counts": counts, "phase2": phase2,
-                 "benign_sessions": n_benign, "legit_change_sessions": n_legit},
+                 "benign_sessions": n_benign, "legit_change_sessions": n_legit,
+                 "schema_version": 2,
+                 "unit_detection": "session",
+                 "unit_leak": "records",
+                 "unit_latency": "ms per gateway decision"},
         "attacks": attacks_out,
         "benign": benign_main,
         "identity_arm": identity_arm,
         "ladder_usage": ladder_usage,
         "ladder_usage_total": ladder_total,
+        "drift_trajectory": drift_trajectory,
+        "threshold_sweep": threshold_sweep,
+        "ablation": abl,
         "attack_session_utility_pct": round(100.0 * executed / planned, 1),
         "latency_ms": latency,
         "wall_seconds": round(time.perf_counter() - t_start, 2),
@@ -332,32 +433,89 @@ def _write_sample_files(out_dir: str, seed: int, phase2: bool) -> None:
     ledger.close()
 
 
+def _write_csvs(out_dir: str, result: dict) -> None:
+    with open(os.path.join(out_dir, "results.csv"), "w", encoding="utf-8",
+              newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow([
+            "id", "name", "covered_in_phase1", "n", "detected_pct",
+            "detected_ci_lo", "detected_ci_hi", "caught_before_harmful_send_pct",
+            "caught_ci_lo", "caught_ci_hi", "median_steps_to_detect",
+            "records_out_none", "records_out_tether_median", "leak_p90_tether",
+        ])
+        for a in result["attacks"]:
+            det = a.get("detected_ci95") or [0.0, 0.0]
+            cau = a.get("caught_ci95") or [0.0, 0.0]
+            w.writerow([
+                a["id"], a["name"], a["covered_in_phase1"], a.get("n", 0),
+                a["detected_pct"], det[0], det[1],
+                a["caught_before_harmful_send_pct"], cau[0], cau[1],
+                a["median_steps_to_detect"], a["records_out_none"],
+                a["records_out_tether_median"], a.get("leak_p90_tether", 0.0),
+            ])
+
+    abl = result.get("ablation")
+    if not abl:
+        return
+    with open(os.path.join(out_dir, "ablation.csv"), "w", encoding="utf-8",
+              newline="") as fh:
+        ids = [a["id"] for a in result["attacks"]]
+        w = csv.writer(fh)
+        w.writerow(["removed_detector", "delta_false_alerts_per_1000"]
+                   + [f"delta_caught_pp_{aid}" for aid in ids])
+        for row in abl.get("rows", []):
+            w.writerow([row["removed"], row["delta_false_alerts_per_1000"]]
+                       + [row["attacks"].get(aid, {}).get("delta_caught_pp", 0.0)
+                          for aid in ids])
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Tether evaluation")
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--out", default="results")
     ap.add_argument("--minimal", action="store_true", help="tiny corpus for smoke tests")
     ap.add_argument("--phase1-only", action="store_true", help="disable Phase 2 detectors")
+    ap.add_argument("--ablation", action="store_true",
+                    help="also run leave-one-out detector ablation (slow)")
+    ap.add_argument("--no-samples", action="store_true",
+                    help="skip the sample alert/session artifacts")
     args = ap.parse_args()
+
+    from tether.report import write_manifest, write_results_table
+    from tether.verdicts import evaluate_hypotheses, verdict_summary
 
     os.makedirs(args.out, exist_ok=True)
     result = evaluate(seed=args.seed, counts=DEFAULT_COUNTS,
-                      phase2=not args.phase1_only, minimal=args.minimal)
-    with open(os.path.join(args.out, "results.json"), "w", encoding="utf-8") as fh:
-        json.dump(result, fh, indent=2, sort_keys=True)
-    with open(os.path.join(args.out, "results.csv"), "w", encoding="utf-8", newline="") as fh:
-        w = csv.writer(fh)
-        w.writerow(["id", "name", "covered_in_phase1", "detected_pct",
-                    "caught_before_harmful_send_pct", "median_steps_to_detect",
-                    "records_out_none", "records_out_tether_median"])
-        for a in result["attacks"]:
-            w.writerow([a["id"], a["name"], a["covered_in_phase1"], a["detected_pct"],
-                        a["caught_before_harmful_send_pct"], a["median_steps_to_detect"],
-                        a["records_out_none"], a["records_out_tether_median"]])
-    _write_sample_files(args.out, args.seed, phase2=not args.phase1_only)
+                      phase2=not args.phase1_only, minimal=args.minimal,
+                      ablation=args.ablation)
 
-    print("latency_ms:", result["latency_ms"], "wall_seconds:", result["wall_seconds"])
-    print("wrote results/ (results.json, results.csv, sample_alert.json, sample_session_log.jsonl)")
+    # H6/H7 need the extra evidence verify.py produces; they are deferred here
+    # rather than guessed. Verdicts live in MANIFEST.json / RESULTS_TABLE.md,
+    # never inside results.json, so the measured digest stays stable.
+    hypotheses = evaluate_hypotheses(result, replication=None, determinism=None)
+
+    with open(os.path.join(args.out, "results.json"), "w", encoding="utf-8",
+              newline="\n") as fh:
+        json.dump(result, fh, indent=2, sort_keys=True)
+        fh.write("\n")
+    _write_csvs(args.out, result)
+    if not args.no_samples:
+        _write_sample_files(args.out, args.seed, phase2=not args.phase1_only)
+    manifest = write_manifest(args.out, result, hypotheses)
+    table_path = write_results_table(args.out, result, hypotheses)
+
+    p, f, d = verdict_summary(hypotheses)
+    print("latency_ms:", {k: result["latency_ms"][k] for k in ("p50", "p95", "p99", "max")},
+          "n:", result["latency_ms"]["n"], "wall_seconds:", result["wall_seconds"])
+    print(f"hypotheses: {p} pass, {f} fail, {d} deferred "
+          f"(H6/H7 need verify.py)")
+    print("results digest:", manifest["results_sha256"])
+    print(f"wrote {args.out}/ (results.json, results.csv, MANIFEST.json, "
+          f"{os.path.basename(table_path)}, sample_alert.json, "
+          f"sample_session_log.jsonl)")
+    if f:
+        print("FAILED hypotheses:",
+              ", ".join(k for k, v in hypotheses.items() if v["status"] == "FAIL"))
 
 
 if __name__ == "__main__":
