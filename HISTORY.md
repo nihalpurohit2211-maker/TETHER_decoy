@@ -113,3 +113,39 @@ are recorded as approximate wall-clock text from the session clock
   not to re-scope the label rules under .chart).
 - Tests: 45/45 OK (HTML not covered by tests; verified live via served
   / response containing new markup and no leftover els.alert references).
+
+## 2026-10-25 21:43 — v2 M8: framing (PREREG, THREAT_MODEL, problem statement, exhibits)
+
+- Added PLAN_V2.md (copy of the authoritative v2 plan; commit b0a692a) so the
+  handoff is self-contained.
+- Baseline verified before any v2 work: `python -m unittest discover` -> 45/45 OK.
+- M8 docs written, no code touched:
+  - PREREG.md — FROZEN at tag m8, before any v2 detector/attack/ladder change.
+    Corpus (900 benign, 100 legit_change, 200/attack, seed 7 primary; 11/23
+    replication), five arms (none/textgate/tether_p1/tether_p2/identity),
+    twelve metric definitions, H1-H9 with explicit support thresholds, honest
+    pre-registered attack expectations, and a "what we will not do after seeing
+    results" list. Wilson 95% CIs mandated; no n=1 anecdotes, no pooled seeds.
+  - THREAT_MODEL.md — assets, trust boundaries, adversary profiles P1-P9,
+    frozen a1-a9 catalogue with expected catcher and rung, three worked
+    distinctions (a5 replay vs a9 impersonation; a7 needs history not a bigger
+    floor; a8 is sequence-illegal while every clause is legal), explicit
+    out-of-scope list incl. key compromise and injection prevention, and an
+    assumption->failure-mode table.
+  - PROBLEM_STATEMENT.md — splits "identity drift" into scope / purpose /
+    identity drift with one anchor and one failure mode each; maps the PS's five
+    demands to mechanism and evidence; states the claim as bounded blast radius
+    + fast detection, NOT prevention; tables the v1 gaps vs falsifiable tests.
+  - EXHIBITS.md — E1-E9 judge exhibits, each with its exact results/ path, unit
+    and n, caption rules (misses captioned as misses; identity caption must
+    carry the key-compromise limitation).
+- Two stale drifts recorded and cleaned (D40): TODO.md still claimed a broken
+  shell / "nothing left to write" while git had 8 commits; HANDOFF.md file map
+  said 39 tests vs 45. TODO.md replaced with the M8-M14 checklist, HANDOFF.md
+  rewritten for v2 with a precise NEXT ACTION (tether/identity.py + exact API).
+- DECISIONS added: D33 HMAC-SHA256 stand-in (no public-key verify, no
+  non-repudiation), D34 pre-registration freeze, D35 primary/secondary detection
+  metric, D36 identity arm = detector-only control, D37 a5 = replay not key
+  compromise, D38 attack id map (a7/a8/a9; legit_change is not an a-id),
+  D39 one-time v2 results reset (v1 recoverable from tag `final`), D40 doc drift.
+- Tests: 45/45 OK. No behavior changed, so no results regeneration.

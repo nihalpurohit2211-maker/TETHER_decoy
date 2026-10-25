@@ -169,3 +169,49 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   bool or "true"/"false" string, and the GET path match is exact /run.
   Unknown scenario names keep their 404. TRANSFER.md documents every
   endpoint with live-captured payloads for team UI work.
+
+## v2 decisions (M8)
+
+- D33 (identity crypto stand-in). Identity envelopes are signed with
+  HMAC-SHA256 over a canonical JSON encoding, using per-identity keys held in a
+  local key registry, not Ed25519. Reason: stdlib only, no pip, no network;
+  HMAC gives integrity plus key->role binding, which is all the identity arm
+  needs. It does NOT give non-repudiation or HSM custody, and public-key
+  verification (verify with a public key, never the secret) is impossible.
+  Stated as a limitation in THREAT_MODEL.md 5.2 and on the identity exhibit.
+  Format is versioned (alg="HS256") so a real Ed25519 can be swapped in later.
+- D34 (pre-registration). PREREG.md is frozen at tag m8, before any v2 detector,
+  attack or ladder code is written. Metrics, corpus sizes, seeds, arms and
+  success thresholds (H1-H9) are fixed there. Any later change requires a
+  PREREG deviation row AND a DECISIONS entry in the same commit. Reason: v1's
+  metrics were chosen while building; v2 must be able to fail visibly.
+- D35 (detection metric). v2 keeps v1's primary `detected_pct` (session has >=1
+  decision with action != allow) so v1 and v2 tables remain comparable, and adds
+  `caught_before_harmful_send_pct` (no `leak` step executed) as the honest
+  secondary. Reason: changing the primary would silently invalidate the v1
+  numbers already quoted in HANDOFF/README; adding a stricter metric exposes
+  the holds-on-legit-steps artifact instead of hiding it.
+- D36 (identity arm semantics). `identity` mode enables ONLY the identity
+  detector (signatures, nonce freshness, key->role/blueprint binding, delegation
+  certs). No contract, provenance, baseline, context, drift or intent. Reason:
+  it is an ablation control for H3, not a shippable configuration; if it lit up
+  on a1-a4 it would prove the layer is behavioural in disguise.
+- D37 (a5 model). a5 is replay of captured signed envelopes (nonce reuse) from a
+  foreign host, not signing-key compromise. Reason: under key compromise the
+  identity arm cannot win by construction, and pretending otherwise would be
+  dishonest. The limitation is stated in THREAT_MODEL.md 5.3 and the a5 row.
+- D38 (attack id map). a1-a6 keep their v1 ids and meanings. New: a7 persistent
+  intruder (full ladder), a8 composition chain (every step contract-legal), a9
+  impersonation (key valid, claimed role/blueprint wrong). The approved-change
+  corpus stays `legit_change` and is NOT given an a-id. Reason: PREREG and
+  THREAT_MODEL reference these ids; renumbering would break v1 comparability.
+  Note the brief's "A7 legitimate change" is therefore `legit_change`, not a7.
+- D39 (v2 results reset). results/ is regenerated exactly once under the v2 arms
+  at M11 (schema v2, seed 7). The v1 artifacts remain recoverable from git tag
+  `final`; they are not copied forward, so no v1 number can leak into a v2
+  exhibit. Reason: the prompt's default, plus it prevents mixed-provenance charts.
+- D40 (doc drift cleanup, M8). TODO.md's "BLOCKER STATUS (shell broken)" section
+  was stale (shell works; git has 8 commits) and contradicting HANDOFF.md's
+  COMPLETE status; it is replaced by the M8-M14 checklist. HANDOFF.md's file map
+  said "tests/ (39 tests)" while the suite is 45. Reason: recorded rather than
+  silently deleted, and test-count drift becomes a docs_check case at M11.

@@ -1,28 +1,58 @@
-# TODO.md — Tether prototypes milestone checklist
+# TODO.md — Tether v2 milestone checklist
 
-Checkpoints: update HANDOFF.md, HISTORY.md, TODO.md and commit after every
-milestone and at least every 10 minutes. Tests must pass after each milestone.
+Plan: `PLAN_V2.md` (authoritative strategy). Spec: `PREREG.md` (frozen metrics),
+`THREAT_MODEL.md` (adversaries), `PROBLEM_STATEMENT.md` (framing).
 
-## Milestone checklist
+Checkpoint after every milestone: rewrite HANDOFF.md, append HISTORY.md, add
+DECISIONS.md entries, update this file + RESUME_PROMPT.md + TRANSFER.md, run
+tests, `git add -A && git commit`, tag.
 
-- [x] M0 handoff protocol files created (HANDOFF/HISTORY/DECISIONS/TODO/RESUME_PROMPT); git BLOCKED by broken shell
-- [x] M1 core: contract, events, ledger, gateway with contract check and taint chain; tests stored in tests/
-- [x] M2 scoring: fusion, response ladder, alert card, baseline with cold start, change channel
-- [x] M3 evaluation: scenarios, `python -m tether.evaluate --seed 7` will write results/results.json|csv, sample_alert.json, sample_session_log.jsonl
-- [x] M4 demo and docs: `python -m tether.demo --scenario ... --mode ...`, README.md
-- [x] M5 API: stdlib http.server JSON API + SSE event stream
-- [x] M6 dashboard: dashboard.html served by the same server
-- [x] M7 Phase 2: drift budget, context (stolen-token) checks, delegation checks; A5/A6 scenarios in the evaluation
-- [x] Final: RUN TESTS, results table from REAL results, CLAIMS CHECK in HANDOFF.md, git tag final
+## v2 milestones (strict order)
 
-## Post-final additions
+- [x] M8 framing: PREREG.md (frozen), THREAT_MODEL.md, PROBLEM_STATEMENT.md,
+      EXHIBITS.md exhibit list; doc drift D40 cleaned; no code changes
+- [ ] M9 identity layer: `tether/identity.py` (key registry, sign/verify over
+      canonical JSON, nonce cache, delegation certs, role/blueprint binding),
+      identity detector, `identity` arm in evaluate, signed contract load check.
+      Tests: tamper, replay, expired cert, forged grant, legit delegation no-FP
+- [ ] M10 ladder + attacks: identity-scoped escalation state machine, reachable
+      quarantine/skipped states, a7 persistent intruder, a8 composition, a9
+      impersonation; rung-coverage test (H4), a8 zero-contract-violation test
+- [ ] M11 evaluation v2: Wilson CIs, ablation matrix, threshold sweep (reported,
+      not tuned), ladder usage, leak/latency sample tails, CUSUM trajectory
+      export, results schema v2, `verify.py`, `docs_check.py`, fuzz invariants,
+      MANIFEST.json; regenerate results/ once under v2 arms (D39)
+- [ ] M12 UI v2: D3COY dark theme dashboard, 9 SVG exhibits (E1-E9), exhibit
+      mode `?exhibit=name`, alert export, replay stepper; every number from
+      results/ (no hand-typed values)
+- [ ] M13a judge package: README v2, EXHIBITS.md captions for E1-E9, openapi.json,
+      BENCHMARK.md, CLAIMS CHECK v2
+- [ ] M14 final: full test + evaluation, determinism check (two runs, one hash),
+      cold-resume drill, tag `v2`, HANDOFF FINAL, TRANSFER final
+- [ ] M13b (OPTIONAL, after M12+M13a only): slides.html + slides.css +
+      `tether/slides.py`, 9 slides, D3COY theme, numbers injected from results/
 
-- [x] TRANSFER.md written (all endpoints + live payloads + dashboard map for team UI work)
-- [x] API hardening (D32): /run param validation, clean 400s, mode whitelist; 45/45 tests
-- [x] Dashboard fixes from team screenshot: chart label alignment (dead `.chart .name` selector), per-session timeline grouping with header rows, alert card inside its session block
+## v1 record (complete, tag `final`)
 
-## BLOCKER STATUS (shell broken -- exit 53 on everything)
+<details>
+<summary>M0-M7 + post-final (all done)</summary>
 
-All milestone source is written. Remaining work is execution-only and needs a
-working shell and Python (see HANDOFF.md 'resumption instructions'). Nothing left
-to write.
+- [x] M0 handoff protocol files
+- [x] M1 core: contract, events, ledger, gateway, taint chain
+- [x] M2 scoring: fusion, ladder, alert card, baseline, change channel
+- [x] M3 evaluation: scenarios, results/ writers
+- [x] M4 demo + README
+- [x] M5 API: stdlib http.server + SSE
+- [x] M6 dashboard: single-file dark dashboard, timeline, alert card, charts
+- [x] M7 Phase 2: drift budget (CUSUM h=8), context, delegation, a5/a6
+- [x] Final: 45/45 tests, measured seed-7 table, CLAIMS CHECK, tag `final`
+- [x] Post-final: TRANSFER.md, API hardening (D32), dashboard label/grouping fixes
+
+</details>
+
+## Known doc drift to keep fixed
+
+- [x] TODO.md stale "BLOCKER STATUS (shell broken)" removed (D40)
+- [x] HANDOFF.md "tests/ (39 tests)" corrected to 45 (D40)
+- [ ] docs_check.py must fail on test-count and doc-vs-results drift (M11)
+
