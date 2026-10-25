@@ -19,6 +19,7 @@ milestone and at least every 10 minutes. Tests must pass after each milestone.
 
 - [x] TRANSFER.md written (all endpoints + live payloads + dashboard map for team UI work)
 - [x] API hardening (D32): /run param validation, clean 400s, mode whitelist; 45/45 tests
+- [x] Dashboard fixes from team screenshot: chart label alignment (dead `.chart .name` selector), per-session timeline grouping with header rows, alert card inside its session block
 
 ## BLOCKER STATUS (shell broken -- exit 53 on everything)
 

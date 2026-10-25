@@ -328,7 +328,7 @@ means touching only those variables and the few rules below them.
 
 | Panel | Data source | DOM ids / hooks |
 |---|---|---|
-| Session replay (controls + timeline + alert card) | `GET /run` on button click | `#scenario`, `#mode`, `#n`, `#run`, `#timeline`, `#alert` |
+| Session replay (controls + per-session grouped timeline + inline alert card) | `GET /run` on button click | `#scenario`, `#mode`, `#n`, `#run`, `#timeline`; each session renders as a `div.session` block with a `div.shead` header (tier, session id, alert/clean pill, leak, utility); its alert card is appended inside that block |
 | Run summary table | same `/run` response | `#summary` |
 | Slow replay (stream) | `GET /stream` via `EventSource` | `#stream`, `#stream-out` |
 | Detection % chart (phase1 blue vs phase2 green bars) | `GET /results` | `#chart`, `#chart-names`, legend is inline in the HTML |
@@ -336,17 +336,26 @@ means touching only those variables and the few rules below them.
 | Benign + latency table | `GET /results` | `#benign` |
 
 Rendering conventions to preserve if you restyle:
-- Timeline rows are `div.ev`; the action pill is `span.pill.<action>` with
+- Each session is a `div.session` block containing a `div.shead` header row
+  (tier, session id, alert/clean pill, leak, utility — `ok`/`bad` accent
+  border) followed by its `div.ev` step rows, so `n>1` runs stay readable.
+  Step rows no longer repeat the tier; it lives in the header.
+- Inside a step row (`div.ev`) the action pill is `span.pill.<action>` with
   classes `allow` (green), `block`/`quarantine`/`isolate`/`narrow` (red),
   `hold` (amber), `skipped` (dim), `enforcement` (blue). Add CSS for any new
   action value; unknown actions fall back to bare `pill`.
 - Detector `reasons` are attached as the row's `title` attribute (hover
   tooltip), taint `labels` render as dim text between tool and pill.
 - The alert card is rendered directly from the `/run` response's
-  `s.alert` (no refetch) via `showAlert()`; it shows score, severity,
-  confidence, `baseline_maturity`, `action_taken`, reasons, counterfactual.
+  `s.alert` (no refetch) via `showAlert(card, target)` and appended inside
+  the alerting session's block; it shows score, severity, confidence,
+  `baseline_maturity`, `action_taken`, reasons, counterfactual.
 - Chart bars: phase 1 = `.bar`, phase 2 = `.bar.p2`, values < 50% get
-  `.bad` (red). Bar height = `max(4, pct)%` of the 120px chart.
+  `.bad` (red). Bar height = `max(4, pct)%` of the 120px chart. The attack
+  labels live in the SIBLING `#chart-names` (`div.name`), each `i` fixed at
+  60px = one bar pair's width (26+8+26px). Do not scope those rules under
+  `.chart` again — the labels are not chart children (that bug squashed all
+  labels into "a1a2a3a4a5a6").
 - Seed is hardcoded to `7` in the dashboard's `/run` call — change it in
   `runSession()` if you add a seed control.
 - `loadScenarios()` populates the dropdown from `/scenarios`; do not

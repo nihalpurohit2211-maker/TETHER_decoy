@@ -93,3 +93,23 @@ are recorded as approximate wall-clock text from the session clock
   tightened to exact /run; POST rejects non-dict bodies. 6 new tests;
   suite now 45/45 OK. Verified live: 400 bad mode, 400 bad n, 404 unknown
   scenario, valid run unchanged (a1 mild: detected, alert score 70).
+
+## Checkpoint (post-final): dashboard UI fixes from team screenshot
+
+- Chart label fix: the attack-name labels under the detection chart
+  (#chart-names, div.name) are a SIBLING of .chart, so the old
+  .chart .name ... selectors never matched and all six labels collapsed
+  into one squashed "a1a2a3a4a5a6" string. Selectors now also target
+  .name / .name i with flex-basis 60px (= one bar pair width), so
+  labels align under their bar pairs again.
+- Timeline session grouping: with sessions n>1 the five sessions' steps
+  ran together in one flat list (step numbers restarting, no separator).
+  Each session now renders as its own div.session block with a div.shead
+  header (tier, session id, alert/clean pill, leak, utility, ok/bad accent
+  border); its alert card is appended inside the block instead of piling
+  up in a single bottom div (#alert removed). Step rows no longer repeat
+  the tier prefix; it moved to the header. Run summary table unchanged.
+- TRANSFER.md dashboard section updated to match (and warns future editors
+  not to re-scope the label rules under .chart).
+- Tests: 45/45 OK (HTML not covered by tests; verified live via served
+  / response containing new markup and no leftover els.alert references).
