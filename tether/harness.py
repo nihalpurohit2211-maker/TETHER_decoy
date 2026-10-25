@@ -32,7 +32,9 @@ class PlannedAction:
     records: int = 0
     carries: list[str] = field(default_factory=list)
     statement: str = ""
+    content: str = ""        # document text for content-ingestion steps (textgate screens this)
     poisoned: bool = False   # instruction came from untrusted content (assume injection succeeded)
+    injects: bool = False    # this step delivers the untrusted instruction (injection vector)
     legitimate: bool = True  # false for attacker-chosen steps
     leak: bool = False       # attacker-benefit transfer when executed
 
@@ -130,6 +132,10 @@ def run_session(
         raise ValueError("textgate mode requires a fitted TextGate")
 
     events_of_session: list[Event] = []
+    # Injection-landing rule: poisoned steps only run when the instruction
+    # actually reached the agent. Plans with no injection vector (A2's poisoned
+    # tool description) count as pre-poisoned from the start.
+    injection_landed = not any(s.injects for s in plan.steps)
     for idx, step in enumerate(plan.steps, start=1):
         act = f"{step.tool}@{step.resource}"
         result.steps.append((idx, step.tool, "planned", 0.0))
@@ -140,18 +146,31 @@ def run_session(
 
         if mode == "none":
             executed = True
+            if step.injects:
+                injection_landed = True
             result.legit_executed += 1 if step.legitimate else 0
             result.max_score = max(result.max_score, 0.0)
 
         elif mode == "textgate":
-            cosine = config.gate.cosine(step.statement)  # type: ignore[union-attr]
-            executed = cosine >= COSINE_THRESHOLD
-            score = 0.0 if executed else round(1.0 - cosine, 3)
-            if not executed:
-                result.detected = True
-                if result.first_alert_step is None:
-                    result.first_alert_step = idx
-            result.max_score = max(result.max_score, score)
+            if step.tool == "pdf.read" and step.content:
+                # The stand-in gate screens document text at the ingestion
+                # step only; it has no other visibility (comparison defense).
+                cosine = config.gate.cosine(step.content)  # type: ignore[union-attr]
+                executed = cosine >= COSINE_THRESHOLD
+                score = 0.0 if executed else round(1.0 - cosine, 3)
+                if not executed:
+                    result.detected = True
+                    if result.first_alert_step is None:
+                        result.first_alert_step = idx
+                result.max_score = max(result.max_score, score)
+            elif step.poisoned:
+                executed = injection_landed
+                score = 0.0
+            else:
+                executed = True
+                score = 0.0
+            if executed and step.injects:
+                injection_landed = True
             if executed:
                 result.legit_executed += 1 if step.legitimate else 0
 
@@ -161,7 +180,7 @@ def run_session(
                 if step.legitimate:
                     result.skipped_isolated_legit += 1
                 continue
-            if state.quarantined and step.poisoned:
+            if (state.quarantined or not injection_landed) and step.poisoned:
                 result.skipped_injected += 1
                 continue
             dec, state = gateway.evaluate(ev)  # type: ignore[union-attr]
@@ -172,6 +191,8 @@ def run_session(
             result.latencies.append(dec.latency_ms)
             result.steps[-1] = (idx, step.tool, dec.action, dec.score)
             executed = dec.action == "allow"
+            if executed and step.injects:
+                injection_landed = True
             result.max_score = max(result.max_score, dec.score)
             if not executed:
                 result.detected = True
@@ -190,6 +211,7 @@ def run_session(
                 result.caught_all_leaks = False
 
     if mode == "tether":
+        gateway.end_session(plan.session)
         carry_any = any("CARRY" in ev.labels for ev in events_of_session)
         config.tracker.learn_session(
             events_of_session, alerts_any=bool(gateway.state_for(plan.session).alerts),  # type: ignore[union-attr]

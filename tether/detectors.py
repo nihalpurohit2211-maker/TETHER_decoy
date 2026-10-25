@@ -269,47 +269,119 @@ def context_check(ev: Event, contract: Contract, state) -> DetectorResult:
 
 # ------------------------------------------------------------------- drift
 class DriftBudget:
-    """Phase 2 drift budget: CUSUM of outbound bytes per destination against a
-    FROZEN anchor pseudo-seeded from the contract's implied send volume;
-    refreshed only by approved change (D23). Deliberately fails silent in
-    Phase 1 (gateway only passes a budget when phase2 is on)."""
+    """Phase 2 drift budget: a one-sided standardized CUSUM of per-session
+    outbound RECORD volume per destination against a FROZEN anchor pseudo-
+    seeded from the contract's implied email pattern; refreshed only by an
+    approved change (D23, D26). Per-session byte ceilings are already enforced
+    deterministically by the contract check, so records are the exfiltration-
+    relevant volume tracked here. k=0.5 and h=5 are textbook one-sided CUSUM
+    values, chosen a priori. The score always reflects committed (completed
+    session) evidence, so detection lags the first session by design.
+    Deliberately silent in Phase 1 (gateway only receives a budget when
+    phase2 is on)."""
 
-    def __init__(self, anchor: dict[str, float], k_factor: float = 0.25, h_factor: float = 2.0) -> None:
-        self.anchor = dict(anchor)      # frozen; may be replaced via refresh
-        self.k_factor = k_factor
-        self.h_factor = h_factor
+    DEFAULT_ANCHOR = {"mu_records": 1.0, "sigma_records": 1.0}
+
+    def __init__(
+        self,
+        anchor: dict[str, dict[str, float]],
+        k: float = 0.5,
+        h: float = 8.0,
+        review_latency: int = 10,
+        review_keep_z: float = 2.0,
+    ) -> None:
+        self.anchor = anchor            # frozen; may be replaced via refresh
+        self.k = k
+        self.h = h                      # calibrated on null traffic (D26)
+        self.review_latency = review_latency   # modeled sponsor review delay
+        self.review_keep_z = review_keep_z     # attempted-volume bar to keep
         self.cusum: dict[str, float] = {}
+        self.pending: dict[str, int] = {}
+        self.latched: set[str] = set()  # alarmed destinations stay contained
+        self.review_counters: dict[str, int] = {}
+        self.review_attempts: dict[str, int] = {}
 
-    def refresh(self, anchor: dict[str, float]) -> None:
-        """Only an approved change may re-freeze the anchor."""
+    def refresh(self, anchor: dict[str, dict[str, float]]) -> None:
+        """Only an approved change may re-freeze the anchor; it also clears
+        latched alarms (the human review is the reset path)."""
         self.anchor = dict(anchor)
         self.cusum.clear()
+        self.pending.clear()
+        self.latched.clear()
+        self.review_counters.clear()
+        self.review_attempts.clear()
 
-    def observe(self, destination: str, bytes_out: int) -> float:
-        """Update the CUSUM and return the drift score in [0,1]."""
+    def accumulate(self, destination: str, records: int) -> None:
+        """Record executed outbound volume for the open session."""
+        if destination:
+            self.pending[destination] = self.pending.get(destination, 0) + records
+
+    def record_attempt(self, destination: str, records: int) -> None:
+        """Record a PROPOSED outbound volume. While a destination's alarm is
+        latched this is the review evidence: an attacker keeps pushing volume
+        even though the sends are held; ordinary traffic does not."""
+        if destination in self.latched:
+            self.review_attempts[destination] = (
+                self.review_attempts.get(destination, 0) + records
+            )
+
+    def end_session(self) -> None:
+        """Commit the session's per-destination volume into the CUSUM, latch
+        alarms at the decision interval and run the sponsor-review clock.
+        Every anchor destination updates every session: zero volume is
+        evidence too (otherwise untouched destinations could never decay)."""
+        for dest, a in self.anchor.items():
+            mu = a.get("mu_records", self.DEFAULT_ANCHOR["mu_records"])
+            sg = a.get("sigma_records", self.DEFAULT_ANCHOR["sigma_records"])
+            records = self.pending.get(dest, 0)
+            z = (records - mu) / max(sg, 1e-9)
+            self.cusum[dest] = max(0.0, self.cusum.get(dest, 0.0) + z - self.k)
+            if self.cusum[dest] >= self.h and dest not in self.latched:
+                self.latched.add(dest)
+                self.review_counters[dest] = 0
+                self.review_attempts[dest] = 0
+        self.pending.clear()
+        for dest in list(self.latched):
+            self.review_counters[dest] = self.review_counters.get(dest, 0) + 1
+            if self.review_counters[dest] >= self.review_latency:
+                a = self.anchor.get(dest, self.DEFAULT_ANCHOR)
+                mu = a.get("mu_records", self.DEFAULT_ANCHOR["mu_records"])
+                sg = a.get("sigma_records", self.DEFAULT_ANCHOR["sigma_records"])
+                avg = self.review_attempts.get(dest, 0) / self.review_latency
+                if (avg - mu) / max(sg, 1e-9) > self.review_keep_z:
+                    # sustained attempted volume above anchor: keep contained
+                    self.review_counters[dest] = 0
+                    self.review_attempts[dest] = 0
+                else:
+                    # review found no sustained push: approve and reset
+                    self.latched.discard(dest)
+                    self.cusum[dest] = 0.0
+                    self.review_counters.pop(dest, None)
+                    self.review_attempts.pop(dest, None)
+
+    def score(self, destination: str) -> float:
+        """Drift score in [0,1]: 1.0 while the destination's alarm is latched,
+        else 0. The alarm latches (subject to sponsor review) so an attacker
+        cannot simply wait out the statistic and resume."""
         if not destination:
             return 0.0
-        a = self.anchor.get(destination, 500.0)
-        k = self.k_factor * a
-        h = self.h_factor * a
-        prev = self.cusum.get(destination, 0.0)
-        cur = max(0.0, prev + (bytes_out - a) - k)
-        self.cusum[destination] = cur
-        return min(1.0, cur / h) if h > 0 else 0.0
+        return 1.0 if destination in self.latched else 0.0
 
 
 def drift_check(ev: Event, budget: DriftBudget) -> DetectorResult:
-    """Score an outbound event against the cumulative drift budget."""
+    """Score an outbound event against the committed cumulative drift budget."""
     name = "drift"
     if not ev.destination:
         return DetectorResult(name=name, score=0.0, weight=W_DRIFT, evidence="local call")
-    s = budget.observe(ev.destination, ev.bytes)
+    s = budget.score(ev.destination)
+    cus = budget.cusum.get(ev.destination, 0.0)
     reasons = [
-        f"cumulative drift budget exceeded for destination {ev.destination}"
+        f"cumulative record drift budget exceeded for destination {ev.destination} "
+        f"(cusum {cus:.1f} over sessions)"
     ] if s >= 1.0 else []
     return DetectorResult(
         name=name, score=s, weight=W_DRIFT,
-        evidence=f"dest={ev.destination} cusum={budget.cusum[ev.destination]:.0f}",
+        evidence=f"dest={ev.destination} cusum_records={cus:.1f}",
         reasons=reasons,
     )
 

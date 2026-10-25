@@ -45,10 +45,17 @@ CORE_CAVEATS = [
 ]
 
 
-def _drift_anchor() -> dict[str, float]:
-    """Frozen anchor, pseudo-seeded a priori from the contract's implied send
-    volumes; replaced only by an approved change (anti-boiling-frog)."""
-    return {"mail.internal": 4000.0, "supplier-portal.example": 2500.0}
+def _drift_anchor() -> dict[str, dict[str, float]]:
+    """Frozen anchor, pseudo-seeded a priori from the deployment's stated send
+    pattern for this role (one to two emails per session, roughly 30 percent
+    to the portal and 70 percent internal, about one record each): per-session
+    mean and spread of outbound records per destination. A real deployment
+    would get these numbers from the service owner, not from live traffic;
+    replaced only by an approved change (anti-boiling-frog)."""
+    return {
+        "mail.internal": {"mu_records": 1.0, "sigma_records": 0.7},
+        "supplier-portal.example": {"mu_records": 0.5, "sigma_records": 0.6},
+    }
 
 
 def make_config(

@@ -173,17 +173,59 @@ class TestGateway(unittest.TestCase):
 class TestDriftAndDelegation(unittest.TestCase):
     def test_drift_budget_fires_on_repeated_high_volume(self) -> None:
         budget = DriftBudget(_drift_anchor())
+        ev = make_event(tool="email.send", action="send",
+                        data_class="supplier_pricing",
+                        destination="supplier-portal.example",
+                        bytes=40000, records=20)
+        budget.accumulate(ev.destination, ev.records)
+        budget.end_session()
+        self.assertEqual(drift_check(ev, budget).score, 1.0)
+        # near-anchor traffic must not move the budget
+        fresh = DriftBudget(_drift_anchor())
+        fresh.accumulate("supplier-portal.example", 1)
+        fresh.end_session()
+        self.assertLess(fresh.score("supplier-portal.example"), 0.5)
+
+    def test_drift_budget_fires_on_records_drip(self) -> None:
+        # A4 shape: a few extra records per session, tiny bytes, many sessions.
+        budget = DriftBudget(_drift_anchor())
         score = 0.0
-        for _ in range(3):
-            ev = make_event(tool="email.send", action="send",
-                            data_class="supplier_pricing",
-                            destination="supplier-portal.example",
-                            bytes=40000, records=20)
-            score = drift_check(ev, budget).score
+        for _ in range(10):
+            budget.accumulate("mail.internal", 2)
+            budget.end_session()
+            score = budget.score("mail.internal")
         self.assertEqual(score, 1.0)
-        shrunk = DriftBudget(_drift_anchor())
-        score = DriftBudget(_drift_anchor()).observe("supplier-portal.example", 3000)
-        self.assertLess(score, 0.5)
+        # the alarm latches: quiet traffic alone does not clear it early...
+        for _ in range(5):
+            budget.accumulate("mail.internal", 1)
+            budget.record_attempt("mail.internal", 1)
+            budget.end_session()
+        self.assertEqual(budget.score("mail.internal"), 1.0)
+        # ...but once the modeled sponsor review sees no sustained push, the
+        # alarm is approved off (attempts at anchor level, z <= keep bar)
+        for _ in range(6):
+            budget.accumulate("mail.internal", 1)
+            budget.record_attempt("mail.internal", 1)
+            budget.end_session()
+        self.assertEqual(budget.score("mail.internal"), 0.0)
+        # a sustained push during review keeps the latch engaged
+        attack = DriftBudget(_drift_anchor())
+        for _ in range(8):
+            attack.accumulate("mail.internal", 3)
+            attack.record_attempt("mail.internal", 3)
+            attack.end_session()
+        for _ in range(15):
+            attack.record_attempt("mail.internal", 3)
+            attack.end_session()
+        self.assertEqual(attack.score("mail.internal"), 1.0)
+        # benign-shaped sessions alone never trip the budget
+        benign = DriftBudget(_drift_anchor())
+        for _ in range(60):
+            benign.accumulate("mail.internal", 1)
+            benign.record_attempt("mail.internal", 1)
+            benign.end_session()
+        self.assertEqual(benign.cusum.get("mail.internal", 0.0), 0.0)
+        self.assertEqual(benign.score("mail.internal"), 0.0)
 
     def test_delegation_authority_intersection(self) -> None:
         contract = load_contract()

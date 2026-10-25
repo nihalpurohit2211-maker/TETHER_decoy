@@ -89,6 +89,11 @@ class Gateway:
             self.states[session] = SessionState(session=session, baseline=self.tracker)
         return self.states[session]
 
+    def end_session(self, session: str) -> None:
+        """Commit per-session drift volume when the harness closes a session."""
+        if self.budget is not None:
+            self.budget.end_session()
+
     # ------------------------------------------------------------------ main
     def evaluate(self, ev: Event) -> tuple[Decision, SessionState]:
         """Full path: enforcement -> labels -> detectors -> fusion -> ladder."""
@@ -127,6 +132,9 @@ class Gateway:
                 results["context"] = context_res
             if self.budget is not None:
                 results["drift"] = drift_check(ev, self.budget)
+                if ev.destination:
+                    # proposed volume feeds the sponsor-review evidence window
+                    self.budget.record_attempt(ev.destination, ev.records)
             if len(ev.lineage) > 1:
                 results["delegation"] = delegation_check(ev, self.contract, None)
 
@@ -234,6 +242,9 @@ class Gateway:
         if "EXTERNAL_SEND" in ev.labels:
             state.off_allowlist_egress = True
             state.egress_event_ids.append(ev.event_id)
+        if self.budget is not None and ev.destination:
+            # executed outbound volume feeds the drift budget's open session
+            self.budget.accumulate(ev.destination, ev.records)
         # Full chain bookkeeping: CARRY-tainted restricted data anywhere in the
         # session marks the chain as complete-with-exposure for corroboration.
         if "CARRY" in ev.labels and (state.restricted_read or state.untrusted_input):
