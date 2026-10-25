@@ -325,3 +325,28 @@ are recorded as approximate wall-clock text from the session clock
 - Tests: 126 -> 132 green (+6 OpenAPI contract tests).
 - DECISIONS: D61 OpenAPI is a checked contract; D62 benchmark reuses the
   generated claims block; D63 captions reviewed; D64 CLAIMS CHECK statuses.
+
+## 2026-10-25 22:58 - v2 M14: final verification + cold-resume drill (tag v2)
+
+- verify.py (run after M13a, at e97b42b): two seed-7 ablation runs produced the
+  same results digest e1b8fef2...ac9aa and the same manifest hash
+  3a50c64d...b7c9 (H6 PASS); seed-11 replication a3 99.5% [97.22,99.91],
+  a4 97.0% [93.61,98.62] (H7 PASS); H1-H9 9 PASS, 0 FAIL.
+- Cold-resume drill from HANDOFF.md alone: 132/132 tests OK, exhibits --check
+  PASS (9 SVGs + INDEX byte-identical), docs_check.py 10/10 PASS, and the
+  digest recomputed from results.json matched MANIFEST.results_sha256. One
+  small named change was made: README's zero-leak claim now says the tether arm
+  leaked median 0 / p90 0 records (no-defense medians 148/131) instead of the
+  ambiguous "both arms' tether output". Docs rechecked after the edit.
+- HANDOFF.md rewritten FINAL: evidence paths, digest/manifest hash, explicit
+  misses (a3/a4 Phase-1 0%, a4 7.5% Phase-2 miss, a7 95.0/94.5 primary and
+  99.0/98.5 Phase 2, 11/200 primary leak tail), CLAIMS CHECK summary, drill,
+  exact commands, file map, and no required next action.
+- Correction to the M11/M13a history notes and D63: E2 plots the primary
+  Phase-1 arm, where
+  a7 leaks in 11/200 sessions (max 4, 2-4 records), not 3/200. The 3/200 figure
+  is Phase 2. D65 records the correction; the caption was already correct.
+- TRANSFER.md finalized: v2 note through M14/tag v2, D1-D65, 132 tests, no
+  stale v1 results table or v1 dashboard ids.
+- TODO.md M14 checked; M13b (slides) remains the only optional item.
+- No detector, threshold, attack, metric or results/ artifact changed in M14.

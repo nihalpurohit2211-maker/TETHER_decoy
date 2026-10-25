@@ -160,7 +160,7 @@ at seed 7**, not in production.
 | Claim | Evidence | Status |
 |---|---|---|
 | Gate latency under 5 ms | p95 0.873 ms, p99 1.307 ms, n=11,105 | **PARTIAL** — supported at p95/p99; the 130.682 ms max is first-decision warm-up and is disclosed |
-| Zero bytes leaked on a1 and a2 | leak median 0.0, p90 0.0 in both arms' tether output | **SUPPORTED for records** — leak is measured in records, not bytes |
+| Zero bytes leaked on a1 and a2 | tether arm: leak median 0.0, p90 0.0 records/session (no-defense median 148 / 131) | **SUPPORTED for records** — leak is measured in records, not bytes |
 | Zero false alerts on approved change | 0.0 per 1,000 incl. approved change; 0 benign isolations | **SUPPORTED** |
 | Core work continues under containment | benign/approved-change utility 100.0 % [99.94, 100.00] | **SUPPORTED** for legitimate work; attack-session utility 58.8 % is the containment cost (D55), not a false alert |
 | Mimicry is bounded, not detected | a3 Phase 1 0.0 % (leak unchanged); Phase 2 99.5 % | **SUPPORTED** as stated; Phase 2 detects it |

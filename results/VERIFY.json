@@ -61,8 +61,8 @@
       "value": "a8 detected=100.0% (steps contract-legal by test)"
     }
   },
-  "manifest_hash_run_1": "0b17ec142526c4e4de1e99adf17b6b5b652b8d367bce5eded6b428b308ec622e",
-  "manifest_hash_run_2": "0b17ec142526c4e4de1e99adf17b6b5b652b8d367bce5eded6b428b308ec622e",
+  "manifest_hash_run_1": "3a50c64dd0605deb26e4eb2609851ffb2ddc9a08aea6aa69dafb358673d2b7c9",
+  "manifest_hash_run_2": "3a50c64dd0605deb26e4eb2609851ffb2ddc9a08aea6aa69dafb358673d2b7c9",
   "quick": false,
   "replication": {
     "a3_mimicry": {

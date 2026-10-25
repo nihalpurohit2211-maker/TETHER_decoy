@@ -1,39 +1,38 @@
-# HANDOFF.md — Tether v2 (M13a done)
+# HANDOFF.md — Tether v2 (FINAL, tag `v2`)
 
-## Status
+## Status: complete
 
-v1 complete (`final`). M8 framing, M9 identity layer, M10 reachable ladder,
-M11 evaluation v2, M12 judge-facing exhibits/dashboard and **M13a judge
-package all done**.
-The results pipeline produces Wilson 95 % CIs, full leak vectors + p90,
-latency p50/p95/p99/max with n and a CDF, a per-corpus CUSUM trajectory, a
-report-only threshold sweep, a leave-one-out detector ablation, `MANIFEST.json`
-with a deterministic digest, a generated `RESULTS_TABLE.md`, and machine-checked
-H1–H9 verdicts. `verify.py` re-runs the evaluation twice, checks digest +
-manifest hash, replicates a3/a4 at seed 11, and refreshes verdicts.
+Tether v2 is finished and tagged `v2`. v1 is tagged `final`. The v2 milestones
+ran in strict order: M8 framing, M9 identity layer, M10 reachable ladder +
+a7/a8/a9, M11 evaluation v2, M12 exhibits/dashboard, M13a judge package,
+M14 final verification and cold-resume drill. M13b (slides) was optional and
+was not built; see NEXT ACTION.
 
-M12 adds `tether/exhibits.py` (nine deterministic SVGs + `INDEX.json`),
-`/exhibits` + `/exhibits/<name>.svg` API routes, a rewritten D3COY dark
-dashboard (live replay stepper, alert export, deep links, explicit no-results
-state), and `tests/test_exhibits.py`. M13a adds `BENCHMARK.md` (enforced
-generated claims block), `openapi.json` (ten routes, nine exhibit names),
-README v2 with a CLAIMS CHECK table, and VERIFIED exhibit captions.
-`docs_check.py` now fails on stale SVGs/captions or an OpenAPI/route mismatch
-(ten checks total).
+There is **no required work left**. Everything below is reproducible from the
+repository with the standard library only, no network, and no LLM calls.
 
-**132/132 tests green.** `results/` was regenerated exactly once under the v2
-arms (D39): seed 7, 200 sessions/attack, 900 benign, 100 approved-change,
-11 105 gateway decisions. The exhibits and benchmark card were generated from
-that artifact; they are not a second measurement.
+## Evidence in one place
 
-Honest headline: H1–H5, H8, H9 pass; H6/H7 are decided by `verify.py` (below).
-a3/a4 remain **Phase-1 misses by design** (0.0 % each) and are caught only with
-the Phase-2 drift budget (99.5 % / 92.5 % at seed 7). a7's persistent-intruder
-corpus is 99.0 % detected / 98.5 % caught; identity-only is exactly orthogonal
-(0 % on a1–a4, 100 % on a5/a6/a9). Attack-session utility is 58.8 % because
-repeated incidents on one role identity escalate quickly; benign/approved-change
-utility is 100 % with zero false alerts and zero isolations (D55 states the
-boundary).
+- Canonical raw results: `results/results.json` — seed 7, n=200 sessions/attack,
+  900 benign, 100 approved-change, 11,105 gateway decisions,
+  `wall_seconds=77.49` (stopwatch, excluded from the digest).
+- Full tables with Wilson 95 % CIs: `results/RESULTS_TABLE.md` (generated,
+  byte-checked).
+- Determinism + replication + H1–H9: `results/VERIFY.json` and
+  `results/MANIFEST.json`.
+  - results digest: `e1b8fef23abf39c5cacef25b53fd2e015da53362be8a0bb46c7a9eaca97ac9aa`
+  - manifest hash: `3a50c64dd0605deb26e4eb2609851ffb2ddc9a08aea6aa69dafb358673d2b7c9`
+  - two seed-7 runs produced the same digest and manifest hash (H6 PASS)
+  - seed-11 replication: a3 99.5 % [97.22, 99.91], a4 97.0 % [93.61, 98.62]
+  - H1–H9: **9 PASS, 0 FAIL**
+- Judge card: `BENCHMARK.md` (its numeric block is generated and enforced).
+- Figures + captions/units/n: `results/exhibits/INDEX.json` + nine SVGs.
+- API contract: `openapi.json` (10 paths, 9 exhibit names, local server only).
+- Claims audit: `README.md` § CLAIMS CHECK v2 (full table).
+
+`MANIFEST.json` records `git_commit` as the commit at which `verify.py` last ran
+(`e97b42b`, tag `m13a`); commit hashes cannot self-reference the tag commit. It
+is metadata outside `results_sha256` and does not affect the digest.
 
 ## Generated measured claims (do not hand-edit)
 
@@ -58,101 +57,128 @@ hypotheses: H1=PASS H2=PASS H3=PASS H4=PASS H5=PASS H6=PASS H7=PASS H8=PASS H9=P
 <!-- END GENERATED CLAIMS -->
 ```
 
-Full tables: `results/RESULTS_TABLE.md`. Raw: `results/results.json`.
-Determinism/replication evidence: `results/VERIFY.json`.
-Exhibits: `results/exhibits/INDEX.json` + nine SVGs.
+## Misses and limitations (reported, not hidden)
 
-## NEXT ACTION
+- **a3 mimicry and a4 low-and-slow are Phase-1 misses**: 0.0 % detected
+  [0.0, 1.9] each. The Phase-2 drift budget catches them at 99.5 % and 92.5 %
+  (seed 7, n=200). Never present Phase 2 as Phase 1.
+- **a4 still misses 7.5 % of sessions in Phase 2.** a3 still leaks a median of
+  18 records in Phase 1 (24 p90).
+- **a7 persistent intruder is partial**: Phase 1 95.0 % detected / 94.5 %
+  caught; Phase 2 99.0 % / 98.5 %. In the primary (Phase-1) arm 11 of 200
+  sessions leak 2–4 records; after the Phase-2 latch 3 of 200 leak 3–4. E2
+  plots the primary arm and captions that tail explicitly (D63/D65).
+- **Attack-session utility 58.8 %** is the containment cost of identity-scoped
+  escalation across separately evaluated corpora (D55). Benign and
+  approved-change utility is 100.0 % [99.94, 100.0] with 0.0 false alerts
+  [0.0, 0.38] per 1,000 and zero benign isolations. Do not average the two
+  into one "utility" number.
+- **Identity layer**: exactly orthogonal on this corpus (0 % on a1–a4, 100 % on
+  a5/a6/a9), but it does **not** detect signing-key compromise. a5 models
+  replay, not key theft (D37/D45). HMAC-SHA256 is a stand-in for Ed25519 and
+  contract signing is tamper-evident only, not a security boundary (D33/D44).
+- **Latency max 130.682 ms** is first-decision warm-up. The operational claim is
+  p95 0.873 ms / p99 1.307 ms (n=11,105). The max is plotted and annotated on
+  E6 rather than trimmed.
+- **Simulation only**: scripted agent, no real tools/IAM/email/egress, no
+  production traces, and we wrote both the attacks and the detectors. The
+  `textgate` arm is a TF-IDF stand-in, not an LLM judge.
+- **a6 uses a fixed parent/child pair**; a delegation-discovery test is future
+  work. Paraphrased sensitive data can slip token matching.
+- **The L0 contract is human-authored**; provenance assumes a gateway in the
+  data path. Correctness of the policy is assumed, not proven.
 
-M14: final. (M13b slides remain optional and come after M14.)
+## CLAIMS CHECK summary
 
-1. Run the full test suite, `python -m tether.exhibits --check`, a fresh
-   `python verify.py` (two evaluation runs must produce one results digest and
-   one manifest hash; it does not overwrite `results/results.json`), and
-   `python docs_check.py`. Do not regenerate `results/` for cosmetic reasons:
-   the latency CDF is part of E6 and would need an exhibit rewrite.
-2. Cold-resume drill: start from `HANDOFF.md` only, follow its commands, confirm
-   the 132-test count and the digest
-   `e1b8fef23abf39c5cacef25b53fd2e015da53362be8a0bb46c7a9eaca97ac9aa`, then make
-   one small change named in this file (e.g. a README wording fix) and record
-   the drill in HISTORY.md.
-3. Make `HANDOFF.md` FINAL: results table pointer, explicit misses, CLAIMS CHECK
-   v2 summary, exact commands, unfinished items with next action, tag `v2`.
-4. Finalize `TRANSFER.md` (endpoints incl. `/exhibits`, benchmark/openapi map,
-   current test count, no stale v1 dashboard instructions). Confirm the working
-   tree is clean and every tag `m8`–`m13a` plus `v2` exists.
-5. Only after M14: optionally build M13b slides from the same generated data;
-   the build must not block or alter the tagged v2 artifacts.
+Full evidence table: `README.md` § CLAIMS CHECK v2. Statuses are about this
+simulated seed-7 corpus, not production.
 
-No detectors, thresholds, attacks, metrics or measured artifacts change in M14.
+| Claim | Status |
+|---|---|
+| Gate latency under 5 ms | **PARTIAL** — p95/p99 pass; 130.682 ms warm-up max disclosed |
+| Zero bytes leaked on a1/a2 | **SUPPORTED for records** — median 0, p90 0; not a byte count |
+| Zero false alerts on approved change | **SUPPORTED** — 0.0/1,000; zero benign isolations |
+| Core work continues under containment | **SUPPORTED** for legitimate work (100 %); attack utility 58.8 % is the containment cost (D55) |
+| Mimicry is bounded, not detected | **SUPPORTED as stated** — Phase 1 0 %; Phase 2 99.5 % |
+| Low-and-slow is caught | **PARTIAL** — Phase 2 92.5 %, 7.5 % still miss |
+| Every response rung is reachable | **SUPPORTED** — all counts non-zero |
+| Identity layer handles replay/bad delegation/impersonation | **SUPPORTED** on this corpus; no key-compromise claim |
+| The run is deterministic | **SUPPORTED** — two runs, one digest + one manifest hash |
+| Attack-session utility is 58.8 % | **DISCLOSED LIMITATION** (D55) |
 
-## How to run and test
+## M14 cold-resume drill
+
+Performed 2026-10-25 starting from this HANDOFF alone (no chat context), using
+only the commands below:
+
+1. Full suite: `Ran 132 tests ... OK`, EXIT=0.
+2. `python -m tether.exhibits --check`: PASS, 9 SVGs + `INDEX.json` match
+   `results.json` byte-for-byte.
+3. `python docs_check.py`: **10 passed, 0 failed**.
+4. Digest recomputed from `results/results.json` with
+   `tether.report.results_digest` matched
+   `e1b8fef23abf39c5cacef25b53fd2e015da53362be8a0bb46c7a9eaca97ac9aa`
+   and `MANIFEST.json` `results_sha256`.
+5. One small named change was made and verified: README zero-leak claim now
+   says the tether arm leaked a median of 0 / p90 0 **records** (and cites the
+   no-defense medians 148/131) instead of the ambiguous "both arms' tether
+   output". Docs were rechecked after the edit.
+
+The drill exposed no hidden state and needed no undocumented command.
+
+## Reproduce / verify (exact commands)
 
 ```
 cmd /c "python -m unittest discover -s tests -t . 2>&1"; echo "EXIT=$LASTEXITCODE"
-python -m tether.evaluate --seed 7 --ablation     # ~78 s, writes results/
+python -m tether.evaluate --seed 7 --ablation     # ~78 s, rewrites results/
 python -m tether.exhibits --write                 # regenerate 9 SVGs + INDEX
 python -m tether.exhibits --check                 # byte-compare with results/
-python verify.py                                  # two runs + replication
-python docs_check.py                              # results/exhibits/openapi/docs drift
-python docs_check.py --fix                        # refresh claims blocks
+python verify.py                                  # 2 runs + seed-11 + verdicts
+python docs_check.py                              # 10 drift checks
+python docs_check.py --fix                        # refresh enforced claims blocks
 python -m tether.api                              # http://127.0.0.1:8765/
 ```
 
-Windows: run unittest through `cmd /c` (PowerShell reports exit 1 on OK because
-unittest writes to stderr).
+Windows: run unittest through `cmd /c` (PowerShell can report exit 1 on OK
+because unittest writes to stderr). Re-running the evaluation rewrites
+`results/`; the canonical artifact is the checked-in one. `verify.py` does not
+overwrite `results/results.json`, but it does rewrite `MANIFEST.json`,
+`VERIFY.json` and `RESULTS_TABLE.md`.
 
 ## Last test result
 
-2026-10-25 22:49 — `Ran 132 tests ... OK`, EXIT=0 (113 through M11 + 13
-exhibit/API/dashboard tests + 6 OpenAPI contract tests). M12 visual QA done in
-Chromium at 1440 px; M13a docs checked 10/10.
+2026-10-25 22:58 — `Ran 132 tests ... OK`, EXIT=0 (113 through M11 + 13
+exhibit/API/dashboard tests + 6 OpenAPI contract tests). `docs_check.py`
+10/10 PASS; exhibits `--check` PASS; `verify.py` 9/9 hypotheses PASS with the
+digest and manifest hash quoted above.
 
-Full seed-7 run: `wall_seconds=77.49`, 11 105 decisions, results digest
-`e1b8fef23abf39c5cacef25b53fd2e015da53362be8a0bb46c7a9eaca97ac9aa`;
-exhibit `INDEX.json` carries the same digest.
+## NEXT ACTION
 
-## Known bugs / watch items
-
-- **a3/a4 are honest Phase-1 misses** (0.0 % detected, leak unchanged in
-  Phase 1). With Phase 2 they are 99.5 % / 92.5 %. Never report the Phase-2
-  number as if it were Phase 1.
-- **Attack-session utility 58.8 %** is the containment cost of identity-scoped
-  escalation across separately evaluated corpora (D55). Benign utility is
-  100 %; do not average the two into a single "utility" claim.
-- a7 leaks 3–4 records in 3 of 200 sessions (phase-B drip before the drift
-  latch). Median 0, p90 0; the tail is real and reported.
-- Isolate is the most frequent attack-corpus rung (1 382 decisions, mostly
-  a5/a6/a9 credential/delegation/impersonation). `enforcement` (capsule block)
-  is counted separately and never folded into a policy rung.
-- Latency max ≈ 131 ms is first-decision warm-up; p95 0.873 ms is the claim.
-  The max is annotated on E6 rather than added as an axis tick (D57).
-- E2 draws all 200 samples per arm; its SVG is ~281 KB. That is deliberate —
-  no sampling or smoothing of the leak distribution.
-- HMAC stand-in (D33/D44); a5 models replay, not key compromise (D37/D45).
-- Contract signing is tamper-evident only; it is not a security boundary.
-- Live replay numbers are a fresh simulation, not the seed-7 aggregate; the
-  dashboard labels this explicitly and the aggregate comes only from
-  `/exhibits`.
+No required work. Optional only: **M13b slides** — create `tether/slides.py`
+(new `render_deck()`), `slides.html`, `slides.css`; nine slides in the D3COY
+dark theme; all figures and numbers read from `results/exhibits/INDEX.json`
+and the SVGs (never hand-typed); commit after `v2` without moving the tag and
+without changing `results/`, detectors, thresholds or attacks. If that is not
+desired, the project is done at `v2`.
 
 ## File map
 
 - PLAN_V2.md — authoritative v2 plan
-- PREREG.md — FROZEN metrics H1–H9 (tag m8)
+- PREREG.md — FROZEN metrics H1–H9 (tag m8; unchanged since)
 - THREAT_MODEL.md — P1–P9, a1–a9, out-of-scope boundaries
 - PROBLEM_STATEMENT.md — three drift classes, PS demands -> mechanisms
-- EXHIBITS.md — E1–E9 exhibit contract (VERIFIED at M13a)
-- BENCHMARK.md — judge benchmark card (generated claims block enforced)
+- EXHIBITS.md — E1–E9 exhibit contract (VERIFIED)
+- BENCHMARK.md — judge benchmark card (enforced generated claims block)
 - openapi.json — 10-route API contract, 9 exhibit names
-- HANDOFF.md / HISTORY.md / DECISIONS.md (D1–D60) / TODO.md / RESUME_PROMPT.md
-- TRANSFER.md — endpoints/payloads/dashboard map (v2 banner)
+- HANDOFF.md / HISTORY.md / DECISIONS.md (D1–D65) / TODO.md / RESUME_PROMPT.md
+- TRANSFER.md — endpoints/payloads/dashboard map (final v2 note)
 - verify.py — two-run determinism + seed-11 replication + verdicts
 - docs_check.py — manifest/table/claims/exhibits/openapi/test-count/link/PREREG
 - tether/stats.py — Wilson CI, percentile, CDF, rate_with_ci
 - tether/report.py — digest, MANIFEST, RESULTS_TABLE, claims block
 - tether/ablation.py — leave-one-out detector ablation
 - tether/verdicts.py — frozen H1–H9 verdict logic
-- tether/exhibits.py — NEW: 9 SVG renderers, INDEX/captions, `--write`/`--check`
+- tether/exhibits.py — 9 SVG renderers, INDEX/captions, `--write`/`--check`
 - tether/identity.py + contract.sig.json — signed envelopes, nonce, certs
 - tether/escalation.py — identity-scoped severity/decay (D47)
 - tether/gateway.py — enforcement, identity arm, escalation, `enabled` ablation
@@ -161,6 +187,6 @@ exhibit `INDEX.json` carries the same digest.
 - tether/fusion.py, response.py, alert.py, ledger.py, textgate.py, contract.py
 - tether/evaluate.py — arms, CIs, leak vectors, trajectory, sweep, ablation
 - tether/sim/scenarios.py — a1–a9 (a7 three phases, a8 composition, a9)
-- tether/demo.py, tether/api.py, dashboard.html — demo/API/UI (M12 rewritten)
+- tether/demo.py, tether/api.py, dashboard.html — demo/API/UI
 - tests/ — 132 tests in 9 files
-- results/ — v2 measured artifacts + MANIFEST + VERIFY + RESULTS_TABLE + exhibits/
+- results/ — frozen v2 artifacts + MANIFEST + VERIFY + RESULTS_TABLE + exhibits/

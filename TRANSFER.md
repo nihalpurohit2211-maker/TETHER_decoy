@@ -6,20 +6,21 @@ everything below was captured from the real running system.
 
 Read order if you want depth later: `PROJECT_BRIEF.md` (context) →
 `tether_build_prompt.md` (operative spec) → `HANDOFF.md` (current status and
-NEXT ACTION) → `DECISIONS.md` (why things are the way they are, D1–D40).
+NEXT ACTION) → `DECISIONS.md` (why things are the way they are, D1–D65).
 
-> **v2 note (M13a).** This document describes the v1 system, which is complete
-> and tagged `final`, plus the v2 additions through M13a. The authoritative plan
-> is `PLAN_V2.md` and the frozen metrics are `PREREG.md`. Landed: identity layer
-> (signed envelopes, nonce cache, delegation certs, key->role binding),
-> identity-scoped escalation, attacks a7-a9, v2 evaluation (Wilson CIs, leak
-> vectors, latency CDF, CUSUM trajectory, ablation, MANIFEST + `verify.py` +
-> `docs_check.py`; seed 7, n=200/attack, H1-H9 all PASS), the M12 D3COY
-> dashboard + nine generated exhibits, and the M13a judge package
-> (`BENCHMARK.md`, `openapi.json`, README CLAIMS CHECK, VERIFIED captions).
-> `/exhibits` and `/exhibits/<name>.svg` are the measured-data surface; `/run`
-> and `/stream` still run live sessions unchanged. Sections 4.9, 4.10 and 6 are
-> the current v2 reference; `openapi.json` is the checked route contract.
+> **v2 note (M14 FINAL, tag `v2`).** v1 is complete and tagged `final`; v2 is
+> complete and tagged `v2`. The authoritative plan is `PLAN_V2.md` and the frozen
+> metrics are `PREREG.md`. Landed: identity layer (signed envelopes, nonce cache,
+> delegation certs, key->role binding), identity-scoped escalation, attacks
+> a7-a9, v2 evaluation (Wilson CIs, leak vectors, latency CDF, CUSUM trajectory,
+> ablation, MANIFEST + `verify.py` + `docs_check.py`; seed 7, n=200/attack,
+> H1-H9 all PASS), the D3COY dashboard + nine generated exhibits, and the judge
+> package (`BENCHMARK.md`, `openapi.json`, README CLAIMS CHECK, VERIFIED
+> captions). `/exhibits` and `/exhibits/<name>.svg` are the measured-data
+> surface; `/run` and `/stream` still run live sessions. Sections 4.9, 4.10 and
+> 6 are the current reference; `openapi.json` is the checked route contract.
+> M13b slides are the only optional follow-up and must not alter tagged v2
+> artifacts.
 
 ---
 

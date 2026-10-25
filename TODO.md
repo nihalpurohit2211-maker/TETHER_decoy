@@ -32,9 +32,11 @@ tests, `git add -A && git commit`, tag.
 - [x] M13a judge package: README v2 (CLAIMS CHECK table), EXHIBITS.md captions
       reviewed (VERIFIED), openapi.json (10 routes, 9 exhibits, checked),
       BENCHMARK.md (generated claims block), docs_check 10/10; 132/132 tests.
-- [ ] M14 final: full test + evaluation, determinism check (two runs, one hash),
-      cold-resume drill, tag `v2`, HANDOFF FINAL, TRANSFER final
-- [ ] M13b (OPTIONAL, after M12+M13a only): slides.html + slides.css +
+- [x] M14 final: verify.py two-run determinism (digest + manifest hash) and
+      seed-11 replication, full tests (132), exhibits --check, docs_check 10/10,
+      cold-resume drill (README wording fix recorded in HISTORY/D65), HANDOFF
+      FINAL, TRANSFER final, tag `v2`
+- [ ] M13b (OPTIONAL, post-v2 only): slides.html + slides.css +
       `tether/slides.py`, 9 slides, D3COY theme, numbers injected from results/
 
 ## v1 record (complete, tag `final`)

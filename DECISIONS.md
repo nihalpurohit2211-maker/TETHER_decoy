@@ -393,7 +393,8 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
 - D63 (exhibit captions were reviewed, not just generated). At M13a every
   caption was read against the EXHIBITS rules: seed/n/unit are enforced by
   `--check`; a3/a4 misses are called misses; the E2 caption now prints how many
-  a7 sessions leak and the maximum (3/200, max 4) instead of only median/p90,
+  a7 sessions leak and the maximum in the plotted arm (11/200, max 4, primary
+  Phase 1; 3/200 after the Phase-2 latch) instead of only median/p90,
   because median 0 + p90 0 alone would hide the real tail; the identity caption
   states the key-compromise limitation and collapses equal ranges to "all 0.0 %"
   / "all 100.0 %". Status moved BUILT -> VERIFIED. No measurement was
@@ -405,3 +406,15 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   because the harness measures records, not bytes. "Low-and-slow is caught" is
   PARTIAL because Phase 2 still misses 7.5 %. Attack-session utility 58.8 % is
   disclosed as containment cost (D55), never averaged with benign utility.
+- D65 (M14 cold-resume drill, and an arm-label correction). The drill started
+  from HANDOFF.md alone: 132/132 tests, exhibits `--check` PASS, docs_check
+  10/10, digest `e1b8fef2...ac9aa` matched `MANIFEST.results_sha256`; one named
+  change was then made (README's zero-leak row now names the tether arm and the
+  148/131 no-defense medians). The drill also caught an arm confusion in the
+  M13a prose: E2 plots `leak_samples_tether` from the **primary Phase-1** arm,
+  where a7 leaks in 11/200 sessions (2-4 records, max 4). The 3/200 figure is
+  the Phase-2 arm. The rendered caption was already correct; D63 and the
+  M11/M13a history lines (which did not name the arm) were clarified, not the
+  exhibit. This is a documentation fix:
+  no detector, threshold, attack, metric or `results/` artifact changed, and
+  the digest is unchanged.

@@ -12,7 +12,7 @@
     "benign": 900,
     "legit_change": 100
   },
-  "git_commit": "66d6dca9a13cbb2cb7d2aed7c4d553a04555d78d",
+  "git_commit": "e97b42b86bb529d7198b217dc716a8c674968f4e",
   "hypotheses": {
     "H1": {
       "detail": "caught before harmful send >=95%, Wilson lo >=90",
