@@ -3,257 +3,604 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tether — identity drift detection</title>
+<title>Tether / D3COY 1.0 - identity drift detection</title>
 <style>
-  :root{--bg:#0b1220;--panel:#121a2c;--edge:#223050;--text:#dbe4f5;--dim:#7d8cae;
-        --harm:#e5484d;--control:#5aa9ff;--ok:#3fb96e;--warn:#e0a030}
-  *{box-sizing:border-box;margin:0}
-  body{background:var(--bg);color:var(--text);font:14px/1.5 ui-monospace,"Cascadia Mono",Consolas,monospace;padding:18px}
-  h1{font-size:18px;letter-spacing:.06em}
-  h2{font-size:13px;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
-  header{display:flex;gap:12px;align-items:baseline;margin-bottom:16px}
-  header .tag{color:var(--dim);font-size:12px}
-  .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
-  .panel{background:var(--panel);border:1px solid var(--edge);border-radius:8px;padding:14px}
-  .row{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
-  select,button{background:#0d1526;color:var(--text);border:1px solid var(--edge);
-        border-radius:6px;padding:6px 10px;font:inherit}
-  button{cursor:pointer;border-color:var(--control);color:var(--control)}
-  button.primary{background:var(--control);color:#04122a;font-weight:600}
-  .timeline{display:flex;flex-direction:column;gap:6px}
-  .session{display:flex;flex-direction:column;gap:6px}
-  .shead{display:flex;gap:10px;align-items:center;border:1px solid var(--edge);
-        border-radius:6px;padding:6px 10px;background:#0e1628}
-  .shead.ok{border-left:3px solid var(--ok)}
-  .shead.bad{border-left:3px solid var(--harm)}
-  .shead .t{color:var(--text)}
-  .shead .out{margin-left:auto;display:flex;gap:8px;align-items:center;color:var(--dim);font-size:12px}
-  .ev{display:flex;gap:10px;align-items:center;border:1px solid var(--edge);border-radius:6px;padding:6px 10px}
-  .ev .s{color:var(--dim);width:52px}
-  .ev .t{min-width:180px}
-  .pill{padding:1px 8px;border-radius:99px;font-size:12px;border:1px solid transparent}
+  :root{
+    --bg:#0d0d12; --panel:#16161e; --panel-2:#1c1c26; --edge:#3a1f25;
+    --accent:#c41e3a; --accent-soft:#d46a6a; --text:#e0e0e0; --dim:#9a9aa6;
+    --num:#ff6b6b; --ok:#3fb96e; --warn:#e0a030;
+    --serif:Georgia,"Times New Roman",serif;
+    --sans:"Segoe UI",Arial,sans-serif;
+    --mono:Consolas,"Cascadia Mono","Courier New",monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 var(--sans);
+       -webkit-font-smoothing:antialiased}
+  a{color:var(--accent-soft);text-decoration:none}
+  a:hover{color:var(--text)}
+  .shell{max-width:1480px;margin:0 auto;padding:0 30px 56px}
+  .mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  .masthead{display:flex;justify-content:space-between;gap:28px;align-items:flex-end;
+            padding:28px 30px 22px;border-bottom:1px solid var(--edge);max-width:1480px;
+            margin:0 auto}
+  .eyebrow{font:11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;
+           color:var(--accent-soft);margin-bottom:12px}
+  .brand h1{font-family:var(--serif);font-size:clamp(44px,7vw,92px);line-height:.86;
+            letter-spacing:.075em;margin:0;color:var(--text);font-weight:700;
+            text-shadow:-2px 0 0 #000,2px 0 0 var(--accent)}
+  .tagline{margin:14px 0 0;color:var(--dim);max-width:720px;font-size:14px}
+  .tagline b{color:var(--text);font-weight:600}
+  .run-stamp{min-width:310px;border:1px solid var(--edge);background:var(--panel);
+             padding:14px 16px}
+  .run-stamp .label{font:10px/1 var(--mono);letter-spacing:.2em;color:var(--accent-soft);
+                    text-transform:uppercase;margin-bottom:10px}
+  .run-stamp .line{font:12px/1.7 var(--mono);color:var(--text)}
+  .run-stamp .sub{font:11px/1.5 var(--mono);color:var(--dim);margin-top:6px}
+  .run-stamp.no-data{border-color:var(--warn)}
+  .run-stamp.no-data .label{color:var(--warn)}
+
+  .nav{position:sticky;top:0;z-index:5;background:var(--bg);
+       border-bottom:1px solid var(--edge);margin-bottom:22px}
+  .nav-in{max-width:1480px;margin:0 auto;padding:0 30px;display:flex;gap:2px;
+          overflow-x:auto;scrollbar-width:thin}
+  .nav a{flex:0 0 auto;padding:11px 12px 9px;border-bottom:2px solid transparent;
+         color:var(--dim);font:10px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase}
+  .nav a:hover{color:var(--text)}
+  .nav a.active{color:var(--text);border-bottom-color:var(--accent)}
+
+  .top-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(330px,.75fr);
+            gap:18px;align-items:start;margin-bottom:24px}
+  .panel{background:var(--panel);border:1px solid var(--edge);padding:17px 18px}
+  .panel h2{font:10px/1.3 var(--mono);letter-spacing:.2em;text-transform:uppercase;
+            color:var(--accent-soft);margin:0 0 14px}
+  .panel h2 span{color:var(--dim);letter-spacing:.06em;text-transform:none}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  label{font:10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  select,button{font:12px/1.2 var(--mono);background:var(--panel-2);color:var(--text);
+                border:1px solid var(--edge);padding:7px 10px;border-radius:0}
+  button{cursor:pointer;color:var(--accent-soft);border-color:var(--accent-soft)}
+  button:hover:not(:disabled){color:var(--text);border-color:var(--text)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;
+                 font-weight:700}
+  button:disabled{opacity:.42;cursor:default}
+  .hint{font:10px/1.5 var(--mono);color:var(--dim);margin-top:9px}
+  .live-note{font:10px/1.5 var(--mono);color:var(--warn);margin:0 0 11px;
+             letter-spacing:.05em;text-transform:uppercase}
+
+  .replay-head{display:flex;justify-content:space-between;gap:12px;align-items:center;
+               border:1px solid var(--edge);padding:9px 11px;background:var(--panel-2);
+               margin-bottom:9px;flex-wrap:wrap}
+  .replay-head .sid{font:11px/1.4 var(--mono);color:var(--text)}
+  .replay-head .outcome{font:10px/1.4 var(--mono);color:var(--dim)}
+  .stepper{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .stepper .count{font:11px/1 var(--mono);color:var(--dim);min-width:92px;text-align:center}
+  .timeline{display:flex;flex-direction:column;gap:5px;max-height:360px;overflow:auto;
+            padding-right:3px}
+  .ev{display:grid;grid-template-columns:52px minmax(120px,1fr) minmax(80px,1fr) 70px 64px;
+      gap:9px;align-items:center;border:1px solid var(--edge);background:var(--bg);
+      padding:6px 8px;opacity:.38;transition:opacity .12s, border-color .12s}
+  .ev.past{opacity:.68}
+  .ev.current{opacity:1;border-color:var(--accent);background:var(--panel-2)}
+  .ev .step{font:10px/1.2 var(--mono);color:var(--dim)}
+  .ev .tool{font:11px/1.3 var(--mono);color:var(--text);overflow:hidden;
+            text-overflow:ellipsis;white-space:nowrap}
+  .ev .labels{font:10px/1.3 var(--mono);color:var(--dim);overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap}
+  .ev .score{font:10px/1.2 var(--mono);color:var(--num);text-align:right}
+  .pill{display:inline-block;font:9px/1 var(--mono);letter-spacing:.12em;
+        text-transform:uppercase;border:1px solid var(--edge);padding:3px 6px;
+        color:var(--dim);text-align:center}
   .pill.allow{color:var(--ok);border-color:var(--ok)}
-  .pill.block,.pill.quarantine,.pill.isolate,.pill.narrow{color:var(--harm);border-color:var(--harm)}
   .pill.hold{color:var(--warn);border-color:var(--warn)}
+  .pill.narrow,.pill.quarantine,.pill.isolate,.pill.block{color:var(--num);
+        border-color:var(--num)}
   .pill.skipped{color:var(--dim);border-color:var(--edge)}
-  .pill.enforcement{color:var(--control);border-color:var(--control)}
-  .score{margin-left:auto;color:var(--dim)}
-  .labels{color:var(--dim);font-size:12px}
-  .card{border:1px solid var(--harm);border-radius:8px;padding:12px;margin-top:10px}
-  .card .scoreline{color:var(--harm);font-weight:700;margin-bottom:6px}
-  .card .meta{color:var(--dim);margin-bottom:6px}
-  .card ul{padding-left:18px}
-  .counterfactual{color:var(--control);margin-top:8px;font-size:12px}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{border-bottom:1px solid var(--edge);padding:5px 8px;text-align:left}
-  th{color:var(--dim);font-weight:400}
-  .chart{display:flex;align-items:flex-end;gap:8px;height:120px;border-bottom:1px solid var(--edge);padding-bottom:2px}
-  .bar{width:26px;background:var(--control);position:relative}
-  .bar.bad{background:var(--harm)}
-  .bar.p2{background:var(--ok)}
-  .bar span{position:absolute;bottom:100%;left:0;font-size:10px;color:var(--dim)}
-  .legend{display:flex;gap:14px;margin-top:6px;font-size:11px;color:var(--dim)}
-  .legend i{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:-1px}
-  .chart .name,.name{display:flex;gap:8px;margin-top:4px}
-  .chart .name i,.name i{flex:0 0 60px;width:60px;text-align:center;font-size:10px;color:var(--dim);font-style:normal}
-  .none{color:var(--dim)}
+  .alert-card{border:1px solid var(--accent);background:var(--panel-2);padding:12px;
+              margin-top:11px}
+  .alert-card .head{font:11px/1.4 var(--mono);color:var(--num);font-weight:700;
+                    margin-bottom:6px}
+  .alert-card .meta{font:10px/1.5 var(--mono);color:var(--dim);margin-bottom:7px}
+  .alert-card ul{margin:0;padding-left:17px;color:var(--text);font-size:12px}
+  .alert-card li{margin:2px 0}
+  .alert-card .cf{font:10px/1.5 var(--mono);color:var(--dim);margin-top:8px}
+
+  .section-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;
+                border-top:1px solid var(--edge);padding-top:20px;margin:6px 0 16px}
+  .section-head h2{font-family:var(--serif);font-size:26px;line-height:1.1;margin:0;
+                   letter-spacing:.02em}
+  .section-head p{margin:5px 0 0;color:var(--dim);font-size:12px}
+  .section-head .count{font:10px/1.3 var(--mono);color:var(--accent-soft);
+                       letter-spacing:.15em;text-transform:uppercase;white-space:nowrap}
+
+  .exhibit-grid{display:grid;grid-template-columns:1fr;gap:18px}
+  .exhibit{background:var(--panel);border:1px solid var(--edge);padding:15px 16px;
+           scroll-margin-top:70px}
+  .exhibit.is-target{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .exhibit-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;
+                margin-bottom:10px}
+  .exhibit-head .id{font:10px/1 var(--mono);letter-spacing:.16em;color:var(--accent-soft)}
+  .exhibit-head h3{font-family:var(--serif);font-size:20px;line-height:1.15;margin:4px 0 0;
+                   font-weight:700;letter-spacing:.01em}
+  .exhibit-head .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+                         justify-content:flex-end}
+  .exhibit-head .actions a{font:10px/1 var(--mono);border:1px solid var(--edge);
+                           padding:5px 7px;color:var(--dim)}
+  .exhibit-head .actions a:hover{color:var(--text);border-color:var(--accent-soft)}
+  .fig{border:1px solid var(--edge);background:var(--bg);line-height:0}
+  .fig img{display:block;width:100%;height:auto}
+  .caption{margin:10px 0 8px;color:var(--text);font-size:12.5px;max-width:1180px}
+  .prov{display:flex;gap:14px;flex-wrap:wrap;border-top:1px solid var(--edge);
+        padding-top:8px;font:10px/1.5 var(--mono);color:var(--dim)}
+  .prov b{color:var(--dim);font-weight:400;letter-spacing:.1em;text-transform:uppercase}
+  .prov span{color:var(--accent-soft)}
+
+  .empty{border:1px dashed var(--edge);background:var(--panel);padding:30px;
+         margin-top:8px}
+  .empty h3{font-family:var(--serif);font-size:24px;margin:0 0 8px;color:var(--text)}
+  .empty p{color:var(--dim);margin:0 0 12px;max-width:820px}
+  .empty code{display:block;background:var(--panel-2);border:1px solid var(--edge);
+              padding:10px 12px;color:var(--num);font:12px/1.6 var(--mono);
+              white-space:pre-wrap}
+  .footer{border-top:1px solid var(--edge);margin-top:30px;padding-top:14px;
+          display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+          font:10px/1.6 var(--mono);color:var(--dim);letter-spacing:.08em;
+          text-transform:uppercase}
+  @media (max-width:980px){
+    .masthead{flex-direction:column;align-items:flex-start;padding:24px 20px 18px}
+    .run-stamp{width:100%}
+    .shell{padding:0 20px 42px}
+    .top-grid{grid-template-columns:1fr}
+    .nav-in{padding:0 20px}
+    .ev{grid-template-columns:46px minmax(100px,1fr) 70px 60px;grid-auto-rows:auto}
+    .ev .labels{display:none}
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>TETHER</h1>
-  <span class="tag">identity drift detection for autonomous AI agents — simulation</span>
+<header class="masthead">
+  <div class="brand">
+    <div class="eyebrow">D3COY 1.0 / Round 0 / Team Unethically</div>
+    <h1>TETHER</h1>
+    <p class="tagline"><b>Bounded blast radius. Fast detection. Not prevention.</b>
+      Identity drift detection for autonomous AI agents. Every aggregate number
+      below is generated from <span class="mono">results/</span>; the replay is a
+      live simulation and is labelled as such.</p>
+  </div>
+  <aside class="run-stamp" id="run-stamp" aria-live="polite">
+    <div class="label">Measured run</div>
+    <div class="line" id="stamp-line">loading exhibits...</div>
+    <div class="sub" id="stamp-sub"></div>
+  </aside>
 </header>
 
-<div class="grid">
-  <div>
-    <div class="panel">
-      <h2>Session replay</h2>
-      <div class="row">
-        <label>scenario <select id="scenario"></select></label>
-        <label>mode <select id="mode">
-          <option value="none">none (baseline)</option>
-          <option value="textgate">textgate (stand-in)</option>
-          <option value="tether" selected>tether</option>
-        </select></label>
-        <label>sessions <select id="n"><option>1</option><option selected>1</option><option>5</option></select></label>
+<nav class="nav" aria-label="Exhibits">
+  <div class="nav-in" id="exhibit-nav"></div>
+</nav>
+
+<main class="shell">
+  <div class="top-grid">
+    <section class="panel" aria-labelledby="live-h">
+      <h2 id="live-h">Live replay <span>/ session stepper, not a measured aggregate</span></h2>
+      <p class="live-note">Live simulation output - the aggregate claims are in E1-E9 below.</p>
+      <div class="row" style="margin-bottom:12px">
+        <label for="scenario">scenario</label>
+        <select id="scenario"></select>
+        <label for="mode">mode</label>
+        <select id="mode">
+          <option value="none">none / baseline</option>
+          <option value="textgate">textgate / stand-in</option>
+          <option value="tether" selected>tether / full</option>
+        </select>
         <button class="primary" id="run">Run</button>
       </div>
-      <div class="timeline" id="timeline"></div>
-    </div>
-    <div class="panel" style="margin-top:14px">
-      <h2>Run summary</h2>
-      <table><tbody id="summary"><tr><td class="none">no run yet</td></tr></tbody></table>
-    </div>
+      <div id="replay" class="timeline" aria-live="polite">
+        <div class="hint">Choose a scenario and run. Values here are live decisions, not
+          the measured aggregate.</div>
+      </div>
+      <div class="stepper" id="stepper" style="margin-top:11px">
+        <button id="prev" disabled>&lt; prev</button>
+        <span class="count" id="step-count">step 0 / 0</span>
+        <button id="next" disabled>next &gt;</button>
+        <button id="play" disabled>play</button>
+        <button id="export" disabled>export alert JSON</button>
+      </div>
+      <div class="hint" id="run-hint">No session loaded.</div>
+    </section>
+
+    <section class="panel" aria-labelledby="read-h">
+      <h2 id="read-h">Reading this page</h2>
+      <div class="hint" style="margin-top:0">
+        <b style="color:var(--text)">E1-E9</b> are generated SVG exhibits. Their captions,
+        sources, n and units come from <span class="mono">results/exhibits/INDEX.json</span>.
+        If <span class="mono">results/</span> is missing, the page shows an explicit
+        empty state instead of placeholder numbers.
+      </div>
+      <div class="hint">
+        <b style="color:var(--text)">Colour</b>: red is measured data or a hard rung,
+        green is allow/clean, amber is hold/quarantine. Hairlines are the D3COY theme
+        tokens; no external fonts or libraries are loaded.
+      </div>
+      <div class="hint">
+        <b style="color:var(--text)">Deep link</b>: append
+        <span class="mono">?exhibit=latency</span> to open one exhibit directly.
+      </div>
+    </section>
   </div>
 
-  <div>
-    <div class="panel">
-      <h2>Slow replay (stream)</h2>
-      <button id="stream">Watch live stream</button>
-      <div class="timeline" id="stream-out" style="margin-top:10px"></div>
+  <div class="section-head">
+    <div>
+      <h2>Measured exhibits</h2>
+      <p>Each figure is regenerated by <span class="mono">python -m tether.exhibits --write</span>;
+         <span class="mono">--check</span> fails on a stale or hand-edited number.</p>
     </div>
-    <div class="panel" style="margin-top:14px">
-      <h2>Detection % — phase 1 vs phase 2 (results.json)</h2>
-      <div class="chart" id="chart"></div>
-      <div class="name" id="chart-names"></div>
-      <div class="legend"><span><i style="background:var(--control)"></i>phase 1 (per-session detectors)</span><span><i style="background:var(--ok)"></i>phase 2 (+ drift budget)</span></div>
-    </div>
-    <div class="panel" style="margin-top:14px">
-      <h2>Records out / session (median)</h2>
-      <table id="leaks"><thead><tr><th>attack</th><th>none</th><th>tether</th></tr></thead><tbody></tbody></table>
-    </div>
-    <div class="panel" style="margin-top:14px">
-      <h2>Benign + latency</h2>
-      <table id="benign"><tbody><tr><td class="none">run `python -m tether.evaluate --seed 7` first</td></tr></tbody></table>
-    </div>
+    <div class="count" id="exhibit-count"></div>
   </div>
-</div>
+
+  <section class="exhibit-grid" id="exhibits" aria-live="polite"></section>
+
+  <footer class="footer">
+    <span>TETHER / D3COY 1.0 / 2026</span>
+    <span>simulation only / stdlib / no network / no LLM in the core</span>
+  </footer>
+</main>
 
 <script>
-// Served by the same stdlib server as the API; no external libraries, no CDN.
-const els = {
-  scenario: document.getElementById("scenario"),
-  mode: document.getElementById("mode"),
-  n: document.getElementById("n"),
-  run: document.getElementById("run"),
-  timeline: document.getElementById("timeline"),
-  summary: document.getElementById("summary"),
-  stream: document.getElementById("stream"),
-  streamOut: document.getElementById("stream-out"),
-  chart: document.getElementById("chart"),
-  chartNames: document.getElementById("chart-names"),
-  leaks: document.querySelector("#leaks tbody"),
-  benign: document.querySelector("#benign tbody"),
+"use strict";
+
+const state = {
+  index: null,
+  session: null,
+  events: [],
+  alert: null,
+  idx: 0,
+  timer: null,
 };
 
-function pill(action){
-  const span = document.createElement("span");
-  span.className = "pill " + (action || "allow");
-  span.textContent = (action || "allow").toUpperCase();
-  return span;
+const $ = (id) => document.getElementById(id);
+
+function el(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined && text !== null) node.textContent = String(text);
+  return node;
 }
 
-async function loadScenarios(){
-  const r = await fetch("/scenarios"); const data = await r.json();
-  for (const [name, desc] of Object.entries(data.scenarios)) {
-    const o = document.createElement("option");
-    o.value = name; o.textContent = name + " — " + desc;
-    els.scenario.appendChild(o);
+function clear(node) {
+  while (node.firstChild) node.removeChild(node.firstChild);
+}
+
+function pill(action) {
+  const a = action || "allow";
+  return el("span", "pill " + a, a);
+}
+
+function stopPlay() {
+  if (state.timer) {
+    clearInterval(state.timer);
+    state.timer = null;
+  }
+  $("play").textContent = "play";
+}
+
+function setStepperEnabled() {
+  const n = state.events.length;
+  $("prev").disabled = n === 0 || state.idx <= 0;
+  $("next").disabled = n === 0 || state.idx >= n - 1;
+  $("play").disabled = n === 0;
+  $("step-count").textContent = "step " + (n ? state.idx + 1 : 0) + " / " + n;
+}
+
+function renderReplay() {
+  const box = $("replay");
+  clear(box);
+  const s = state.session;
+  if (!s) {
+    box.appendChild(el("div", "hint", "Choose a scenario and run. Values here are live decisions, not the measured aggregate."));
+    $("step-count").textContent = "step 0 / 0";
+    $("export").disabled = true;
+    $("run-hint").textContent = "No session loaded.";
+    return;
+  }
+
+  const head = el("div", "replay-head");
+  const sid = el("div", "sid", s.session + " / " + s.attack + " / " + s.mode);
+  const outcome = el("div", "outcome",
+    (s.detected ? "ALERT" : "CLEAN") + " / leak " + s.leak_records + " / utility " + s.utility);
+  head.appendChild(sid);
+  head.appendChild(outcome);
+  box.appendChild(head);
+
+  state.events.forEach((ev, i) => {
+    const row = el("div", "ev" + (i === state.idx ? " current" : (i < state.idx ? " past" : "")));
+    row.appendChild(el("span", "step", "step " + ev.step));
+    row.appendChild(el("span", "tool", ev.tool));
+    row.appendChild(el("span", "labels", (ev.labels || []).join(" / ")));
+    row.appendChild(pill(ev.action));
+    row.appendChild(el("span", "score", "score " + Number(ev.score || 0).toFixed(1)));
+    if ((ev.reasons || []).length) row.title = ev.reasons.join(" | ");
+    box.appendChild(row);
+    if (i === state.idx) {
+      setTimeout(() => row.scrollIntoView({block: "nearest"}), 0);
+    }
+  });
+
+  if (state.alert) {
+    const card = el("div", "alert-card");
+    card.appendChild(el("div", "head",
+      "score " + state.alert.score + " / " + state.alert.severity + " / " + state.alert.action_taken));
+    card.appendChild(el("div", "meta",
+      "confidence " + state.alert.confidence +
+      " / baseline maturity " + state.alert.baseline_maturity));
+    const ul = el("ul");
+    (state.alert.reasons || []).forEach((r) => ul.appendChild(el("li", "", r)));
+    card.appendChild(ul);
+    if (state.alert.counterfactual) {
+      card.appendChild(el("div", "cf", state.alert.counterfactual));
+    }
+    box.appendChild(card);
+  }
+
+  setStepperEnabled();
+  $("export").disabled = !state.alert;
+  const st = state.events[state.idx] || null;
+  $("run-hint").textContent = st
+    ? "Step " + (state.idx + 1) + ": " + st.tool + " -> " + st.action +
+      ". Hover a row for detector reasons."
+    : "Session loaded; no evaluated steps.";
+}
+
+async function runSession() {
+  stopPlay();
+  const scenario = $("scenario").value;
+  const mode = $("mode").value;
+  if (!scenario) return;
+  $("run").disabled = true;
+  $("run-hint").textContent = "Running one live session...";
+  try {
+    const q = new URLSearchParams({scenario, mode, n: "1",
+      seed: String((state.index && state.index.summary && state.index.summary.seed) || 7),
+      phase2: "true"});
+    const r = await fetch("/run?" + q.toString(), {cache: "no-store"});
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "run failed");
+    const s = (data.sessions || [])[0];
+    if (!s) throw new Error("no session returned");
+    state.session = s;
+    state.events = s.timeline || [];
+    state.alert = s.alert || null;
+    state.idx = 0;
+    renderReplay();
+  } catch (err) {
+    state.session = null;
+    state.events = [];
+    state.alert = null;
+    state.idx = 0;
+    clear($("replay"));
+    $("replay").appendChild(el("div", "hint", "Run failed: " + err.message));
+    $("run-hint").textContent = "No session loaded.";
+    $("export").disabled = true;
+    $("step-count").textContent = "step 0 / 0";
+  } finally {
+    $("run").disabled = false;
   }
 }
 
-async function runSession(){
-  els.timeline.textContent = "";
-  const q = new URLSearchParams({
-    scenario: els.scenario.value, mode: els.mode.value, n: els.n.value, seed: "7",
-  });
-  const r = await fetch("/run?" + q.toString()); const data = await r.json();
-  (data.sessions || []).forEach(s => {
-    // Each session renders as its own block: header (id, tier, outcome),
-    // then its steps, then its alert card — so n>1 runs stay readable.
-    const wrap = document.createElement("div"); wrap.className = "session";
-    const head = document.createElement("div");
-    head.className = "shead " + (s.detected ? "bad" : "ok");
-    head.innerHTML = `<span class="t">${s.tier ? s.tier+" · " : ""}${s.session}</span>`;
-    const out = document.createElement("span"); out.className = "out";
-    out.innerHTML = `<span class="pill ${s.detected ? "block" : "allow"}">${s.detected ? "alert" : "clean"}</span>` +
-      `<span>leak ${s.leak_records}</span><span>util ${s.utility}</span>`;
-    head.appendChild(out);
-    wrap.appendChild(head);
-    s.timeline?.forEach(ev => {
-      const d = document.createElement("div"); d.className = "ev";
-      const labels = (ev.labels || []).join(" · ");
-      d.innerHTML = `<span class="s">step ${ev.step}</span><span class="t">${ev.tool}</span>`;
-      if (labels) {
-        const l = document.createElement("span"); l.className = "labels"; l.textContent = labels;
-        d.appendChild(l);
-      }
-      if ((ev.reasons || []).length) d.title = ev.reasons.join(" | ");
-      d.appendChild(pill(ev.action));
-      d.innerHTML += `<span class="score">score ${ev.score}</span>`;
-      wrap.appendChild(d);
-    });
-    if (s.mode === "tether" && s.detected) showAlert(s.alert, wrap);
-    els.timeline.appendChild(wrap);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${s.session}</td><td>${s.attack}</td><td>${s.detected ? "alert" : "clean"}</td>
-      <td>leak ${s.leak_records}</td><td>utility ${s.utility}</td>`;
-    els.summary.querySelector("tr.none")?.remove();
-    els.summary.appendChild(tr);
-  });
-}
-
-function showAlert(card, target){
-  if (!card || !target) return;
-  const box = document.createElement("div"); box.className = "card";
-  box.innerHTML = `<div class="scoreline">score ${card.score} — ${card.severity}</div>
-    <div class="meta">confidence ${card.confidence} · baseline maturity ${card.baseline_maturity} · action ${card.action_taken}</div>
-    <ul>${(card.reasons || []).map(r => `<li>${r}</li>`).join("")}</ul>
-    <div class="counterfactual">${card.counterfactual || ""}</div>`;
-  target.appendChild(box);
-}
-
-function renderResults(data){
-  els.chart.textContent = ""; els.chartNames.textContent = "";
-  (data.attacks || []).forEach(a => {
-    const p1 = a.detected_pct ?? 0;
-    const p2 = a.phase2 ? (a.phase2.detected_pct ?? 0) : p1;
-    for (const [cls, v] of [["", p1], ["p2", p2]]) {
-      const bar = document.createElement("div");
-      bar.className = "bar " + cls + (v < 50 ? " bad" : "");
-      bar.style.height = Math.max(4, v) + "%";
-      bar.innerHTML = `<span>${v}%</span>`;
-      bar.title = `${a.id} — ${cls === "p2" ? "phase 2" : "phase 1"}: ${v}% detected`;
-      els.chart.appendChild(bar);
-    }
-    const lab = document.createElement("i");
-    lab.textContent = a.id.split("_")[0];
-    lab.title = a.name;
-    els.chartNames.appendChild(lab);
-  });
-  els.leaks.textContent = "";
-  (data.attacks || []).forEach(a => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${a.name}</td><td>${a.records_out_none}</td><td>${a.records_out_tether_median}</td>`;
-    els.leaks.appendChild(tr);
-  });
-  els.benign.textContent = "";
-  const b = data.benign || {};
-  const row = `<tr><td>false alerts/1000 ordinary</td><td>${b.false_alerts_per_1000_ordinary}</td></tr>
-    <tr><td>false alerts/1000 incl. legit change</td><td>${b.false_alerts_per_1000_incl_legit_change}</td></tr>
-    <tr><td>utility preserved</td><td>${b.utility_preserved_pct}%</td></tr>
-    <tr><td>gateway latency p50/p95/max (ms)</td><td>${data.latency_ms?.p50} / ${data.latency_ms?.p95} / ${data.latency_ms?.max}</td></tr>`;
-  els.benign.innerHTML = row;
-}
-
-async function loadResults(){
-  const r = await fetch("/results");
-  if (r.ok) renderResults(await r.json());
-}
-
-// SSE hook: the server exposes /stream for the standard demo replay.
-els.stream.addEventListener("click", () => {
-  els.streamOut.textContent = "";
-  const es = new EventSource("/stream?scenario=" + els.scenario.value + "&mode=" + els.mode.value);
-  es.onmessage = (m) => {
-    const ev = JSON.parse(m.data);
-    if (ev.type === "done") { es.close(); return; }
-    const d = document.createElement("div"); d.className = "ev";
-    d.innerHTML = `<span class="s">step ${ev.step}</span><span class="t">${ev.tool}</span>`;
-    if ((ev.labels || []).length) {
-      const l = document.createElement("span"); l.className = "labels"; l.textContent = ev.labels.join(" · ");
-      d.appendChild(l);
-    }
-    d.appendChild(pill(ev.decision?.action));
-    d.innerHTML += `<span class="score">score ${ev.decision?.score ?? 0}</span>`;
-    els.streamOut.appendChild(d);
+function exportAlert() {
+  if (!state.alert || !state.session) return;
+  const payload = {
+    session: state.session.session,
+    attack: state.session.attack,
+    mode: state.session.mode,
+    alert: state.alert,
   };
-  es.onerror = () => es.close();
-});
+  const blob = new Blob([JSON.stringify(payload, null, 2) + "\n"],
+                        {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "tether-alert-" + state.session.session + ".json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
-els.run.addEventListener("click", runSession);
-loadScenarios().then(loadResults);
+async function loadScenarios() {
+  try {
+    const r = await fetch("/scenarios", {cache: "no-store"});
+    if (!r.ok) throw new Error("scenarios unavailable");
+    const data = await r.json();
+    const sel = $("scenario");
+    clear(sel);
+    Object.entries(data.scenarios || {}).forEach(([name, desc]) => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name + " - " + desc;
+      sel.appendChild(opt);
+    });
+    const preferred = "a1_pdf_injection";
+    if (data.scenarios && data.scenarios[preferred]) sel.value = preferred;
+  } catch (err) {
+    $("run-hint").textContent = "Scenarios unavailable; is the API running?";
+  }
+}
+
+function noMeasuredResults() {
+  state.index = null;
+  const stamp = $("run-stamp");
+  stamp.classList.add("no-data");
+  $("stamp-line").textContent = "NO MEASURED RESULTS";
+  $("stamp-sub").textContent = "The dashboard is live; only the aggregate exhibits are unavailable.";
+  $("exhibit-nav").textContent = "";
+  $("exhibit-count").textContent = "0 exhibits";
+  const box = $("exhibits");
+  clear(box);
+  const empty = el("div", "empty");
+  empty.appendChild(el("h3", "", "No measured results"));
+  empty.appendChild(el("p", "", "No placeholder numbers are shown. Generate the canonical run once, then regenerate the exhibits:"));
+  const code = el("code", "", "python -m tether.evaluate --seed 7 --ablation\npython -m tether.exhibits --write");
+  empty.appendChild(code);
+  empty.appendChild(el("p", "", "The live replay above still works because it runs the simulator directly."));
+  box.appendChild(empty);
+}
+
+function renderHeader(data) {
+  const s = data.summary || {};
+  $("stamp-line").textContent =
+    "seed " + s.seed + " / " + s.attack_n + " sessions/attack";
+  $("stamp-sub").textContent =
+    (s.benign ?? "?") + " benign + " + (s.approved_change ?? "?") +
+    " approved change / unit: " + (s.unit || "n/a");
+}
+
+function renderNav(exhibits) {
+  const nav = $("exhibit-nav");
+  clear(nav);
+  exhibits.forEach((e) => {
+    const a = document.createElement("a");
+    a.href = "?exhibit=" + encodeURIComponent(e.name);
+    a.textContent = e.id + " " + e.name;
+    a.dataset.name = e.name;
+    a.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      history.replaceState(null, "", "?exhibit=" + encodeURIComponent(e.name));
+      focusExhibit(e.name);
+    });
+    nav.appendChild(a);
+  });
+}
+
+function focusExhibit(name) {
+  document.querySelectorAll(".exhibit").forEach((node) => {
+    node.classList.toggle("is-target", node.dataset.name === name);
+  });
+  document.querySelectorAll("#exhibit-nav a").forEach((node) => {
+    node.classList.toggle("active", node.dataset.name === name);
+  });
+  const target = document.getElementById("exhibit-" + name);
+  if (target) target.scrollIntoView({block: "start", behavior: "smooth"});
+}
+
+function renderExhibits(exhibits) {
+  const box = $("exhibits");
+  clear(box);
+  $("exhibit-count").textContent = exhibits.length + " exhibits / E1-E9";
+  exhibits.forEach((e) => {
+    const card = el("article", "exhibit");
+    card.id = "exhibit-" + e.name;
+    card.dataset.name = e.name;
+
+    const head = el("div", "exhibit-head");
+    const title = el("div");
+    title.appendChild(el("div", "id", e.id + " / " + e.renderer));
+    title.appendChild(el("h3", "", e.title));
+    head.appendChild(title);
+    const actions = el("div", "actions");
+    const svg = document.createElement("a");
+    svg.href = "/exhibits/" + encodeURIComponent(e.name) + ".svg";
+    svg.target = "_blank";
+    svg.rel = "noopener";
+    svg.textContent = "open SVG";
+    actions.appendChild(svg);
+    const link = document.createElement("a");
+    link.href = "?exhibit=" + encodeURIComponent(e.name);
+    link.textContent = "deep link";
+    link.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      history.replaceState(null, "", "?exhibit=" + encodeURIComponent(e.name));
+      focusExhibit(e.name);
+    });
+    actions.appendChild(link);
+    head.appendChild(actions);
+    card.appendChild(head);
+
+    const fig = el("div", "fig");
+    const img = document.createElement("img");
+    img.src = "/exhibits/" + encodeURIComponent(e.name) + ".svg";
+    img.alt = e.title;
+    img.loading = "lazy";
+    fig.appendChild(img);
+    card.appendChild(fig);
+
+    card.appendChild(el("p", "caption", e.caption));
+
+    const prov = el("div", "prov");
+    const source = el("div");
+    source.appendChild(el("b", "", "source "));
+    source.appendChild(el("span", "", e.source));
+    const unit = el("div");
+    unit.appendChild(el("b", "", "unit "));
+    unit.appendChild(el("span", "", e.unit));
+    const n = el("div");
+    n.appendChild(el("b", "", "n "));
+    n.appendChild(el("span", "", e.n));
+    prov.appendChild(source);
+    prov.appendChild(unit);
+    prov.appendChild(n);
+    card.appendChild(prov);
+    box.appendChild(card);
+  });
+}
+
+async function loadExhibits() {
+  try {
+    const r = await fetch("/exhibits", {cache: "no-store"});
+    if (!r.ok) {
+      noMeasuredResults();
+      return;
+    }
+    const data = await r.json();
+    if (!data || !Array.isArray(data.exhibits) || data.exhibits.length === 0) {
+      noMeasuredResults();
+      return;
+    }
+    state.index = data;
+    renderHeader(data);
+    renderNav(data.exhibits);
+    renderExhibits(data.exhibits);
+    const wanted = new URLSearchParams(location.search).get("exhibit");
+    if (wanted) {
+      setTimeout(() => focusExhibit(wanted), 80);
+    }
+  } catch (err) {
+    noMeasuredResults();
+  }
+}
+
+function wire() {
+  $("run").addEventListener("click", runSession);
+  $("prev").addEventListener("click", () => {
+    stopPlay();
+    if (state.idx > 0) { state.idx -= 1; renderReplay(); }
+  });
+  $("next").addEventListener("click", () => {
+    stopPlay();
+    if (state.idx < state.events.length - 1) { state.idx += 1; renderReplay(); }
+  });
+  $("play").addEventListener("click", () => {
+    if (state.timer) { stopPlay(); return; }
+    if (!state.events.length) return;
+    if (state.idx >= state.events.length - 1) state.idx = 0;
+    $("play").textContent = "pause";
+    state.timer = setInterval(() => {
+      if (state.idx >= state.events.length - 1) { stopPlay(); renderReplay(); return; }
+      state.idx += 1;
+      renderReplay();
+    }, 850);
+  });
+  $("export").addEventListener("click", exportAlert);
+  document.addEventListener("keydown", (ev) => {
+    if (ev.target && /INPUT|SELECT|TEXTAREA/.test(ev.target.tagName)) return;
+    if (ev.key === "ArrowRight") { stopPlay(); if (state.idx < state.events.length - 1) { state.idx += 1; renderReplay(); } }
+    if (ev.key === "ArrowLeft") { stopPlay(); if (state.idx > 0) { state.idx -= 1; renderReplay(); } }
+  });
+}
+
+wire();
+loadScenarios();
+loadExhibits();
 </script>
 </body>
 </html>

@@ -1,0 +1,4 @@
+# Generated exhibit artifacts are byte-compared by `tether/exhibits.py --check`
+# and docs_check.py. Never apply end-of-line conversion to them: a checkout
+# with core.autocrlf=true must still produce the same bytes that were rendered.
+results/exhibits/** -text

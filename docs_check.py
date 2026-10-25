@@ -1,4 +1,4 @@
-"""Documentation drift checks (M11). Exit 0 = docs agree with measurement.
+"""Documentation drift checks (M11, extended M12). Exit 0 = docs agree with measurement.
 
 What is enforced
 ----------------
@@ -9,10 +9,13 @@ What is enforced
 3. The generated claims block embedded in HANDOFF.md / README.md is identical
    to the block re-rendered from results.json (so quoted numbers cannot drift).
    `--fix` rewrites the block instead of failing.
-4. Every test-count claim in the current docs equals the number of collected
+4. Every generated exhibit SVG and results/exhibits/INDEX.json is byte-identical
+   to a fresh render of results.json (so a judge-facing number cannot be edited
+   or go stale).
+5. Every test-count claim in the current docs equals the number of collected
    tests. HISTORY.md is exempt: it is an append-only record of past states.
-5. Every local markdown link in the core docs points at an existing file.
-6. PREREG.md is unchanged since tag m8. If it changed, DECISIONS.md must carry
+6. Every local markdown link in the core docs points at an existing file.
+7. PREREG.md is unchanged since tag m8. If it changed, DECISIONS.md must carry
    a line containing "PREREG deviation:" (frozen-metric rule, D34).
 
 Run:  python docs_check.py          # check
@@ -28,6 +31,7 @@ import re
 import subprocess
 import sys
 
+from tether import exhibits
 from tether.report import (
     CLAIMS_BEGIN,
     CLAIMS_END,
@@ -110,6 +114,18 @@ def check_results_table(result: dict, manifest: dict) -> None:
             "(hand-edited or stale); regenerate with verify.py")
     else:
         ok("RESULTS_TABLE.md matches results.json exactly")
+
+
+def check_exhibits() -> None:
+    """Generated SVGs + captions must be a fresh render of results.json (D57)."""
+    errors = exhibits.check()
+    if errors:
+        bad("generated exhibits are stale or hand-edited: "
+            + "; ".join(errors)
+            + " (run `python -m tether.exhibits --write`)")
+    else:
+        ok(f"{len(exhibits.EXHIBIT_ORDER)} generated exhibits + INDEX.json "
+           f"match results.json byte-for-byte")
 
 
 def _replace_block(text: str, block: str) -> str:
@@ -225,6 +241,7 @@ def main() -> int:
     if result:
         check_results_table(result, manifest)
         check_claim_blocks(result, manifest, args.fix)
+        check_exhibits()
     check_test_counts()
     check_links()
     check_prereg_frozen()

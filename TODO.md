@@ -24,9 +24,11 @@ tests, `git add -A && git commit`, tag.
       MANIFEST.json; results/ regenerated once under v2 arms (D39).
       Seed 7, n=200/attack: H1-H9 all PASS (H6 two-run digest + manifest hash,
       H7 seed-11 a3/a4 replication); 113/113 tests.
-- [ ] M12 UI v2: D3COY dark theme dashboard, 9 SVG exhibits (E1-E9), exhibit
-      mode `?exhibit=name`, alert export, replay stepper; every number from
-      results/ (no hand-typed values)
+- [x] M12 UI v2: D3COY dark theme dashboard, 9 SVG exhibits (E1-E9),
+      exhibit mode `?exhibit=name`, alert export, replay stepper; every number
+      from results/ (no hand-typed values). `tether/exhibits.py` writes
+      `results/exhibits/*.svg` + `INDEX.json` and `--check` byte-compares them;
+      `docs_check.py` fails on stale exhibits; 126/126 tests.
 - [ ] M13a judge package: README v2, EXHIBITS.md captions for E1-E9, openapi.json,
       BENCHMARK.md, CLAIMS CHECK v2
 - [ ] M14 final: full test + evaluation, determinism check (two runs, one hash),
@@ -56,5 +58,5 @@ tests, `git add -A && git commit`, tag.
 
 - [x] TODO.md stale "BLOCKER STATUS (shell broken)" removed (D40)
 - [x] HANDOFF.md "tests/ (39 tests)" corrected to 45 (D40)
-- [ ] docs_check.py must fail on test-count and doc-vs-results drift (M11)
+- [x] docs_check.py must fail on test-count and doc-vs-results drift (M11)
 

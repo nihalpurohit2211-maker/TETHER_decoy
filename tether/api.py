@@ -11,10 +11,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from tether import exhibits
 from tether.contract import load_contract
 from tether.evaluate import DEFAULT_COUNTS, make_config, seed_plan_replays
 from tether.harness import run_session
@@ -116,6 +118,44 @@ def handle_get_results() -> tuple[bool, dict | None]:
         return True, json.load(fh)
 
 
+def handle_get_exhibits() -> tuple[bool, dict | None]:
+    """Generated exhibit index. Absence is an explicit empty state, not 0.0."""
+    path = os.path.join(ROOT, "results", "exhibits", "INDEX.json")
+    if not os.path.exists(path):
+        return False, {
+            "error": "exhibits not generated yet; run "
+                     "`python -m tether.exhibits --write`"
+        }
+    with open(path, "r", encoding="utf-8") as fh:
+        return True, json.load(fh)
+
+
+EXHIBIT_NAME = re.compile(r"^[a-z]+\.svg$")
+
+
+def handle_get_exhibit(name: str) -> tuple[bool, bytes | dict, str]:
+    """Serve one generated SVG.
+
+    Only a lowercase basename that is a declared exhibit is allowed. Rejecting
+    separators, dot-dot and URL escapes before any filesystem join keeps the
+    route from becoming a path traversal primitive.
+    """
+    raw = str(name or "")
+    if (not EXHIBIT_NAME.fullmatch(raw)
+            or raw != os.path.basename(raw)
+            or "/" in raw or "\\" in raw or ".." in raw):
+        return False, {"error": "unknown exhibit"}, "application/json"
+    stem = raw[:-4]
+    if stem not in exhibits.INDEX:
+        return False, {"error": "unknown exhibit"}, "application/json"
+    path = os.path.join(ROOT, "results", "exhibits", raw)
+    if not os.path.exists(path):
+        return False, {"error": "exhibit not generated; run "
+                                "`python -m tether.exhibits --write`"}, "application/json"
+    with open(path, "rb") as fh:
+        return True, fh.read(), "image/svg+xml; charset=utf-8"
+
+
 def handle_get_contract() -> dict:
     contract = load_contract()
     return {"role": contract.role, "blueprint_version": contract.blueprint_version,
@@ -177,6 +217,14 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _bytes(self, body: bytes, content_type: str) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self) -> None:  # noqa: N802 (stdlib API)
         path, _, query = self.path.partition("?")
         if path in ("/", "/dashboard"):
@@ -190,6 +238,15 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/results":
             ok, obj = handle_get_results()
             self._json(obj, 200 if ok else 404)
+        elif path in ("/exhibits", "/exhibits/"):
+            ok, obj = handle_get_exhibits()
+            self._json(obj, 200 if ok else 404)
+        elif path.startswith("/exhibits/"):
+            ok, payload, content_type = handle_get_exhibit(path[len("/exhibits/"):])
+            if ok:
+                self._bytes(payload, content_type)
+            else:
+                self._json(payload, 404)
         elif path == "/stream":
             params = dict(p.split("=", 1) for p in query.split("&") if "=" in p)
             self._stream(params)

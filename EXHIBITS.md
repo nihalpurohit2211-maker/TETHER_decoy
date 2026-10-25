@@ -10,17 +10,17 @@ Status legend: PLANNED (M8) -> BUILT (M12) -> VERIFIED (M13a).
 
 | # | Exhibit | Name (`?exhibit=`) | Source in results/ | Unit / n | Status |
 |---|---|---|---|---|---|
-| E1 | Detection by attack, with Wilson CIs | `detection` | `attacks[].detected_pct`, `attacks[].ci`, `meta.counts` | % of sessions, n=200/attack | PLANNED |
-| E2 | Leak distribution: none vs tether | `leak` | `attacks[].leak_samples_none`, `attacks[].leak_samples_tether` | records/session, n=200/attack | PLANNED |
-| E3 | Cumulative drift (CUSUM) trajectory | `cusum` | `drift_trajectory` | standardized CUSUM units, per session | PLANNED |
-| E4 | Ablation heatmap (detector x attack) | `ablation` | `ablation[]` | delta pp vs full arm, n=200/attack | PLANNED |
-| E5 | Ladder usage per rung | `ladder` | `ladder_usage` | decision count | PLANNED |
-| E6 | Latency CDF | `latency` | `latency_samples_ms` | ms per decision, n = all decisions | PLANNED |
-| E7 | Identity arm: what it does and does not see | `identity` | `identity_arm[]` | % of sessions, n=200/attack | PLANNED |
-| E8 | Attack map: a1-a9 -> detector -> rung | `attackmap` | `attacks[]` + `THREAT_MODEL.md` ids | categorical, no numbers | PLANNED |
-| E9 | Containment vs utility (the trade-off) | `utility` | `benign.*`, `attack_session_utility_pct` | %, n=1000 legit sessions | PLANNED |
+| E1 | Detection by attack, with Wilson CIs | `detection` | `attacks[].detected_pct`, `attacks[].phase2.detected_pct`, `attacks[].detected_ci95` | % of sessions, n=200/attack | BUILT |
+| E2 | Leak distribution: none vs tether | `leak` | `attacks[].leak_samples_none`, `attacks[].leak_samples_tether`, `attacks[].leak_p90_tether` | records/session, n=200/attack | BUILT |
+| E3 | Cumulative drift (CUSUM) trajectory | `cusum` | `drift_trajectory` | standardized CUSUM units, per session | BUILT |
+| E4 | Ablation heatmap (detector x attack) | `ablation` | `ablation.rows[].attacks[].delta_caught_pp` | delta pp vs full arm, n=200/attack | BUILT |
+| E5 | Ladder usage per rung | `ladder` | `ladder_usage_total.actions` | decision count | BUILT |
+| E6 | Latency CDF | `latency` | `latency_ms.cdf`, `latency_ms.p50/p95/p99/max` | ms per decision, n = all decisions | BUILT |
+| E7 | Identity arm: what it does and does not see | `identity` | `identity_arm.attacks[]` | % of sessions, n=200/attack | BUILT |
+| E8 | Attack map: a1-a9 -> detector -> rung | `attackmap` | `attacks[]` + `THREAT_MODEL.md` ids | categorical, no numbers | BUILT |
+| E9 | Containment vs utility (the trade-off) | `utility` | `benign.*`, `attack_session_utility_pct`, `ladder_usage.benign` | %, n=1000 legit sessions | BUILT |
 
-## Caption rules (enforced at M13a)
+## Caption rules (seed/n/unit enforced by `--check`; wording reviewed at M13a)
 
 1. Each caption states seed, n and unit in the caption text itself, not only in
    a footnote.
@@ -34,7 +34,7 @@ Status legend: PLANNED (M8) -> BUILT (M12) -> VERIFIED (M13a).
 
 ```
 python -m tether.evaluate --seed 7     # writes results/ + MANIFEST.json
-python -m tether.exhibits --check      # verifies every exhibit number vs results/
+python -m tether.exhibits --check      # byte-compares SVGs + captions vs results/
 ```
 
 If `results/` is missing, the dashboard shows an explicit "no measured results"

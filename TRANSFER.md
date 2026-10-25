@@ -8,16 +8,16 @@ Read order if you want depth later: `PROJECT_BRIEF.md` (context) →
 `tether_build_prompt.md` (operative spec) → `HANDOFF.md` (current status and
 NEXT ACTION) → `DECISIONS.md` (why things are the way they are, D1–D40).
 
-> **v2 note (M11).** This document describes the v1 system, which is complete and
-> tagged `final`. v2 is being built on top of it in strict order M9 → M14; the
-> authoritative plan is `PLAN_V2.md` and the frozen metrics are `PREREG.md`.
-> Landed so far: identity layer (signed envelopes, nonce cache, delegation
-> certs, key→role binding), identity-scoped escalation, attacks a7–a9, and the
-> v2 evaluation (Wilson CIs, full leak vectors, latency CDF, CUSUM trajectory,
-> ablation, MANIFEST + `verify.py` + `docs_check.py`; seed 7, n=200/attack,
-> H1–H9 all PASS). The M12 dashboard rewrite and the M13a doc refresh will
-> replace the UI/endpoint sections below; today `/run`, `/stream`, `/results`
-> and the v1 dashboard still work unchanged.
+> **v2 note (M12).** This document describes the v1 system, which is complete and
+> tagged `final`, plus the v2 additions through M12. The authoritative plan is
+> `PLAN_V2.md` and the frozen metrics are `PREREG.md`. Landed: identity layer
+> (signed envelopes, nonce cache, delegation certs, key->role binding),
+> identity-scoped escalation, attacks a7-a9, v2 evaluation (Wilson CIs, leak
+> vectors, latency CDF, CUSUM trajectory, ablation, MANIFEST + `verify.py` +
+> `docs_check.py`; seed 7, n=200/attack, H1-H9 all PASS), and the M12 D3COY
+> dashboard + nine generated exhibits. `/exhibits` and `/exhibits/<name>.svg`
+> are the measured-data surface; `/run` and `/stream` still run live sessions
+> unchanged. Sections 4.9, 4.10 and 6 are the current v2 reference.
 
 ---
 
@@ -85,13 +85,20 @@ tether/
                                 UNTRUSTED, CARRY, RESTRICTED, EXTERNAL...)
   alert.py                      alert card builder (fixed templates)
   harness.py                    session executor (runs one plan in one mode)
-  sim/scenarios.py              scripted plans: benign, legit_change, a1..a6
-  evaluate.py                   evaluation CLI -> results/results.json|.csv
+  sim/scenarios.py              scripted plans: benign, legit_change, a1..a9
+  evaluate.py                   evaluation CLI -> results/results.json (schema v2)
+  stats.py / report.py          Wilson CI, percentiles/CDF; digest, MANIFEST,
+                                RESULTS_TABLE, generated claims block
+  ablation.py / verdicts.py     leave-one-out detector ablation; frozen H1-H9
+  exhibits.py                   nine generated SVGs + results/exhibits/INDEX.json
+  identity.py                   HMAC envelopes, nonce cache, delegation certs
+  escalation.py                 identity-scoped severity state machine (D47)
   demo.py                       colored step-by-step CLI demo
-  api.py                        stdlib JSON API + SSE + static dashboard server
-dashboard.html                  single-file dark-theme dashboard (no libs)
-tests/                          unittest suite (45 tests)
-results/                        measured artifacts (written by evaluate, seed 7)
+  api.py                        stdlib JSON API + SSE + dashboard/exhibit server
+dashboard.html                  single-file D3COY dashboard (no libs, no CDN)
+tests/                          unittest suite (126 tests)
+results/                        measured artifacts + MANIFEST + VERIFY +
+                                RESULTS_TABLE + exhibits/
 calibrate_drift.py              null-traffic calibration for drift h (evidence)
 ```
 
@@ -266,19 +273,22 @@ Returns `results/results.json` written by `python -m tether.evaluate --seed 7`.
 If the file is missing: `404 {"error": "results not written yet; run
 `python -m tether.evaluate --seed 7`"}`.
 
-Top-level keys (captured live):
-`attack_session_utility_pct`, `attacks`, `benign`, `caveats`, `latency_ms`,
-`meta`, `wall_seconds`.
+Top-level keys (schema v2, captured live):
+`ablation`, `attack_session_utility_pct`, `attacks`, `benign`, `caveats`,
+`drift_trajectory`, `identity_arm`, `ladder_usage`, `ladder_usage_total`,
+`latency_ms`, `meta`, `threshold_sweep`, `wall_seconds`.
 
-One `attacks[]` entry (a1):
+One `attacks[]` entry (a1, abridged; v2 adds CI/sample fields):
 ```json
 {
   "caught_before_harmful_send_pct": 100.0,
   "covered_in_phase1": true,
   "detected_pct": 100.0,
+  "detected_ci95": [98.12, 100.0],
   "id": "a1_pdf_injection",
   "median_steps_to_detect": 4.0,
   "name": "pdf injection chain",
+  "n": 200,
   "phase2": {"caught_before_harmful_send_pct": 100.0, "detected_pct": 100.0,
              "records_out_tether_median": 0.0},
   "records_out_none": 148.0,
@@ -288,8 +298,33 @@ One `attacks[]` entry (a1):
 ```
 `benign`: `{"false_alerts_per_1000_ordinary": 0.0,
 "false_alerts_per_1000_incl_legit_change": 0.0, "utility_preserved_pct": 100.0,
-"phase2": {...same three...}}`.
-`latency_ms`: `{"p50": 0.146, "p95": 0.789, "max": 108.046}`.
+"utility_ci95_pct": [99.94, 100.0], "n_ordinary": 900,
+"n_incl_legit_change": 1000, "phase2": {...}}`.
+`latency_ms`: `{"p50": 0.215, "p95": 0.873, "p99": 1.307, "max": 130.682,
+"n": 11105, "cdf": [[ms, pct], ...], "samples": [...]}`.
+`meta`: seed, counts, `schema_version: 2`, `phase2: true`, units.
+`ladder_usage` / `ladder_usage_total`: per-corpus and total action counts.
+`identity_arm`: per-attack identity-only rates with CIs.
+`ablation`: `{"base": ..., "rows": [{"removed": ..., "attacks": {...},
+"false_alerts_per_1000": ...}, ...]}`.
+`drift_trajectory`: corpus -> `[[session, destination, records, cusum, latched], ...]`.
+`threshold_sweep`: report-only rows (never used to pick a threshold).
+
+### 4.9 `GET /exhibits`
+Returns the generated `results/exhibits/INDEX.json` (`application/json`):
+summary (seed, attack n, benign, approved change), counts, `results_sha256`,
+and nine exhibit entries with `id`, `name`, `title`, `renderer`, `svg`,
+`source`, `unit`, `n`, `caption`. Captions are byte-checked against
+`results/results.json`; they are not a second source of truth. If `--write` has
+not run: `404 {"error": "exhibits not generated yet; run `python -m
+tether.exhibits --write`"}`.
+
+### 4.10 `GET /exhibits/<name>.svg`
+Serves one generated SVG as `image/svg+xml; charset=utf-8`. `<name>` must be a
+declared exhibit (`detection`, `leak`, `cusum`, `ablation`, `ladder`, `latency`,
+`identity`, `attackmap`, `utility`). Malformed, unknown, absolute, `..`, `/`,
+`\` or percent-escaped traversal forms all return `404 {"error": "unknown
+exhibit"}` before any path join. There is no directory listing.
 
 ---
 
@@ -329,57 +364,58 @@ plain/mild/mimic).
 
 ---
 
-## 6. Dashboard guide (`dashboard.html`, single file, no build step)
+## 6. Dashboard guide (`dashboard.html`, single file, no build step, v2)
 
-Served at `/`. Layout: CSS grid, left column = interactive replay, right
-column = measured results. Dark theme via CSS custom properties at the top
-of the `<style>` block (`--bg`, `--panel`, `--edge`, `--text`, `--dim`,
-`--harm` red, `--control` blue, `--ok` green, `--warn` amber) — restyling
-means touching only those variables and the few rules below them.
+Served at `/`. This file was rewritten at M12; the v1 ids (`#timeline`,
+`#summary`, `#chart`, `#stream`) no longer exist. The page has two surfaces:
+
+1. **Measured exhibits (E1-E9, the only aggregate numbers).** Loaded from
+   `/exhibits` and displayed as `<img src="/exhibits/<name>.svg">`. The
+   dashboard never computes or hardcodes an aggregate; the caption, source,
+   unit and n shown under each figure come from `INDEX.json`.
+2. **Live replay (explicitly NOT the aggregate).** One `/run` session, stepped
+   with prev/next/play or the arrow keys. The UI labels it "live simulation
+   output" so it cannot be quoted as the seed-7 result.
+
+Theme: D3COY dark tokens in `:root` of the inline `<style>`:
+`--bg #0d0d12`, `--panel #16161e`, `--panel-2 #1c1c26`, `--edge #3a1f25`,
+`--accent #c41e3a`, `--accent-soft #d46a6a`, `--text #e0e0e0`,
+`--dim #9a9aa6`, `--num #ff6b6b`, `--ok #3fb96e`, `--warn #e0a030`.
+Serif (`--serif`) for the wordmark/titles, monospace (`--mono`, tabular
+numerals) for all data. No external fonts, scripts, or images.
 
 | Panel | Data source | DOM ids / hooks |
 |---|---|---|
-| Session replay (controls + per-session grouped timeline + inline alert card) | `GET /run` on button click | `#scenario`, `#mode`, `#n`, `#run`, `#timeline`; each session renders as a `div.session` block with a `div.shead` header (tier, session id, alert/clean pill, leak, utility); its alert card is appended inside that block |
-| Run summary table | same `/run` response | `#summary` |
-| Slow replay (stream) | `GET /stream` via `EventSource` | `#stream`, `#stream-out` |
-| Detection % chart (phase1 blue vs phase2 green bars) | `GET /results` | `#chart`, `#chart-names`, legend is inline in the HTML |
-| Records out / session (median) table | `GET /results` | `#leaks` |
-| Benign + latency table | `GET /results` | `#benign` |
+| Masthead run stamp (seed, sessions/attack, benign, approved change) | `/exhibits` -> `summary` | `#run-stamp`, `#stamp-line`, `#stamp-sub` |
+| Sticky exhibit nav (E1-E9) | `/exhibits` -> `exhibits[]` | `#exhibit-nav`, `a[data-name]`, `.active`, `?exhibit=<name>` |
+| Exhibit cards (SVG + caption + source/unit/n) | `/exhibits` + `/exhibits/<name>.svg` | `#exhibits`, `article.exhibit#exhibit-<name>`, `.fig img`, `.caption`, `.prov` |
+| Deep link / highlight | `location.search` + nav clicks | `focusExhibit(name)`, `.is-target` |
+| Live replay stepper | `GET /run?scenario&mode&n=1&seed&phase2=true` | `#scenario`, `#mode`, `#run`, `#replay`, `#prev`, `#next`, `#play`, `#step-count`, `#run-hint` |
+| Alert JSON export | the loaded session's `alert` | `#export`, `exportAlert()`, downloads `tether-alert-<session>.json` |
+| Explicit missing-artifact state | `/exhibits` 404 or empty | `noMeasuredResults()`, text `NO MEASURED RESULTS` |
 
 Rendering conventions to preserve if you restyle:
-- Each session is a `div.session` block containing a `div.shead` header row
-  (tier, session id, alert/clean pill, leak, utility — `ok`/`bad` accent
-  border) followed by its `div.ev` step rows, so `n>1` runs stay readable.
-  Step rows no longer repeat the tier; it lives in the header.
-- Inside a step row (`div.ev`) the action pill is `span.pill.<action>` with
-  classes `allow` (green), `block`/`quarantine`/`isolate`/`narrow` (red),
-  `hold` (amber), `skipped` (dim), `enforcement` (blue). Add CSS for any new
-  action value; unknown actions fall back to bare `pill`.
-- Detector `reasons` are attached as the row's `title` attribute (hover
-  tooltip), taint `labels` render as dim text between tool and pill.
-- The alert card is rendered directly from the `/run` response's
-  `s.alert` (no refetch) via `showAlert(card, target)` and appended inside
-  the alerting session's block; it shows score, severity, confidence,
-  `baseline_maturity`, `action_taken`, reasons, counterfactual.
-- Chart bars: phase 1 = `.bar`, phase 2 = `.bar.p2`, values < 50% get
-  `.bad` (red). Bar height = `max(4, pct)%` of the 120px chart. The attack
-  labels live in the SIBLING `#chart-names` (`div.name`), each `i` fixed at
-  60px = one bar pair's width (26+8+26px). Do not scope those rules under
-  `.chart` again — the labels are not chart children (that bug squashed all
-  labels into "a1a2a3a4a5a6").
-- Seed is hardcoded to `7` in the dashboard's `/run` call — change it in
-  `runSession()` if you add a seed control.
-- `loadScenarios()` populates the dropdown from `/scenarios`; do not
-  hardcode scenario names in the HTML.
+- `.ev` rows: `.current` is the stepped event, `.past` is before it, future
+  rows are dimmed by default. Action pills are `.pill.<action>` (`allow`,
+  `hold`, `narrow`, `quarantine`, `isolate`, `block`, `skipped`).
+- Detector `reasons` are the row's `title` (hover); taint `labels` render as
+  dim text; `score` is the fused 0-100 value.
+- The live replay seed comes from `INDEX.summary.seed` (falling back to 7 only
+  when the index is absent). Do not add a second hardcoded aggregate.
+- `loadScenarios()` populates the dropdown from `/scenarios`; never hardcode
+  scenario names in the HTML.
+- A missing `results/` or `results/exhibits/` must keep showing the empty state
+  with the two regeneration commands, never zeros or sample figures.
 
 Safe-change checklist for UI work:
-1. `python -m tether.api` → open `http://127.0.0.1:8765/`.
-2. Exercise: benign (no alert), a1 tether (alert + narrow/block), a3
-   (phase-2-only catch), mode `none` (everything allows, leaks happen).
-3. If you touch JS data handling, keep the `skipped` action and
-   `alert: null` cases working.
-4. Re-run the unittest suite — it does not cover the HTML, but it guards the
-   API shapes you consume.
+1. `python -m tether.api` -> open `http://127.0.0.1:8765/`.
+2. Confirm the masthead, nav and nine cards load; open `?exhibit=latency` and
+   check scroll + highlight; run benign / a1 / a3 in `tether` and `none` modes;
+   step and export an alert.
+3. If you edit `tether/exhibits.py`, run `python -m tether.exhibits --write`
+   then `--check`. Never edit an SVG or caption by hand.
+4. Run `python docs_check.py` and the unittest suite. The dashboard tests assert
+   no hardcoded measured numbers and no external URLs.
 
 ---
 

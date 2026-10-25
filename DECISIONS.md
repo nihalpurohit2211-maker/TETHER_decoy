@@ -337,3 +337,39 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   line in this file. Reason: v1's docs drifted (39 vs 45 tests, stale TODO), and
   hand-copied numbers are the easiest way for a judge-facing claim to become
   false.
+- D57 (exhibits are generated artifacts, not hand-drawn charts). Each of E1-E9
+  is rendered by `tether/exhibits.py` from `results/results.json`; captions,
+  source paths, units and n live in `results/exhibits/INDEX.json` and are
+  byte-compared with `--check`. `docs_check.py` runs the same check, so editing
+  an SVG or a caption fails the build even though every number was correct when
+  first generated. Rejected: hand-authored SVG/HTML charts (drift, unverifiable
+  provenance) and runtime charting from `/results` (a stale browser could show a
+  different picture than the caption). The E6 maximum (130.682 ms) is annotated
+  at its point instead of becoming an axis tick because it sits ~20 px from the
+  100 ms decade label on the log axis; E2's "none"/"tether" strip labels were
+  removed in favour of the existing legend after they collided with attack
+  names. Both are presentation-only changes; no measurement was regenerated.
+- D58 (the dashboard shows no aggregate number it did not receive from
+  `/exhibits`). `dashboard.html` builds the run stamp, nav, cards, captions,
+  units and n from `INDEX.json`; a missing artifact produces an explicit "NO
+  MEASURED RESULTS" state with the commands to regenerate, never placeholder
+  values. The live replay is labelled "live simulation output" and its request
+  uses the measured seed but is not presented as the aggregate. Rejected:
+  embedding a JSON snapshot in the HTML (two sources of truth) and tolerating
+  missing results with zeros (indistinguishable from a real measured zero).
+- D59 (exhibit routes are an allowlist, not a static file server). `GET
+  /exhibits` returns `INDEX.json`; `GET /exhibits/<name>.svg` accepts only
+  `^[a-z]+\.svg$`, requires the raw value to equal its basename, rejects `/`,
+  `\` and `..`, and then checks the stem against `exhibits.INDEX` before joining
+  the path. Unknown or malformed names return `404 {"error": "unknown exhibit"}`
+  with size-independent JSON. This keeps the existing API surface intact and
+  avoids making `results/` traversable. Rejected: serving `results/exhibits/`
+  with `SimpleHTTPRequestHandler` (directory listing plus traversal surface).
+- D60 (exhibit QA is visual, but fixes stay presentational). All nine exhibits
+  were rendered in Chromium at 1440 px and inspected. Fixes: wider E1/E2 name
+  columns, E2 strip-label collision removed, E6 max-tick collision removed, E9
+  height trimmed and its note shortened. No detector, threshold, attack, metric
+  or `results/` artifact changed for layout reasons. E2 deliberately draws all
+  200 samples per arm (~281 KB) rather than subsampling, so the leak tail is
+  inspectable; file size is accepted as the cost of showing the real
+  distribution.

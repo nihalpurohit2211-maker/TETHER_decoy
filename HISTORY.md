@@ -81,13 +81,13 @@ are recorded as approximate wall-clock text from the session clock
 ## Checkpoint (post-final): TRANSFER.md + API hardening
 
 - Added TRANSFER.md: single self-contained transfer doc for the team and
-  future LLM sessions — all HTTP endpoints with live-captured request/
+  future LLM sessions ï¿½ all HTTP endpoints with live-captured request/
   response payloads (/health /contract /scenarios /run GET+POST /stream SSE
   /results), field glossaries (timeline, alert card, results.json),
   dashboard panel->endpoint->DOM-id map, ground rules, and the
   do-not-"fix" caveat list.
 - API hardening (D32): parse_run_params() validates mode in
-  (none|textgate|tether) — an unknown mode previously fell into the tether
+  (none|textgate|tether) ï¿½ an unknown mode previously fell into the tether
   branch with gateway=None and crashed with a 500; malformed n/seed now
   return clean 400 JSON instead of an unhandled traceback; /run path match
   tightened to exact /run; POST rejects non-dict bodies. 6 new tests;
@@ -114,29 +114,29 @@ are recorded as approximate wall-clock text from the session clock
 - Tests: 45/45 OK (HTML not covered by tests; verified live via served
   / response containing new markup and no leftover els.alert references).
 
-## 2026-10-25 21:43 — v2 M8: framing (PREREG, THREAT_MODEL, problem statement, exhibits)
+## 2026-10-25 21:43 ï¿½ v2 M8: framing (PREREG, THREAT_MODEL, problem statement, exhibits)
 
 - Added PLAN_V2.md (copy of the authoritative v2 plan; commit b0a692a) so the
   handoff is self-contained.
 - Baseline verified before any v2 work: `python -m unittest discover` -> 45/45 OK.
 - M8 docs written, no code touched:
-  - PREREG.md — FROZEN at tag m8, before any v2 detector/attack/ladder change.
+  - PREREG.md ï¿½ FROZEN at tag m8, before any v2 detector/attack/ladder change.
     Corpus (900 benign, 100 legit_change, 200/attack, seed 7 primary; 11/23
     replication), five arms (none/textgate/tether_p1/tether_p2/identity),
     twelve metric definitions, H1-H9 with explicit support thresholds, honest
     pre-registered attack expectations, and a "what we will not do after seeing
     results" list. Wilson 95% CIs mandated; no n=1 anecdotes, no pooled seeds.
-  - THREAT_MODEL.md — assets, trust boundaries, adversary profiles P1-P9,
+  - THREAT_MODEL.md ï¿½ assets, trust boundaries, adversary profiles P1-P9,
     frozen a1-a9 catalogue with expected catcher and rung, three worked
     distinctions (a5 replay vs a9 impersonation; a7 needs history not a bigger
     floor; a8 is sequence-illegal while every clause is legal), explicit
     out-of-scope list incl. key compromise and injection prevention, and an
     assumption->failure-mode table.
-  - PROBLEM_STATEMENT.md — splits "identity drift" into scope / purpose /
+  - PROBLEM_STATEMENT.md ï¿½ splits "identity drift" into scope / purpose /
     identity drift with one anchor and one failure mode each; maps the PS's five
     demands to mechanism and evidence; states the claim as bounded blast radius
     + fast detection, NOT prevention; tables the v1 gaps vs falsifiable tests.
-  - EXHIBITS.md — E1-E9 judge exhibits, each with its exact results/ path, unit
+  - EXHIBITS.md ï¿½ E1-E9 judge exhibits, each with its exact results/ path, unit
     and n, caption rules (misses captioned as misses; identity caption must
     carry the key-compromise limitation).
 - Two stale drifts recorded and cleaned (D40): TODO.md still claimed a broken
@@ -150,7 +150,7 @@ are recorded as approximate wall-clock text from the session clock
   D39 one-time v2 results reset (v1 recoverable from tag `final`), D40 doc drift.
 - Tests: 45/45 OK. No behavior changed, so no results regeneration.
 
-## 2026-10-25 21:56 — v2 M9: identity layer (signed envelopes, nonce, certs, binding)
+## 2026-10-25 21:56 ï¿½ v2 M9: identity layer (signed envelopes, nonce, certs, binding)
 
 - New tether/identity.py (stdlib only, deterministic): HMAC-SHA256 canonical-JSON
   envelopes with key->role/blueprint binding; NonceCache (capacity 20k, logical
@@ -181,7 +181,7 @@ are recorded as approximate wall-clock text from the session clock
   corroboration). Intended for credential theft; H8 (zero benign isolations)
   is rechecked at M10.
 
-## 2026-10-25 22:01 — v2 M10: reachable ladder (escalation) + a7 persistent + a8 composition
+## 2026-10-25 22:01 ï¿½ v2 M10: reachable ladder (escalation) + a7 persistent + a8 composition
 
 - Diagnosed the v1 defect precisely: `choose_action` needs 92 for isolate, the
   highest canonical floor is 90, and narrowing at 70 installs a capsule that
@@ -211,7 +211,7 @@ are recorded as approximate wall-clock text from the session clock
 - Tests: 65 -> 76 green in 4 files (escalation policy, rung coverage, benign
   never isolated, a8 legality + catch, hard-phase exfil blocked).
 
-## 2026-10-25 22:20 — v2 M11: evaluation v2 (CIs, ablation, determinism, honest verdicts)
+## 2026-10-25 22:20 ï¿½ v2 M11: evaluation v2 (CIs, ablation, determinism, honest verdicts)
 
 - New measurement modules: tether/stats.py (Wilson 95% CI, nearest-rank
   percentile, CDF points, rate_with_ci), tether/ablation.py (leave-one-out over
@@ -261,3 +261,38 @@ are recorded as approximate wall-clock text from the session clock
 - DECISIONS: D51 schema v2, D52 digest scope, D53 ablation mechanics, D54
   verdicts frozen, D55 escalation-across-corpora limitation, D56 docs drift is
   machine-checked. docs_check.py reports 7/7 PASS.
+
+## 2026-10-25 22:40 - v2 M12: D3COY dashboard + nine generated exhibits
+
+- New tether/exhibits.py (stdlib only): nine deterministic SVG renderers
+  (detection/leak/cusum/ablation/ladder/latency/identity/attackmap/utility),
+  an INDEX spec with title/source/unit/renderer, captions that always carry
+  seed, n and unit, write_all(), and a byte-based check(). Output:
+  results/exhibits/<name>.svg + results/exhibits/INDEX.json, tied to the
+  results digest (e1b8fef2...).
+- Rewritten dashboard.html: D3COY dark tokens (#0d0d12 / #c41e3a / #16161e /
+  #3a1f25 / #e0e0e0 / #ff6b6b), serif wordmark, monospace tabular data, nine
+  exhibit cards fed only by /exhibits, sticky exhibit nav, ?exhibit=<name> deep
+  links with scroll + highlight, live replay stepper (prev/next/play, keyboard),
+  alert JSON export, and an explicit NO MEASURED RESULTS state instead of
+  placeholder numbers. Live replay is labelled as a fresh simulation, not the
+  seed-7 aggregate (D58).
+- API: GET /exhibits (INDEX.json) and GET /exhibits/<name>.svg with an
+  allowlisted lowercase basename, rejection of separators/dot-dot/URL escapes
+  before any path join, and 404 {"error": "unknown exhibit"} for everything
+  else (D59). Existing routes unchanged; smoke-tested /, /results, /run,
+  /exhibits and traversal forms.
+- Visual QA in Chromium at 1440 px: fixed E2 strip-label/attack-name collision
+  (labels removed; legend kept, left column widened), E6 130.682-vs-100 tick
+  collision (max annotated at its point instead of an axis tick), E9 height and
+  clipped note, and widened the E1 name column. Presentational only; results/
+  was not regenerated (D57, D60).
+- docs_check.py now also fails if any SVG or INDEX.json is stale or hand-edited
+  (eight checks). EXHIBITS.md E1-E9 status moved PLANNED -> BUILT.
+- Tests: 113 -> 126 green (+13 exhibit/API/dashboard tests: SVG well-formed +
+  dark theme, numbers pulled from results, captions carry seed/n/unit, digest
+  tie, attack-map coverage, caption-tamper failure, traversal rejection,
+  dashboard has no hardcoded measured numbers and no external URLs).
+- DECISIONS: D57 generated exhibits are byte-checked; D58 dashboard aggregate
+  numbers only from /exhibits; D59 exhibit route allowlist; D60 visual QA fixes
+  stay presentational.

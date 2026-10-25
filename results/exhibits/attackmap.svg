@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 467" width="100%" role="img" aria-labelledby="exhibit-title" preserveAspectRatio="xMidYMid meet">
+<title id="exhibit-title">Attack map: a1-a9 -&gt; expected catcher -&gt; expected rung</title>
+<rect x="0.00" y="0.00" width="920.00" height="467.00" fill="#0d0d12" />
+<rect x="0.00" y="0.00" width="3.00" height="467.00" fill="#c41e3a" />
+<rect x="0.50" y="0.50" width="919.00" height="466.00" fill="none" stroke="#3a1f25" stroke-width="1.0" />
+<text x="26.00" y="27.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="700" letter-spacing="2.4">TETHER / D3COY 1.0</text>
+<text x="894.00" y="27.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#9a9aa6" text-anchor="end" font-weight="400" letter-spacing="1.2">GENERATED FROM results/</text>
+<text x="26.00" y="55.00" font-size="17" font-family="Georgia, 'Times New Roman', serif" fill="#e0e0e0" text-anchor="start" font-weight="700" letter-spacing="0.4">Attack map: a1-a9 -&gt; expected catcher -&gt; expected rung</text>
+<text x="26.00" y="72.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#9a9aa6" text-anchor="start" font-weight="400" letter-spacing="0.8">Categorical mapping only: no measured rates on this exhibit.</text>
+<text x="24.00" y="92.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="400" letter-spacing="1.1">id</text>
+<text x="66.00" y="92.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="400" letter-spacing="1.1">attack</text>
+<text x="350.00" y="92.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="400" letter-spacing="1.1">expected catcher</text>
+<text x="700.00" y="92.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="400" letter-spacing="1.1">expected rung</text>
+<text x="24.00" y="127.68" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="700">a1</text>
+<text x="66.00" y="127.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#e0e0e0" text-anchor="start" font-weight="400">pdf injection chain</text>
+<text x="350.00" y="127.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#9a9aa6" text-anchor="start" font-weight="400">contract + provenance</text>
+<text x="700.00" y="127.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#ff6b6b" text-anchor="start" font-weight="400">narrow -&gt; block</text>
+<line x1="20.00" y1="141.00" x2="900.00" y2="141.00" stroke="#3a1f25" stroke-width="0.5" opacity="0.62" />
+<text x="24.00" y="164.68" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="700">a2</text>
+<text x="66.00" y="164.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#e0e0e0" text-anchor="start" font-weight="400">poisoned tool description</text>
+<text x="350.00" y="164.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#9a9aa6" text-anchor="start" font-weight="400">contract + provenance</text>
+<text x="700.00" y="164.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#ff6b6b" text-anchor="start" font-weight="400">narrow -&gt; block</text>
+<line x1="20.00" y1="178.00" x2="900.00" y2="178.00" stroke="#3a1f25" stroke-width="0.5" opacity="0.62" />
+<text x="24.00" y="201.68" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="700">a3</text>
+<text x="66.00" y="201.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#e0e0e0" text-anchor="start" font-weight="400">in-contract mimicry</text>
+<text x="350.00" y="201.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#9a9aa6" text-anchor="start" font-weight="400">drift budget (phase 2)</text>
+<text x="700.00" y="201.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#3fb96e" text-anchor="start" font-weight="400">hold / narrow</text>
+<line x1="20.00" y1="215.00" x2="900.00" y2="215.00" stroke="#3a1f25" stroke-width="0.5" opacity="0.62" />
+<text x="24.00" y="238.68" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="700">a4</text>
+<text x="66.00" y="238.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#e0e0e0" text-anchor="start" font-weight="400">low-and-slow drip</text>
+<text x="350.00" y="238.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#9a9aa6" text-anchor="start" font-weight="400">drift budget (phase 2)</text>
+<text x="700.00" y="238.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#3fb96e" text-anchor="start" font-weight="400">hold / narrow</text>
+<line x1="20.00" y1="252.00" x2="900.00" y2="252.00" stroke="#3a1f25" stroke-width="0.5" opacity="0.62" />
+<text x="24.00" y="275.68" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="700">a5</text>
+<text x="66.00" y="275.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#e0e0e0" text-anchor="start" font-weight="400">stolen-token replay</text>
+<text x="350.00" y="275.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#9a9aa6" text-anchor="start" font-weight="400">identity nonce + context</text>
+<text x="700.00" y="275.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#3fb96e" text-anchor="start" font-weight="400">quarantine</text>
+<line x1="20.00" y1="289.00" x2="900.00" y2="289.00" stroke="#3a1f25" stroke-width="0.5" opacity="0.62" />
+<text x="24.00" y="312.68" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="700">a6</text>
+<text x="66.00" y="312.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#e0e0e0" text-anchor="start" font-weight="400">malicious delegation</text>
+<text x="350.00" y="312.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#9a9aa6" text-anchor="start" font-weight="400">identity delegation cert</text>
+<text x="700.00" y="312.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#3fb96e" text-anchor="start" font-weight="400">quarantine</text>
+<line x1="20.00" y1="326.00" x2="900.00" y2="326.00" stroke="#3a1f25" stroke-width="0.5" opacity="0.62" />
+<text x="24.00" y="349.68" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="700">a7</text>
+<text x="66.00" y="349.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#e0e0e0" text-anchor="start" font-weight="400">persistent intruder (repeat offen.</text>
+<text x="350.00" y="349.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#9a9aa6" text-anchor="start" font-weight="400">escalation state machine</text>
+<text x="700.00" y="349.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#3fb96e" text-anchor="start" font-weight="400">all five rungs</text>
+<line x1="20.00" y1="363.00" x2="900.00" y2="363.00" stroke="#3a1f25" stroke-width="0.5" opacity="0.62" />
+<text x="24.00" y="386.68" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="700">a8</text>
+<text x="66.00" y="386.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#e0e0e0" text-anchor="start" font-weight="400">composition chain (every step leg.</text>
+<text x="350.00" y="386.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#9a9aa6" text-anchor="start" font-weight="400">provenance sequence</text>
+<text x="700.00" y="386.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#ff6b6b" text-anchor="start" font-weight="400">narrow -&gt; block</text>
+<line x1="20.00" y1="400.00" x2="900.00" y2="400.00" stroke="#3a1f25" stroke-width="0.5" opacity="0.62" />
+<text x="24.00" y="423.68" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#d46a6a" text-anchor="start" font-weight="700">a9</text>
+<text x="66.00" y="423.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#e0e0e0" text-anchor="start" font-weight="400">identity laundering (role/bluepri.</text>
+<text x="350.00" y="423.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#9a9aa6" text-anchor="start" font-weight="400">identity key-&gt;role binding</text>
+<text x="700.00" y="423.68" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#3fb96e" text-anchor="start" font-weight="400">quarantine</text>
+<text x="24.00" y="457.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#9a9aa6" text-anchor="start" font-weight="400">source: THREAT_MODEL.md section 4; attack ids/names from results.json</text>
+</svg>
