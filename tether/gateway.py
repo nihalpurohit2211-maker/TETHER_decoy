@@ -20,10 +20,11 @@ from tether.detectors import (
     intent_check,
     provenance_check,
 )
+from tether.escalation import EscalationState
 from tether.events import Event
 from tether.fusion import confidence, fusion_score
 from tether.identity import IdentityAuthority, identity_check
-from tether.response import NarrowingCapsule, choose_action, narrow_from_contract
+from tether.response import RUNG_FOR, NarrowingCapsule, choose_action, narrow_from_contract
 from tether.textgate import TextGate
 from tether.types import Decision, DetectorResult
 
@@ -78,6 +79,7 @@ class Gateway:
         phase2: bool = False,
         identity: IdentityAuthority | None = None,
         arm: str = "tether",
+        escalation: EscalationState | None = None,
     ) -> None:
         self.contract = contract
         self.tracker = tracker
@@ -87,9 +89,14 @@ class Gateway:
         self.phase2 = phase2
         self.identity = identity      # signed-envelope authority (M9)
         self.arm = arm                # "tether" | "identity" (control arm, D36/D41)
+        self.escalation = escalation or EscalationState()
         if arm == "identity" and identity is None:
             raise ValueError("identity arm requires an IdentityAuthority")
         self.states: dict[str, SessionState] = {}
+
+    def begin_session(self) -> None:
+        """Advance the escalation clock (decay lives here, not in wall time)."""
+        self.escalation.begin_session()
 
     def state_for(self, session: str) -> SessionState:
         if session not in self.states:
@@ -113,6 +120,9 @@ class Gateway:
         if state.narrowed is not None and state.narrowed.denies_tool_class_ext(
             ev.tool, ev.data_class, ev.destination, self.contract, self.change
         ):
+            # A blocked attempt under an active narrowing is itself an offense:
+            # a persistent intruder must not be able to keep probing for free.
+            self.escalation.record("block", ev.session)
             return self._block(
                 ev, t0, 70.0, state.narrowed.block_text(ev.tool, ev.data_class)
             ), state
@@ -175,7 +185,10 @@ class Gateway:
             or (self.phase2 and results.get("context", DetectorResult("context", 0.0, 0.0)).score >= 1.0)
             or (state.high_events >= 1 and score >= 60)
         )
-        action, rung = choose_action(score, corroborated)
+        base_action, rung = choose_action(score, corroborated)
+        action, escalated = self.escalation.next_action(base_action, ev.session)
+        if escalated:
+            rung = RUNG_FOR[action]
 
         reasons: list[str] = []
         evidence: list[str] = []
@@ -184,6 +197,13 @@ class Gateway:
                 reasons.append(r)
             if res.evidence and res.score > 0.0:
                 evidence.append(f"{name}:{res.evidence}")
+        if escalated:
+            reasons.append(
+                f"repeat offense by this identity: escalated {base_action} to {action}"
+            )
+            evidence.append(
+                f"escalation:level={self.escalation.level},severity={self.escalation.severity}"
+            )
 
         dec = Decision(
             event_id=ev.event_id,
@@ -201,6 +221,7 @@ class Gateway:
             state.alerts.append(dec)
         if score >= 60:
             state.high_events += 1
+        self.escalation.record(action, ev.session)
         self._apply_rung(dec, ev, state)
         return dec, state
 

@@ -253,3 +253,39 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
 - D46 (event envelope field is additive). `Event.envelope` defaults to `{}`,
   so ledger rows, alert cards and API payloads for v1-style callers stay valid;
   `to_dict()` serialises it as JSON (no bytes in the envelope).
+
+## v2 decisions (M10)
+
+- D47 (identity-scoped escalation, not a lower isolate band). v1 needed >= 92
+  for isolate while the highest canonical floor is 90, and narrowing at 70
+  pre-empted the 80-91 quarantine band, so the ladder was top-heavy. The fix is
+  history, not a moved threshold: severity (narrow/block 1, quarantine 2,
+  isolate 3) accrues per identity (role+blueprint) across sessions; level 1
+  turns a new narrow into quarantine, level 2 turns narrow/quarantine into
+  isolate. The 30/60/80/92 bands and all fusion floors are untouched. A blocked
+  probe under an active capsule counts as an offense, once per session (a
+  capsule that denies three calls in a row is one offense, not three).
+  History decays after 25 offense-free sessions. Containment stays SESSION-
+  scoped: no role-wide credential revocation, because that would take out
+  legitimate work and violate the PS's fifth demand. Deliberate trade-off:
+  attack-session utility drops when a corpus repeats the same attacking
+  identity (reported honestly, not hidden); benign utility stays 100 %.
+- D48 (a7 is a three-phase scenario, by session index). v1 had no persistence.
+  a7 is: retry (sessions 0-4, full a1-style chain), slow (5-14, drip to an
+  allowed destination so the drift budget latches and produces a real `hold`),
+  hard (15+, full chain again at escalation level 2 -> isolate). Reason: this is
+  what a persistent intruder does after being narrowed, and it exercises all
+  five rungs with genuine detector scores (H4). The phase boundaries are
+  scenario design, declared in the docstring; they are not detector or
+  threshold tuning, and no result was inspected before choosing them.
+- D49 (a8 needs no new detector). The composition chain (untrusted doc ->
+  pricing -> outbound packet carrying the doc) is caught by the existing
+  provenance tainted-carry rule scoring 0.5 (weight 0.9). Measured fused score
+  63 lands in `narrow`, so the send is not executed. No composition-specific
+  detector was added: a new detector would have been a second chance to fit the
+  attack. A test asserts every a8 step passes the contract check with score 0,
+  which is what makes it composition rather than a contract violation (H9).
+- D50 (ladder_usage in results). results.json now carries per-corpus and total
+  counts of decisions by action and by rung. Reason: H4 is only meaningful if
+  the rungs are counted from decisions, not asserted in prose; EXHIBITS E5 reads
+  this block directly.

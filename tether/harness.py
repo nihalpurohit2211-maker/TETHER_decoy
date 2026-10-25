@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 
 from tether.contract import Contract
 from tether.detectors import BaselineTracker, DriftBudget
+from tether.escalation import EscalationState
 from tether.events import Event
 from tether.gateway import Gateway
 from tether.ledger import Ledger
@@ -72,6 +73,7 @@ class RunConfig:
     change: ApprovedChange | None
     phase2: bool
     identity: object | None = None   # IdentityAuthority (typed loosely: no cycle)
+    escalation: EscalationState | None = None
 
 
 @dataclass
@@ -166,8 +168,10 @@ def run_session(
             change=plan.change or config.change,
             phase2=config.phase2,
             identity=config.identity,  # type: ignore[arg-type]
+            escalation=config.escalation,
             arm=mode,
         )
+        gateway.begin_session()
     elif mode == "textgate" and config.gate is None:
         raise ValueError("textgate mode requires a fitted TextGate")
 

@@ -150,7 +150,7 @@ are recorded as approximate wall-clock text from the session clock
   D39 one-time v2 results reset (v1 recoverable from tag `final`), D40 doc drift.
 - Tests: 45/45 OK. No behavior changed, so no results regeneration.
 
-## 2026-10-25 22:05 — v2 M9: identity layer (signed envelopes, nonce, certs, binding)
+## 2026-10-25 21:56 — v2 M9: identity layer (signed envelopes, nonce, certs, binding)
 
 - New tether/identity.py (stdlib only, deterministic): HMAC-SHA256 canonical-JSON
   envelopes with key->role/blueprint binding; NonceCache (capacity 20k, logical
@@ -180,3 +180,33 @@ are recorded as approximate wall-clock text from the session clock
 - Watch: a5 now isolates on first event (identity replay + context
   corroboration). Intended for credential theft; H8 (zero benign isolations)
   is rechecked at M10.
+
+## 2026-10-25 22:01 — v2 M10: reachable ladder (escalation) + a7 persistent + a8 composition
+
+- Diagnosed the v1 defect precisely: `choose_action` needs 92 for isolate, the
+  highest canonical floor is 90, and narrowing at 70 installs a capsule that
+  blocks the 80-91 quarantining call before fusion sees it. Result: only
+  allow/hold/narrow/block fired.
+- Fixed with tether/escalation.py (D47): severity per identity (narrow/block 1,
+  quarantine 2, isolate 3) shared across sessions of a corpus; level 1 turns a
+  repeat narrow into quarantine, level 2 into isolate; decay after 25
+  offense-free sessions; blocked probes deduped to one offense per session.
+  Bands, floors and weights untouched.
+- a7 persistent intruder (D48): three phases by session index - retry (0-4,
+  full a1-style chain), slow (5-14, drip to an allowed destination so the drift
+  budget latches -> a genuine `hold`), hard (15+, chain again at level 2 ->
+  isolate). a8 composition (D49): every step contract-legal (asserted in a
+  test), illegal only as a sequence, caught by provenance tainted-carry at 63.
+  No new detector was added for either attack.
+- results.json gains `ladder_usage` per corpus + total and `ladder_usage_total`
+  (D50) so H4 is counted from decisions, not asserted in prose.
+- Reduced-corpus sanity (20/attack, seed 7, NOT the final table): a7 rungs
+  allow 45 / hold 8 / narrow 1 / quarantine 1 / isolate 8 -> H4 holds at this n.
+  a8 100 % detected, 0 leak. a1 100 %/0 leak, a3 p1 0 -> p2 95, a4 p1 0 -> p2 80
+  (drift timing shifts with corpus size; final n=200 in M11). benign 0 false
+  alerts, utility 100 %, zero isolations (H8).
+- Honest trade-off found and kept: attack-session utility drops (62.5 % at this
+  n) because a repeated attacking identity is escalated; phase-B drip leaks
+  ~2 records before the drift latch. Both are reported, not suppressed.
+- Tests: 65 -> 76 green in 4 files (escalation policy, rung coverage, benign
+  never isolated, a8 legality + catch, hard-phase exfil blocked).

@@ -15,7 +15,7 @@ tests, `git add -A && git commit`, tag.
       canonical JSON, nonce cache, delegation certs, role/blueprint binding),
       identity detector, `identity` arm in evaluate, signed contract load check.
       Tests: tamper, replay, expired cert, forged grant, legit delegation no-FP
-- [ ] M10 ladder + attacks: identity-scoped escalation state machine, reachable
+- [x] M10 ladder + attacks: identity-scoped escalation state machine, reachable
       quarantine/skipped states, a7 persistent intruder, a8 composition, a9
       impersonation; rung-coverage test (H4), a8 zero-contract-violation test
 - [ ] M11 evaluation v2: Wilson CIs, ablation matrix, threshold sweep (reported,

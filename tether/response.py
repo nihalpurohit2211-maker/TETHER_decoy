@@ -75,3 +75,13 @@ def choose_action(score: float, corroborated: bool) -> tuple[str, str]:
     if corroborated:
         return "isolate", "isolate"
     return "quarantine", "quarantine"
+
+
+RUNG_FOR = {
+    "allow": "log",
+    "hold": "annotate",
+    "narrow": "narrow",
+    "quarantine": "quarantine",
+    "isolate": "isolate",
+    "block": "enforcement",
+}

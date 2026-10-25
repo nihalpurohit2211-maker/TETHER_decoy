@@ -12,10 +12,12 @@ import json
 import os
 import statistics
 import time
+from collections import Counter
 
 from tether.alert import card_from_result
 from tether.contract import load_contract
 from tether.detectors import BaselineTracker, DriftBudget
+from tether.escalation import EscalationState
 from tether.harness import RunConfig, SessionResult, run_session
 from tether.identity import IdentityAuthority, new_authority
 from tether.ledger import Ledger
@@ -24,7 +26,8 @@ from tether.textgate import TextGate
 
 PHASE1_ATTACKS = ["a1_pdf_injection", "a2_tool_poisoning", "a3_mimicry", "a4_low_and_slow"]
 PHASE2_ATTACKS = PHASE1_ATTACKS + [
-    "a5_stolen_token", "a6_delegation", "a9_impersonation",
+    "a5_stolen_token", "a6_delegation", "a7_persistent", "a8_composition",
+    "a9_impersonation",
 ]
 
 DEFAULT_COUNTS = {
@@ -36,6 +39,8 @@ DEFAULT_COUNTS = {
     "a4_low_and_slow": 200,
     "a5_stolen_token": 200,
     "a6_delegation": 200,
+    "a7_persistent": 200,
+    "a8_composition": 200,
     "a9_impersonation": 200,
 }
 
@@ -75,6 +80,7 @@ def make_config(
         contract=contract, tracker=tracker, gate=gate, budget=budget,
         change=change, phase2=(phase2 and mode == "tether"),
         identity=authority,
+        escalation=EscalationState(),
     )
 
 
@@ -271,12 +277,35 @@ def evaluate(seed: int, counts: dict[str, int], phase2: bool, minimal: bool = Fa
             id_benign["false_alerts_per_1000_incl_legit_change"],
     }
 
+    # --- ladder usage (H4): a rung with count 0 is a defect, not a footnote --
+    def _ladder(runs: list[SessionResult]) -> dict:
+        actions: Counter = Counter()
+        rungs: Counter = Counter()
+        for r in runs:
+            for _, dec in r.decision_events:
+                actions[dec.action] += 1
+                rungs[dec.rung] += 1
+        return {"actions": dict(sorted(actions.items())),
+                "rungs": dict(sorted(rungs.items()))}
+
+    ladder_usage = {
+        aid: _ladder(per_mode["tether_p2"].get(aid, []))
+        for aid in PHASE2_ATTACKS if aid in per_mode["tether_p2"]
+    }
+    ladder_usage["benign"] = _ladder(per_mode["tether_p2"].get("benign", []))
+    ladder_usage["legit_change"] = _ladder(per_mode["tether_p2"].get("legit_change", []))
+    ladder_total = _ladder([
+        r for aid in PHASE2_ATTACKS for r in per_mode["tether_p2"].get(aid, [])
+    ])
+
     return {
         "meta": {"seed": seed, "counts": counts, "phase2": phase2,
                  "benign_sessions": n_benign, "legit_change_sessions": n_legit},
         "attacks": attacks_out,
         "benign": benign_main,
         "identity_arm": identity_arm,
+        "ladder_usage": ladder_usage,
+        "ladder_usage_total": ladder_total,
         "attack_session_utility_pct": round(100.0 * executed / planned, 1),
         "latency_ms": latency,
         "wall_seconds": round(time.perf_counter() - t_start, 2),
