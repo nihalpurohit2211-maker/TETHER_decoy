@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tether — identity drift detection</title>
+<style>
+  :root{--bg:#0b1220;--panel:#121a2c;--edge:#223050;--text:#dbe4f5;--dim:#7d8cae;
+        --harm:#e5484d;--control:#5aa9ff;--ok:#3fb96e;--warn:#e0a030}
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--bg);color:var(--text);font:14px/1.5 ui-monospace,"Cascadia Mono",Consolas,monospace;padding:18px}
+  h1{font-size:18px;letter-spacing:.06em}
+  h2{font-size:13px;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+  header{display:flex;gap:12px;align-items:baseline;margin-bottom:16px}
+  header .tag{color:var(--dim);font-size:12px}
+  .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+  .panel{background:var(--panel);border:1px solid var(--edge);border-radius:8px;padding:14px}
+  .row{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+  select,button{background:#0d1526;color:var(--text);border:1px solid var(--edge);
+        border-radius:6px;padding:6px 10px;font:inherit}
+  button{cursor:pointer;border-color:var(--control);color:var(--control)}
+  button.primary{background:var(--control);color:#04122a;font-weight:600}
+  .timeline{display:flex;flex-direction:column;gap:6px}
+  .ev{display:flex;gap:10px;align-items:center;border:1px solid var(--edge);border-radius:6px;padding:6px 10px}
+  .ev .s{color:var(--dim);width:52px}
+  .ev .t{min-width:180px}
+  .pill{padding:1px 8px;border-radius:99px;font-size:12px;border:1px solid transparent}
+  .pill.allow{color:var(--ok);border-color:var(--ok)}
+  .pill.block,.pill.quarantine,.pill.isolate,.pill.narrow{color:var(--harm);border-color:var(--harm)}
+  .pill.hold{color:var(--warn);border-color:var(--warn)}
+  .pill.enforcement{color:var(--control);border-color:var(--control)}
+  .score{margin-left:auto;color:var(--dim)}
+  .labels{color:var(--dim);font-size:12px}
+  .card{border:1px solid var(--harm);border-radius:8px;padding:12px;margin-top:10px}
+  .card .scoreline{color:var(--harm);font-weight:700;margin-bottom:6px}
+  .card .meta{color:var(--dim);margin-bottom:6px}
+  .card ul{padding-left:18px}
+  .counterfactual{color:var(--control);margin-top:8px;font-size:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border-bottom:1px solid var(--edge);padding:5px 8px;text-align:left}
+  th{color:var(--dim);font-weight:400}
+  .chart{display:flex;align-items:flex-end;gap:8px;height:120px;border-bottom:1px solid var(--edge);padding-bottom:2px}
+  .bar{width:26px;background:var(--control);position:relative}
+  .bar.bad{background:var(--harm)}
+  .bar span{position:absolute;bottom:100%;left:0;font-size:10px;color:var(--dim)}
+  .chart .name{display:flex;gap:8px;margin-top:4px}
+  .chart .name i{width:26px;text-align:center;font-size:10px;color:var(--dim);font-style:normal}
+  .none{color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <h1>TETHER</h1>
+  <span class="tag">identity drift detection for autonomous AI agents — simulation</span>
+</header>
+
+<div class="grid">
+  <div>
+    <div class="panel">
+      <h2>Session replay</h2>
+      <div class="row">
+        <label>scenario <select id="scenario"></select></label>
+        <label>mode <select id="mode">
+          <option value="none">none (baseline)</option>
+          <option value="textgate">textgate (stand-in)</option>
+          <option value="tether" selected>tether</option>
+        </select></label>
+        <label>sessions <select id="n"><option>1</option><option selected>1</option><option>5</option></select></label>
+        <button class="primary" id="run">Run</button>
+      </div>
+      <div class="timeline" id="timeline"></div>
+      <div id="alert"></div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h2>Run summary</h2>
+      <table><tbody id="summary"><tr><td class="none">no run yet</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2>Slow replay (stream)</h2>
+      <button id="stream">Watch live stream</button>
+      <div class="timeline" id="stream-out" style="margin-top:10px"></div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h2>Detection % — tether vs none (results.json)</h2>
+      <div class="chart" id="chart"></div>
+      <div class="name" id="chart-names"></div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h2>Records out / session (median)</h2>
+      <table id="leaks"><thead><tr><th>attack</th><th>none</th><th>tether</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h2>Benign + latency</h2>
+      <table id="benign"><tbody><tr><td class="none">run `python -m tether.evaluate --seed 7` first</td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+
+<script>
+// Served by the same stdlib server as the API; no external libraries, no CDN.
+const els = {
+  scenario: document.getElementById("scenario"),
+  mode: document.getElementById("mode"),
+  n: document.getElementById("n"),
+  run: document.getElementById("run"),
+  timeline: document.getElementById("timeline"),
+  alert: document.getElementById("alert"),
+  summary: document.getElementById("summary"),
+  stream: document.getElementById("stream"),
+  streamOut: document.getElementById("stream-out"),
+  chart: document.getElementById("chart"),
+  chartNames: document.getElementById("chart-names"),
+  leaks: document.querySelector("#leaks tbody"),
+  benign: document.querySelector("#benign tbody"),
+};
+
+function pill(action){
+  const span = document.createElement("span");
+  span.className = "pill " + (action || "allow");
+  span.textContent = (action || "allow").toUpperCase();
+  return span;
+}
+
+async function loadScenarios(){
+  const r = await fetch("/scenarios"); const data = await r.json();
+  for (const [name, desc] of Object.entries(data.scenarios)) {
+    const o = document.createElement("option");
+    o.value = name; o.textContent = name + " — " + desc;
+    els.scenario.appendChild(o);
+  }
+}
+
+async function runSession(){
+  els.timeline.textContent = "";
+  els.alert.textContent = "";
+  const q = new URLSearchParams({
+    scenario: els.scenario.value, mode: els.mode.value, n: els.n.value, seed: "7",
+  });
+  const r = await fetch("/run?" + q.toString()); const data = await r.json();
+  (data.sessions || []).forEach(s => {
+    s.timeline?.forEach(ev => {
+      const d = document.createElement("div"); d.className = "ev";
+      d.innerHTML = `<span class="s">step ${ev.step}</span><span class="t">${s.tier ? s.tier+" · " : ""}${ev.tool}</span>`;
+      d.appendChild(pill(ev.action));
+      d.innerHTML += `<span class="score">score ${ev.score}</span>`;
+      els.timeline.appendChild(d);
+    });
+    if (s.mode === "tether" && s.detected) {
+      // best-effort card fetch from a single replay at higher fidelity
+      replayCard(s);
+    }
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${s.session}</td><td>${s.attack}</td><td>${s.detected ? "alert" : "clean"}</td>
+      <td>leak ${s.leak_records}</td><td>utility ${s.utility}</td>`;
+    els.summary.querySelector("tr.none")?.remove();
+    els.summary.appendChild(tr);
+  });
+}
+
+async function replayCard(rep){
+  const r = await fetch("/run?" + new URLSearchParams({scenario: rep.attack, mode: "tether", n: 1, seed: "7"}));
+  const data = await r.json();
+  const s = (data.sessions || [])[0];
+  if (!s || !s.alert) return;
+  const card = s.alert;
+  const box = document.createElement("div"); box.className = "card";
+  box.innerHTML = `<div class="scoreline">score ${card.score} — ${card.severity}</div>
+    <div class="meta">confidence ${card.confidence} · baseline maturity ${card.baseline_maturity} · action ${card.action_taken}</div>
+    <ul>${(card.reasons || []).map(r => `<li>${r}</li>`).join("")}</ul>
+    <div class="counterfactual">${card.counterfactual || ""}</div>`;
+  els.alert.appendChild(box);
+}
+
+function renderResults(data){
+  els.chart.textContent = ""; els.chartNames.textContent = "";
+  const attacks = (data.attacks || []).filter(a => a.id.startsWith("a1") || a.id.startsWith("a2"));
+  attacks.forEach((a, i) => {
+    for (const [mode, pct] of [["none", a.records_out_none ? a.detected_pct : 0], ["tether", a.detected_pct]]) {
+      const bar = document.createElement("div");
+      bar.className = "bar" + (a.detected_pct < 50 ? " bad" : "");
+      bar.style.height = Math.max(4, (a.detected_pct || 0)) + "%";
+      bar.innerHTML = `<span>${a.detected_pct ?? 0}%</span>`;
+      els.chart.appendChild(bar);
+    }
+    const lab = document.createElement("i"); lab.textContent = a.id.slice(0, 2);
+    els.chartNames.appendChild(lab);
+  });
+  els.leaks.textContent = "";
+  (data.attacks || []).forEach(a => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${a.name}</td><td>${a.records_out_none}</td><td>${a.records_out_tether_median}</td>`;
+    els.leaks.appendChild(tr);
+  });
+  els.benign.textContent = "";
+  const b = data.benign || {};
+  const row = `<tr><td>false alerts/1000 ordinary</td><td>${b.false_alerts_per_1000_ordinary}</td></tr>
+    <tr><td>false alerts/1000 incl. legit change</td><td>${b.false_alerts_per_1000_incl_legit_change}</td></tr>
+    <tr><td>utility preserved</td><td>${b.utility_preserved_pct}%</td></tr>
+    <tr><td>gateway latency p50/p95/max (ms)</td><td>${data.latency_ms?.p50} / ${data.latency_ms?.p95} / ${data.latency_ms?.max}</td></tr>`;
+  els.benign.innerHTML = row;
+}
+
+async function loadResults(){
+  const r = await fetch("/results");
+  if (r.ok) renderResults(await r.json());
+}
+
+// SSE hook: the server exposes /stream for the standard demo replay.
+els.stream.addEventListener("click", () => {
+  els.streamOut.textContent = "";
+  const es = new EventSource("/stream?scenario=" + els.scenario.value + "&mode=" + els.mode.value);
+  es.onmessage = (m) => {
+    const ev = JSON.parse(m.data);
+    if (ev.type === "done") { es.close(); return; }
+    const d = document.createElement("div"); d.className = "ev";
+    d.innerHTML = `<span class="s">step ${ev.step}</span><span class="t">${ev.tool}</span>`;
+    d.appendChild(pill(ev.decision?.action));
+    d.innerHTML += `<span class="score">score ${ev.decision?.score ?? 0}</span>`;
+    els.streamOut.appendChild(d);
+  };
+  es.onerror = () => es.close();
+});
+
+els.run.addEventListener("click", runSession);
+loadScenarios().then(loadResults);
+</script>
+</body>
+</html>

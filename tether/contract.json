@@ -1,0 +1,21 @@
+{
+  "role": "procurement_agent",
+  "blueprint_version": "1.0.0",
+  "sponsor": "head_of_procurement",
+  "purpose": "Read supplier pricing data and supplier documents, raise purchase requests to suppliers, and send procurement email to internal buyers and to the supplier portal.",
+  "permitted_tools": ["pricing_api.read", "pdf.read", "purchase_request.create", "email.send"],
+  "data_classes": {
+    "supplier_pricing": "allowed",
+    "supplier_docs": "allowed_untrusted",
+    "hr_salary": "denied"
+  },
+  "egress_allowlist": ["mail.internal", "supplier-portal.example"],
+  "ceilings": {
+    "records_per_session": 200,
+    "bytes_out_per_session": 50000
+  },
+  "delegatees": [],
+  "execution_contexts": [
+    {"host": "agent-run01.internal", "network": "corp", "user_agent": "tether-agent/0.1"}
+  ]
+}

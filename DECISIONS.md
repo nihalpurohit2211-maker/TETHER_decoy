@@ -1,0 +1,124 @@
+# DECISIONS.md — every design choice and every deviation
+
+Numbered, append-mostly. Reason required for each. "Deck/Brief" refers to the
+slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
+"Build prompt" is tether_build_prompt.md, the operative spec.
+
+- D1 (layout). Build prompt says "CODE LAYOUT (tether_sim/)" with a package
+  `tether/` inside. The workspace root plays the role of the tether_sim repo
+  root, so the package lives at `<root>/tether/` plus `tests/` and
+  `results/` at the root. Reason: keeps `python -m tether.evaluate` runnable
+  from the workspace root as the build prompt demands.
+- D2 (test runner). unittest, not pytest. Reason: stdlib-only guarantee and
+  the environment cannot confirm pytest is installed; the build prompt allows
+  either but unittest is the safe default.
+- D3 (Event fields). The Event dataclass includes the fields listed in the
+  build prompt plus two extras: `statement` (the agent's short rationale line
+  used only by the advisory intent signal / text gate) and `carries` (list of
+  resource ids an outbound payload references, so provenance can detect
+  tainted payloads without string scraping). Reason: both are needed by the
+  spec'd behavior and are additive.
+- D4 (shared types). Context, DetectorResult, Decision and ApprovedChange
+  live in tether/types.py. Reason: avoids circular imports; no behavior
+  change.
+- D5 (timestamp source). `date` cannot run (broken shell), so HISTORY.md
+  uses approximate absolute times from the session clock. Reason: shell
+  unavailable; the protocol's intent (ordered, honest checkpoint log) is
+  preserved.
+- D6 (git). `git init`, commits and tags are pending until the shell works.
+  Exact commands are recorded in TODO/HANDOFF. Reason: no terminal available.
+- D7 (attack ids follow the build prompt). Scenarios are named
+  a1_pdf_injection, a2_tool_poisoning, a3_mimicry, a4_low_and_slow per the
+  build prompt M3 list, which differs from the deck's A1..A7 snapshot
+  (where A3 is stolen-token, A5 is low-and-slow). Phase 2 adds
+  a5_stolen_token and a6_delegation. Reason: the build prompt is the
+  operative spec; the mapping is recorded here to avoid confusion.
+- D8 (scenario taint is scripted). The simulation marks the steps an
+  attacker's injected instruction causes with `poisoned=True`; the taint
+  tracker turns that into CARRY labels on events. This models "assume the
+  injection succeeded" deterministically instead of using NLP to guess
+  influence. Reason: deterministic, seedable, and it matches the brief's
+  stance that text classifiers must never be the gate.
+- D9 (fusion: canonical floors). When a floor condition applies (restricted
+  class + off-allowlist egress, completed chain, restricted-class contract
+  violation), the floor value is used as the score rather than only as a
+  lower bound on an impact-multiplied noisy-OR result. Reason: with weights
+  contract=0.9 and provenance=0.9 the noisy-OR times an impact multiplier
+  would saturate at 100 on almost any restricted-class event, collapsing the
+  60-79/80-91 rungs and contradicting the deck's own floor values (70/90/90).
+  This keeps the graduated ladder meaningful. Logged as a deviation.
+- D10 (impact multiplier). m = 1.0 + 0.2 (event data class restricted) +
+  0.2 (destination off allowlist), clamped to [0.6, 1.4]. Reason: honors the
+  brief's sensitivity/external-exposure factors with a deterministic rule.
+- D11 (provenance partial alerts). Untrusted->restricted read without any
+  egress does not alert on its own (provenance scores 0 for the partial);
+  the contract detector already covers the restricted read. Provenance fires
+  on tainted carry to external sends (1.0) or tainted carry to allowed
+  destinations (0.5), and on the completed chain. Reason: avoids double
+  counting the same underlying read and keeps false alarms low.
+- D12 (isolation corroboration). Scores >=92 fire isolate only with
+  corroboration (completed chain or a Phase-2 context-anomaly/repeat
+  signal); otherwise the rung caps at quarantine and isolation is recorded
+  as recommended for sponsor approval. Reason: automatically revoking a
+  production identity on a single fused number contradicts the "without
+  disrupting legitimate work" requirement; this is a response-policy choice
+  logged for honesty.
+- D13 (baseline learns only clean sessions). A session is learnable iff it
+  finished with no decision above the log rung and no CARRY-labeled event.
+  Cold start seeds pseudo-counts (count 10) for every (tool, data class)
+  pair, destination and execution host implied by the contract, so day-one
+  behavior inside the contract is not flagged. Maturity = k/(k+10) with a
+  floor of 0.2 on the effective maturity used in fusion. Reason: matches the
+  brief's cold-start requirement; floor keeps day-one protection non-zero.
+- D14 (baseline feature set). Row frequencies over (tool, data class),
+  destinations, execution hosts; first-seen penalties (tool 0.6, destination
+  0.5, host 0.7); robust z-scores (median/MAD) on per-session records and
+  bytes-out with penalty min(1, z/8) above z=4. Tool-transition surprisal is
+  omitted (sim sessions are short; feature would be noise). Simplification
+  logged as required by the brief ("Learned behavior is advisory").
+- D15 (execution-context pseudo hosts). Contract gains an optional
+  `execution_contexts` list seeding baseline host expectations (the agent's
+  own fleet). Stolen-token sessions from a foreign host get caught by the
+  host-novelty feature plus the Phase-2 context detector. Reason: the
+  contract is the only trusted fact; declaring the fleet there is the least
+  surprising place for it.
+- D16 (text gate). TF-IDF cosine between the call statement and the contract
+  purpose; idf from the benign statement corpus (the scripted benign templates).
+  Threshold 0.10 cosine off-purpose. Threshold was picked BEFORE any run, on
+  the structure of the data (benign categories and the two destinations are
+  fixed strings), and whatever measured false-alarm rate comes out will be
+  reported as measured. It is labeled a stand-in everywhere.
+- D17 (utility metric). utility_preserved_pct = (legitimate steps executed
+  as planned) / (legitimate steps planned), measured against the same seed's
+  no-defense run. Quarantine's clean-instance re-queue counts a skipped
+  poisoned step as skipped, legitimate steps still execute. Reason: makes
+  "without disrupting legitimate work" measurable.
+- D18 (records-out accounting). `leak` steps in the plans are attacker-benefit
+  transfers; any executed leak step adds its records to that session's
+  leak count. Per attack we report median leak records under no-defense and
+  under tether, so "data at risk" is directly comparable. Reason: honest
+  comparable metric.
+- D19 (mimicry attack). a3 stays inside tools, data classes, egress and
+  per-session ceilings; payloads go to supplier-portal.example, an allowlisted
+  destination whose supplier account we model as attacker-controlled. Expected
+  honest result: not detected, blast radius bounded by ceilings.
+- D20 (API). Pure request handlers as plain functions plus a thin
+  http.server shell, so handlers are unit-testable without sockets. One
+  ThreadingHTTPServer serves JSON endpoints, SSE stream and the static
+  dashboard. Reason: testable, stdlib-only, no framework needed.
+- D21 (dashboard). Single static HTML file with inline CSS/JS (no external
+  libraries or network fetches), SSE via EventSource, canvas bar charts.
+  Reason: build prompt recommends exactly this; keeps the demo self-contained.
+- D22 (no network anywhere). Every packet, token or LLM call is simulated by
+  deterministic data structures; the ledger is SQLite; results files written
+  to results/. Reason: build prompt hard rule.
+- D23 (drift budget). CUSUM per (role, blueprint_version) against a FROZEN
+  anchor (per-destination p50 bytes-out per session; pseudo-seeded). Refreshed
+  only by approved change. Fires the drift detector; the detector is silent
+  in Phase 1 and enabled in Phase 2. Reason: matches brief L2-6.
+- D24 (delegation). Lineage check: a session owning lineage [A, B] evaluates
+  tools in the intersection of A's grant (its permitted tools) and B's
+  contract, plus inter-agent message taint (CARRY labels on `carries` in a
+  delegation envelope). Phase 2 enables delegation attack + detector.
+- D25 (results caveats). Every results.json carries the required hardcoded
+  honesty set plus measured misses discovered in the run, never a target.
