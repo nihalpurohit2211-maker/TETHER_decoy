@@ -283,7 +283,12 @@ def a4_plan(session: str, rng: random.Random) -> SessionPlan:
 
 
 def a5_plan(session: str, rng: random.Random) -> SessionPlan:
-    """A5 (Phase 2): stolen-token replay from a foreign host, bulk reads."""
+    """A5 (Phase 2): stolen-token replay from a foreign host, bulk reads.
+
+    The envelopes are a CAPTURED batch: their nonces were issued in the original
+    legitimate session, so the identity authority pre-seeds them as used
+    (`evaluate` does this). Replaying them must trip the nonce cache - this is
+    replay, not signing-key compromise (D37)."""
     steps: list[PlannedAction] = []
     total = 0
     for i in range(3):
@@ -306,6 +311,7 @@ def a5_plan(session: str, rng: random.Random) -> SessionPlan:
     return SessionPlan(
         session=session, attack="a5_stolen_token",
         host="vps-attacker.example", network="internet", user_agent="curl/8.0",
+        nonces=[f"captured-a5:{i}" for i in range(1, len(steps) + 1)],
         steps=steps,
     )
 
@@ -338,6 +344,50 @@ def a6_plan(session: str, rng: random.Random) -> SessionPlan:
     return SessionPlan(
         session=session, attack="a6_delegation",
         lineage=["procurement_agent", "hr_agent"], steps=steps,
+        # The parent signs a grant for a class its own contract DENIES. The
+        # signature is valid; the authority is not (forged grant, a6).
+        delegation={
+            "child": "hr_agent",
+            "tools": ["inter_agent.send"],
+            "classes": ["hr_salary"],
+            "ttl": 100,
+        },
+    )
+
+
+def a9_plan(session: str, rng: random.Random) -> SessionPlan:
+    """A9 (v2): identity laundering - a real key telling a false identity story.
+
+    Every STEP is contract-legal for the procurement role, so contract,
+    provenance and baseline all score 0. The envelope is signed with the
+    procurement key but CLAIMS to be `hr_agent` on blueprint 2.0.0. Only the
+    key->role/blueprint binding can see this (H3, a9)."""
+    steps = [
+        PlannedAction(
+            tool="pricing_api.read", action="read",
+            resource="supplier_pricing:order_9090",
+            data_class="supplier_pricing", records=rng.randint(10, 25),
+            statement="read supplier pricing for pilot order 8812",
+        ),
+        PlannedAction(
+            tool="email.send", action="send", resource="email:quarterly_packet",
+            data_class="supplier_pricing", destination="supplier-portal.example",
+            bytes=rng.randint(2000, 5000), records=1,
+            statement="send the quarterly pricing summary to the supplier portal",
+            legitimate=False,
+        ),
+        PlannedAction(
+            tool="purchase_request.create", action="create",
+            resource="purchase_request:order_9090",
+            data_class="supplier_pricing", records=1,
+            statement="create purchase request for pilot order 8812",
+        ),
+    ]
+    return SessionPlan(
+        session=session, attack="a9_impersonation",
+        identity="procurement_agent",
+        declared_role="hr_agent", declared_blueprint="2.0.0",
+        steps=steps,
     )
 
 
@@ -349,6 +399,7 @@ ATTACK_BUILDERS = {
     "a4_low_and_slow": a4_plan,
     "a5_stolen_token": a5_plan,
     "a6_delegation": a6_plan,
+    "a9_impersonation": a9_plan,
 }
 
 ATTACK_NAMES = {
@@ -358,6 +409,7 @@ ATTACK_NAMES = {
     "a4_low_and_slow": "low-and-slow drip",
     "a5_stolen_token": "stolen-token replay",
     "a6_delegation": "malicious delegation",
+    "a9_impersonation": "identity laundering (role/blueprint mismatch)",
 }
 
 

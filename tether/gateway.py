@@ -22,6 +22,7 @@ from tether.detectors import (
 )
 from tether.events import Event
 from tether.fusion import confidence, fusion_score
+from tether.identity import IdentityAuthority, identity_check
 from tether.response import NarrowingCapsule, choose_action, narrow_from_contract
 from tether.textgate import TextGate
 from tether.types import Decision, DetectorResult
@@ -75,6 +76,8 @@ class Gateway:
         budget=None,
         change=None,
         phase2: bool = False,
+        identity: IdentityAuthority | None = None,
+        arm: str = "tether",
     ) -> None:
         self.contract = contract
         self.tracker = tracker
@@ -82,6 +85,10 @@ class Gateway:
         self.budget = budget          # DriftBudget in Phase 2, None in Phase 1
         self.change = change
         self.phase2 = phase2
+        self.identity = identity      # signed-envelope authority (M9)
+        self.arm = arm                # "tether" | "identity" (control arm, D36/D41)
+        if arm == "identity" and identity is None:
+            raise ValueError("identity arm requires an IdentityAuthority")
         self.states: dict[str, SessionState] = {}
 
     def state_for(self, session: str) -> SessionState:
@@ -120,23 +127,31 @@ class Gateway:
             ev.labels.append("UNTRUSTED")
 
         results: dict[str, DetectorResult] = {}
-        results["contract"] = contract_check(ev, self.contract, state, self.change)
-        results["provenance"] = provenance_check(ev, state)
-        results["baseline"] = self.tracker.score_event(
-            ev, state.executed_records, state.executed_bytes_out
-        )
-        results["intent"] = intent_check(ev, self.gate)
-        if self.phase2:
-            context_res = context_check(ev, self.contract, state)
-            if context_res.score > 0.0:
-                results["context"] = context_res
-            if self.budget is not None:
-                results["drift"] = drift_check(ev, self.budget)
-                if ev.destination:
-                    # proposed volume feeds the sponsor-review evidence window
-                    self.budget.record_attempt(ev.destination, ev.records)
-            if len(ev.lineage) > 1:
-                results["delegation"] = delegation_check(ev, self.contract, None)
+        if self.arm == "identity":
+            # Control arm (D36/D41): identity evidence only, no contract,
+            # provenance, baseline, context, drift or intent - and no canonical
+            # floors, which are policy rather than identity.
+            results["identity"] = identity_check(ev, self.identity)  # type: ignore[arg-type]
+        else:
+            results["contract"] = contract_check(ev, self.contract, state, self.change)
+            results["provenance"] = provenance_check(ev, state)
+            if self.identity is not None:
+                results["identity"] = identity_check(ev, self.identity)
+            results["baseline"] = self.tracker.score_event(
+                ev, state.executed_records, state.executed_bytes_out
+            )
+            results["intent"] = intent_check(ev, self.gate)
+            if self.phase2:
+                context_res = context_check(ev, self.contract, state)
+                if context_res.score > 0.0:
+                    results["context"] = context_res
+                if self.budget is not None:
+                    results["drift"] = drift_check(ev, self.budget)
+                    if ev.destination:
+                        # proposed volume feeds the sponsor-review evidence window
+                        self.budget.record_attempt(ev.destination, ev.records)
+                if len(ev.lineage) > 1:
+                    results["delegation"] = delegation_check(ev, self.contract, None)
 
         restricted_now = self.contract.is_restricted_class(ev.data_class)
         off_allowlist_now = bool(ev.destination) and not self.contract.egress_allowed(
@@ -151,6 +166,7 @@ class Gateway:
             state.restricted_read,
             state.off_allowlist_egress,
             ev_change_status,
+            floors=(self.arm != "identity"),
         )
         conf = confidence(results, self.tracker.effective_maturity())
 

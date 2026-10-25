@@ -14,6 +14,7 @@ from tether.types import DetectorResult
 BASE_WEIGHTS = {
     "contract": 0.9,
     "provenance": 0.9,
+    "identity": 0.95,
     "delegation": 0.7,
     "baseline": 0.5,
     "context": 0.7,
@@ -51,8 +52,14 @@ def fusion_score(
     restricted_session: bool,
     egress_session: bool,
     change_status: str = "unexplained",
+    floors: bool = True,
 ) -> float:
-    """Score in [0, 100]. Canonical floors dominate when they apply."""
+    """Score in [0, 100]. Canonical floors dominate when they apply.
+
+    `floors=False` is used ONLY by the identity control arm (D41): canonical
+    floors are contract policy, not identity evidence, and would otherwise let
+    the identity arm "detect" a1-a4 through the restricted-class floor.
+    """
     floor = 0.0
     if restricted_now and (egress_session or off_allowlist_now):
         floor = FLOOR_RESTRICTED_EGRESS
@@ -70,7 +77,7 @@ def fusion_score(
         base *= 1.0 - min(1.0, weight * res.score)
     raw = (1.0 - base) * 100.0 * impact_multiplier(restricted_now, off_allowlist_now)
     raw *= change_factor(change_status)
-    if floor > 0:
+    if floors and floor > 0:
         return floor  # canonical floor replaces the fused value when it applies (D9)
     return round(min(100.0, raw), 2)
 

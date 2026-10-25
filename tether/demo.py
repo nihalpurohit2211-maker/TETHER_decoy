@@ -13,7 +13,7 @@ import random
 
 from tether.alert import card_from_result
 from tether.contract import load_contract
-from tether.evaluate import make_config
+from tether.evaluate import make_config, seed_plan_replays
 from tether.harness import run_session
 from tether.ledger import Ledger
 from tether.sim.scenarios import (
@@ -69,11 +69,9 @@ def main() -> None:
     print(paint(f"contract role={contract.role} blueprint={contract.blueprint_version}", "dim", use_color))
 
     ledger = Ledger(":memory:")
-    result = run_session(
-        plan, args.mode,
-        make_config(args.mode, True, BENIGN_STATEMENTS, contract, plan.change),
-        ledger,
-    )
+    cfg = make_config(args.mode, True, BENIGN_STATEMENTS, contract, plan.change)
+    seed_plan_replays(cfg.identity, plan)
+    result = run_session(plan, args.mode, cfg, ledger)
 
     for ev, dec in result.decision_events:
         color = "g" if dec.rung == "log" else ("r" if dec.rung in ("enforcement", "quarantine", "isolate") else "y")

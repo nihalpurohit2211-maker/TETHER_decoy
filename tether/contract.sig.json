@@ -1,0 +1,5 @@
+{
+  "alg": "HS256",
+  "key_id": "key-sponsor",
+  "sig": "a2b4c7a079cbd33df8c9eccedfe91554080847300a8a1b3b22e0d6da4eec5eb2"
+}

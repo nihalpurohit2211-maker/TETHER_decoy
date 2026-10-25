@@ -26,6 +26,7 @@ class Event:
     labels: list[str]                  # UNTRUSTED | RESTRICTED | EXTERNAL_SEND | CARRY | CROSS_AGENT
     carries: list[str]                 # resource ids referenced by an outbound payload
     statement: str                     # agent's rationale; advisory signal only
+    envelope: dict = dataclasses.field(default_factory=dict)  # signed identity envelope (v2)
 
     def to_dict(self) -> dict:
         return dataclasses.asdict(self)

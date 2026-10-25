@@ -149,3 +149,34 @@ are recorded as approximate wall-clock text from the session clock
   compromise, D38 attack id map (a7/a8/a9; legit_change is not an a-id),
   D39 one-time v2 results reset (v1 recoverable from tag `final`), D40 doc drift.
 - Tests: 45/45 OK. No behavior changed, so no results regeneration.
+
+## 2026-10-25 22:05 — v2 M9: identity layer (signed envelopes, nonce, certs, binding)
+
+- New tether/identity.py (stdlib only, deterministic): HMAC-SHA256 canonical-JSON
+  envelopes with key->role/blueprint binding; NonceCache (capacity 20k, logical
+  tick, no wall clock); DelegationCert signed by the parent; IdentityAuthority
+  bundling registry + freshness + certs + contract; identity_check() returning
+  DetectorResult; signed-contract verification (contract.sig.json, tamper-
+  evident only, D44).
+- Wired: Event gains `envelope` (additive, D46); harness signs every step for
+  tether/identity modes and grows plan fields (identity, declared_role,
+  declared_blueprint, nonces, delegation); gateway gains identity authority +
+  arm; fusion gains identity weight 0.95 and a `floors` flag.
+- New `identity` control arm in evaluate (D41: canonical floors OFF, because
+  the restricted-class floor is contract policy and would fake identity
+  detection on a1-a4). a5 nonces pre-seeded as a captured batch (D45); a9
+  (identity laundering) added in M9 because it is the layer's acceptance test
+  (D42), a7/a8 stay M10.
+- First measurement of H3 (reduced corpus 40/attack, seed 7): identity arm
+  a1 0 %, a2 0 %, a3 0 %, a4 0 %; a5 100 %, a6 100 %, a9 100 %; false alerts
+  0/1000 ordinary and 0/1000 incl. legit change. Full tether arm unchanged on
+  a1-a4 (a1 100/0 leak, a2 100/0, a3 p1 0 -> p2 97.5, a4 p1 0 -> p2 90).
+  These are sanity numbers, not the final table (regenerated once at M11).
+- Tests: 45 -> 65, all green. New tests: tampered payload, unknown key, key
+  substitution, role/blueprint mismatch, replay (incl. seeded captured batch),
+  bounded nonce cache, legit delegation no-FP, forged grant, expired cert,
+  missing cert, child mismatch, contract signature (good/tampered/wrong sig),
+  end-to-end identity-arm matrix.
+- Watch: a5 now isolates on first event (identity replay + context
+  corroboration). Intended for credential theft; H8 (zero benign isolations)
+  is rechecked at M10.

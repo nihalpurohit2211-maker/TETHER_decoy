@@ -50,6 +50,17 @@ class SessionPlan:
     user_agent: str = "tether-agent/0.1"
     change: ApprovedChange | None = None
     steps: list[PlannedAction] = field(default_factory=list)
+    # --- identity layer (M9) ------------------------------------------------
+    identity: str = ""                    # agent id that signs (default: lineage[0])
+    declared_role: str = ""               # what the envelope CLAIMS (a9 lies here)
+    declared_blueprint: str = ""
+    nonces: list[str] = field(default_factory=list)  # fixed = replayed batch (a5)
+    delegation: dict | None = None        # grant spec the parent signs (a6)
+
+    def signer(self, contract: Contract) -> str:
+        if self.identity:
+            return self.identity
+        return self.lineage[0] if self.lineage else contract.role
 
 
 @dataclass
@@ -60,6 +71,7 @@ class RunConfig:
     budget: DriftBudget | None
     change: ApprovedChange | None
     phase2: bool
+    identity: object | None = None   # IdentityAuthority (typed loosely: no cycle)
 
 
 @dataclass
@@ -83,10 +95,35 @@ class SessionResult:
     decision_events: list[tuple[Event, Decision]] = field(default_factory=list)
 
 
-def _event_for(plan: SessionPlan, idx: int, step: PlannedAction, contract: Contract) -> Event:
+def _event_for(
+    plan: SessionPlan, idx: int, step: PlannedAction, contract: Contract,
+    authority=None,
+) -> Event:
     labels: list[str] = []
     if step.poisoned:
         labels.append("CARRY")
+    envelope: dict = {}
+    if authority is not None:
+        signer = plan.signer(contract)
+        if not authority.registry.has_agent(signer):
+            signer = contract.role
+        nonce = (
+            plan.nonces[idx - 1] if idx - 1 < len(plan.nonces)
+            else f"{plan.session}:{idx}"
+        )
+        envelope = authority.issue_envelope(
+            agent=signer,
+            claimed_role=plan.declared_role or contract.role,
+            claimed_blueprint=plan.declared_blueprint or contract.blueprint_version,
+            session=plan.session,
+            step=idx,
+            nonce=nonce,
+            tool=step.tool,
+            resource=step.resource,
+            data_class=step.data_class,
+            destination=step.destination,
+            delegation=plan.delegation,
+        )
     return Event(
         event_id=f"{plan.session}-{idx:03d}",
         step=idx,
@@ -106,6 +143,7 @@ def _event_for(plan: SessionPlan, idx: int, step: PlannedAction, contract: Contr
         labels=labels,
         carries=list(step.carries),
         statement=step.statement,
+        envelope=envelope,
     )
 
 
@@ -119,7 +157,7 @@ def run_session(
     """Execute one session plan in one mode; returns measured SessionResult."""
     result = SessionResult(session=plan.session, attack=plan.attack, tier=plan.tier, mode=mode)
     gateway: Gateway | None = None
-    if mode == "tether":
+    if mode in ("tether", "identity"):
         gateway = Gateway(
             contract=config.contract,
             tracker=config.tracker,
@@ -127,6 +165,8 @@ def run_session(
             budget=config.budget,
             change=plan.change or config.change,
             phase2=config.phase2,
+            identity=config.identity,  # type: ignore[arg-type]
+            arm=mode,
         )
     elif mode == "textgate" and config.gate is None:
         raise ValueError("textgate mode requires a fitted TextGate")
@@ -142,7 +182,8 @@ def run_session(
         if step.legitimate:
             result.legit_total += 1
 
-        ev = _event_for(plan, idx, step, config.contract)
+        authority = config.identity if mode in ("tether", "identity") else None
+        ev = _event_for(plan, idx, step, config.contract, authority)
 
         if mode == "none":
             executed = True
@@ -186,7 +227,7 @@ def run_session(
                 evidence=[] if executed else [f"cosine below threshold"],
             )))
 
-        else:  # tether
+        else:  # tether | identity (gateway path; the arm decides which detectors run)
             state = gateway.state_for(plan.session)  # type: ignore[union-attr]
             if state.isolated:
                 if step.legitimate:
@@ -215,7 +256,7 @@ def run_session(
 
         # -- world effects + leak accounting ---------------------------------
         if executed:
-            if mode != "tether":
+            if mode not in ("tether", "identity"):
                 events_of_session.append(ev)
             if step.leak:
                 result.leak_records += step.records

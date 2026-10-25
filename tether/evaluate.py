@@ -17,12 +17,15 @@ from tether.alert import card_from_result
 from tether.contract import load_contract
 from tether.detectors import BaselineTracker, DriftBudget
 from tether.harness import RunConfig, SessionResult, run_session
+from tether.identity import IdentityAuthority, new_authority
 from tether.ledger import Ledger
 from tether.sim.scenarios import ATTACK_NAMES, BENIGN_STATEMENTS, build_sessions
 from tether.textgate import TextGate
 
 PHASE1_ATTACKS = ["a1_pdf_injection", "a2_tool_poisoning", "a3_mimicry", "a4_low_and_slow"]
-PHASE2_ATTACKS = PHASE1_ATTACKS + ["a5_stolen_token", "a6_delegation"]
+PHASE2_ATTACKS = PHASE1_ATTACKS + [
+    "a5_stolen_token", "a6_delegation", "a9_impersonation",
+]
 
 DEFAULT_COUNTS = {
     "benign": 900,
@@ -33,6 +36,7 @@ DEFAULT_COUNTS = {
     "a4_low_and_slow": 200,
     "a5_stolen_token": 200,
     "a6_delegation": 200,
+    "a9_impersonation": 200,
 }
 
 CORE_CAVEATS = [
@@ -59,15 +63,33 @@ def _drift_anchor() -> dict[str, dict[str, float]]:
 
 
 def make_config(
-    mode: str, phase2: bool, gate_corpus: list[str], contract, change
+    mode: str, phase2: bool, gate_corpus: list[str], contract, change,
+    authority: IdentityAuthority | None = None,
 ) -> RunConfig:
     tracker = BaselineTracker(contract)
-    gate = TextGate(gate_corpus, contract.purpose) if mode != "none" else None
+    gate = TextGate(gate_corpus, contract.purpose) if mode not in ("none", "identity") else None
     budget = DriftBudget(_drift_anchor()) if phase2 else None
+    if authority is None and mode in ("tether", "identity"):
+        authority = new_authority(contract)
     return RunConfig(
         contract=contract, tracker=tracker, gate=gate, budget=budget,
         change=change, phase2=(phase2 and mode == "tether"),
+        identity=authority,
     )
+
+
+def seed_captured_replays(authority: IdentityAuthority, sessions: dict) -> None:
+    """a5 replays an envelope batch that was issued earlier; mark those nonces
+    as already used so freshness reflects the capture, not the run order."""
+    for plan in sessions.get("a5_stolen_token", []):
+        if plan.nonces:
+            authority.seed_replayed(list(plan.nonces))
+
+
+def seed_plan_replays(authority, plan) -> None:
+    """Same, for single-session demo/API runs."""
+    if authority is not None and getattr(plan, "nonces", None):
+        authority.seed_replayed(list(plan.nonces))
 
 
 def _run_plan_list(plans, mode: str, cfg: RunConfig, ledger: Ledger) -> list[SessionResult]:
@@ -111,21 +133,38 @@ def evaluate(seed: int, counts: dict[str, int], phase2: bool, minimal: bool = Fa
 
     # --- tether runs: Phase 1 always; Phase 2 additionally when enabled ------
     ledger = Ledger(":memory:")
+    auth1 = new_authority(contract)
+    seed_captured_replays(auth1, sessions)
     per_mode["tether_p1"] = {}
     for aid in sessions:
         # per-attack configs keep tracker + budget role-level across the corpus
-        cfg1 = make_config("tether", False, BENIGN_STATEMENTS, contract, None)
+        cfg1 = make_config("tether", False, BENIGN_STATEMENTS, contract, None,
+                           authority=auth1)
         per_mode["tether_p1"][aid] = _run_plan_list(sessions[aid], "tether", cfg1, ledger)
     ledger.close()
 
     per_mode["tether_p2"] = per_mode["tether_p1"]
     if phase2:
         ledger = Ledger(":memory:")
+        auth2 = new_authority(contract)
+        seed_captured_replays(auth2, sessions)
         per_mode["tether_p2"] = {}
         for aid in sessions:
-            cfg2 = make_config("tether", True, BENIGN_STATEMENTS, contract, None)
+            cfg2 = make_config("tether", True, BENIGN_STATEMENTS, contract, None,
+                               authority=auth2)
             per_mode["tether_p2"][aid] = _run_plan_list(sessions[aid], "tether", cfg2, ledger)
         ledger.close()
+
+    # --- identity control arm (D36): identity evidence ONLY, no floors ------
+    ledger = Ledger(":memory:")
+    auth_i = new_authority(contract)
+    seed_captured_replays(auth_i, sessions)
+    per_mode["identity"] = {}
+    for aid in sessions:
+        cfg_i = make_config("identity", False, BENIGN_STATEMENTS, contract, None,
+                            authority=auth_i)
+        per_mode["identity"][aid] = _run_plan_list(sessions[aid], "identity", cfg_i, ledger)
+    ledger.close()
 
     lat = [l for atk in per_mode["tether_p2"].values() for r in atk for l in r.latencies]
     latency = {
@@ -212,11 +251,32 @@ def evaluate(seed: int, counts: dict[str, int], phase2: bool, minimal: bool = Fa
         for a in p2_miss:
             caveats.append(f"phase-2 still misses or partially covers: {a['name']}")
 
+    # --- identity control arm (H3): what identity evidence sees on its own ---
+    identity_attacks = []
+    for aid in PHASE2_ATTACKS:
+        runs = per_mode["identity"].get(aid) or []
+        identity_attacks.append({
+            "id": aid,
+            "n": len(runs),
+            "detected_pct": round(100.0 * sum(1 for r in runs if r.detected) / len(runs), 1)
+                            if runs else 0.0,
+        })
+    id_benign = benign_block(per_mode["identity"])
+    identity_arm = {
+        "note": ("control arm: signed envelopes, nonce freshness, delegation certs "
+                 "and key->role binding only; canonical floors disabled (D36/D41)"),
+        "attacks": identity_attacks,
+        "false_alerts_per_1000_ordinary": id_benign["false_alerts_per_1000_ordinary"],
+        "false_alerts_per_1000_incl_legit_change":
+            id_benign["false_alerts_per_1000_incl_legit_change"],
+    }
+
     return {
         "meta": {"seed": seed, "counts": counts, "phase2": phase2,
                  "benign_sessions": n_benign, "legit_change_sessions": n_legit},
         "attacks": attacks_out,
         "benign": benign_main,
+        "identity_arm": identity_arm,
         "attack_session_utility_pct": round(100.0 * executed / planned, 1),
         "latency_ms": latency,
         "wall_seconds": round(time.perf_counter() - t_start, 2),

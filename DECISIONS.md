@@ -215,3 +215,41 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   COMPLETE status; it is replaced by the M8-M14 checklist. HANDOFF.md's file map
   said "tests/ (39 tests)" while the suite is 45. Reason: recorded rather than
   silently deleted, and test-count drift becomes a docs_check case at M11.
+
+## v2 decisions (M9)
+
+- D41 (identity arm disables canonical floors). `fusion_score(..., floors=False)`
+  is used only by the `identity` control arm. Reason: the floors are contract
+  policy (`restricted read + egress -> 90`), so leaving them on would make the
+  identity arm "detect" a1-a4 through the contract while its sole detector
+  scored zero - a false attribution of identity capability. Measured effect:
+  identity arm 0 % on a1-a4, 100 % on a5/a6/a9 (H3), full arm unchanged.
+  Risk accepted: the arm is not a shippable configuration and is labelled as a
+  control everywhere (PREREG D36).
+- D42 (a9 moved into M9). a9 (identity laundering: procurement key, claims
+  `hr_agent`/blueprint 2.0.0, performs contract-legal pricing work) is the
+  acceptance test for the identity layer, so it ships with M9 rather than M10.
+  a7 (persistent intruder) and a8 (composition chain) remain M10. Reason: H3
+  cannot be evaluated without an impersonation case, and a9 needs no ladder
+  changes. Recorded instead of quietly reordering the plan.
+- D43 (identity outcome mapping declared before measurement). Fatal = 1.0
+  (bad signature, unknown key, key substitution, role/blueprint mismatch,
+  nonce replay, bad cert, child mismatch, grant exceeded); expired cert = 0.9;
+  delegated call with no cert = 0.8; valid/no envelope = 0.0. These are policy
+  numbers written before the identity arm was measured. Freshness uses a
+  logical tick + in-memory nonce cache (capacity 20 000 > corpus size) so runs
+  are reproducible; no wall-clock or OS entropy anywhere.
+- D44 (signed contract is tamper-EVIDENT, not a security boundary). The
+  sponsor key is derived from a constant in `tether/identity.py` and
+  `contract.sig.json` is committed, so verification catches accidental or
+  pipeline edits to `contract.json`, not an attacker with repo write access.
+  Stated here and in THREAT_MODEL.md 5.2 so the claim is not overreached.
+- D45 (a5 nonce pre-seeding). a5's envelopes are a captured batch, so
+  `evaluate`/api/demo seed their nonces as already used before running. The
+  alternative (letting the first replay through because the process cache was
+  empty) would report 199/200 = 99.5 % for a modelling artifact, not a detector
+  property. Seeding makes all 200 replays replays. Documented in THREAT_MODEL
+  and PREREG section 7.
+- D46 (event envelope field is additive). `Event.envelope` defaults to `{}`,
+  so ledger rows, alert cards and API payloads for v1-style callers stay valid;
+  `to_dict()` serialises it as JSON (no bytes in the envelope).

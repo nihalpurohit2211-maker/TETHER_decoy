@@ -16,7 +16,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from tether.contract import load_contract
-from tether.evaluate import DEFAULT_COUNTS, make_config
+from tether.evaluate import DEFAULT_COUNTS, make_config, seed_plan_replays
 from tether.harness import run_session
 from tether.ledger import Ledger
 from tether.sim.scenarios import (
@@ -59,6 +59,8 @@ def run_scenario_sessions(scenario: str, mode: str, n: int, seed: int, phase2: b
 
     ledger = Ledger(":memory:")
     cfg = make_config(mode, phase2, BENIGN_STATEMENTS, contract, None)
+    for plan in plans:
+        seed_plan_replays(cfg.identity, plan)
     summaries = []
     for plan in plans:
         if scenario == "a1_pdf_injection" and plan.tier == "":

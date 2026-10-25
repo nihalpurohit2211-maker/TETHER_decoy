@@ -11,7 +11,7 @@ tests, `git add -A && git commit`, tag.
 
 - [x] M8 framing: PREREG.md (frozen), THREAT_MODEL.md, PROBLEM_STATEMENT.md,
       EXHIBITS.md exhibit list; doc drift D40 cleaned; no code changes
-- [ ] M9 identity layer: `tether/identity.py` (key registry, sign/verify over
+- [x] M9 identity layer: `tether/identity.py` (key registry, sign/verify over
       canonical JSON, nonce cache, delegation certs, role/blueprint binding),
       identity detector, `identity` arm in evaluate, signed contract load check.
       Tests: tamper, replay, expired cert, forged grant, legit delegation no-FP
