@@ -12,10 +12,12 @@ What is enforced
 4. Every generated exhibit SVG and results/exhibits/INDEX.json is byte-identical
    to a fresh render of results.json (so a judge-facing number cannot be edited
    or go stale).
-5. Every test-count claim in the current docs equals the number of collected
+5. openapi.json parses, documents exactly the routes the server exposes, serves
+   only a local URL, and lists exactly the nine declared exhibit names.
+6. Every test-count claim in the current docs equals the number of collected
    tests. HISTORY.md is exempt: it is an append-only record of past states.
-6. Every local markdown link in the core docs points at an existing file.
-7. PREREG.md is unchanged since tag m8. If it changed, DECISIONS.md must carry
+7. Every local markdown link in the core docs points at an existing file.
+8. PREREG.md is unchanged since tag m8. If it changed, DECISIONS.md must carry
    a line containing "PREREG deviation:" (frozen-metric rule, D34).
 
 Run:  python docs_check.py          # check
@@ -47,6 +49,7 @@ CORE_DOCS = [
     "README.md",
     "HANDOFF.md",
     "EXHIBITS.md",
+    "BENCHMARK.md",
     "TRANSFER.md",
     "DECISIONS.md",
     "PLAN_V2.md",
@@ -55,7 +58,7 @@ CORE_DOCS = [
     "PROBLEM_STATEMENT.md",
     "TODO.md",
 ]
-CLAIM_DOCS = ["HANDOFF.md", "README.md"]
+CLAIM_DOCS = ["HANDOFF.md", "README.md", "BENCHMARK.md"]
 
 failures: list[str] = []
 passes: list[str] = []
@@ -128,6 +131,46 @@ def check_exhibits() -> None:
            f"match results.json byte-for-byte")
 
 
+def check_openapi() -> None:
+    """The contract must describe exactly the routes the server exposes (M13a)."""
+    path = os.path.join(ROOT, "openapi.json")
+    if not os.path.exists(path):
+        bad("openapi.json missing")
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            doc = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
+        bad(f"openapi.json is not valid JSON: {exc}")
+        return
+    expected = {
+        "/", "/dashboard", "/health", "/contract", "/scenarios", "/run",
+        "/stream", "/results", "/exhibits", "/exhibits/{name}.svg",
+    }
+    paths = set((doc.get("paths") or {}).keys())
+    missing, extra = expected - paths, paths - expected
+    if missing or extra:
+        bad("openapi.json path drift: missing "
+            + (", ".join(sorted(missing)) or "none")
+            + "; undocumented " + (", ".join(sorted(extra)) or "none"))
+        return
+    servers = [s.get("url", "") for s in doc.get("servers") or []]
+    if not servers or not all(
+        url.startswith(("http://127.0.0.1", "http://localhost")) for url in servers
+    ):
+        bad("openapi.json must document only the local server")
+        return
+    params = (doc["paths"]["/exhibits/{name}.svg"]["get"].get("parameters") or [])
+    enum: list[str] = []
+    for param in params:
+        if param.get("name") == "name":
+            enum = list((param.get("schema") or {}).get("enum") or [])
+    if set(enum) != set(exhibits.EXHIBIT_ORDER):
+        bad("openapi.json exhibit enum does not match tether.exhibits.INDEX")
+        return
+    ok("openapi.json documents all 10 routes and the 9 exhibit names")
+
+
 def _replace_block(text: str, block: str) -> str:
     pattern = re.compile(
         re.escape(CLAIMS_BEGIN) + r".*?" + re.escape(CLAIMS_END), re.S
@@ -142,6 +185,7 @@ def check_claim_blocks(result: dict, manifest: dict, fix: bool) -> None:
     for name in CLAIM_DOCS:
         path = os.path.join(ROOT, name)
         if not os.path.exists(path):
+            bad(f"{name} missing (it carries a generated claims block)")
             continue
         text = _read(path)
         if CLAIMS_BEGIN not in text:
@@ -242,6 +286,7 @@ def main() -> int:
         check_results_table(result, manifest)
         check_claim_blocks(result, manifest, args.fix)
         check_exhibits()
+        check_openapi()
     check_test_counts()
     check_links()
     check_prereg_frozen()

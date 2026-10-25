@@ -29,8 +29,9 @@ tests, `git add -A && git commit`, tag.
       from results/ (no hand-typed values). `tether/exhibits.py` writes
       `results/exhibits/*.svg` + `INDEX.json` and `--check` byte-compares them;
       `docs_check.py` fails on stale exhibits; 126/126 tests.
-- [ ] M13a judge package: README v2, EXHIBITS.md captions for E1-E9, openapi.json,
-      BENCHMARK.md, CLAIMS CHECK v2
+- [x] M13a judge package: README v2 (CLAIMS CHECK table), EXHIBITS.md captions
+      reviewed (VERIFIED), openapi.json (10 routes, 9 exhibits, checked),
+      BENCHMARK.md (generated claims block), docs_check 10/10; 132/132 tests.
 - [ ] M14 final: full test + evaluation, determinism check (two runs, one hash),
       cold-resume drill, tag `v2`, HANDOFF FINAL, TRANSFER final
 - [ ] M13b (OPTIONAL, after M12+M13a only): slides.html + slides.css +

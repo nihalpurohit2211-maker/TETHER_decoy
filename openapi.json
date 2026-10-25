@@ -1,0 +1,482 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Tether API",
+    "version": "2.0.0",
+    "description": "Stdlib-only simulation API for the Tether identity-drift prototype (D3COY 1.0 Round 0). All results are deterministic for a given scenario, mode, seed and index. Aggregate numbers are served only from the generated exhibit index; /run and /stream are live simulations, not the canonical benchmark.",
+    "license": {
+      "name": "Prototype - simulation only"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8765",
+      "description": "Default local server from `python -m tether.api`"
+    }
+  ],
+  "tags": [
+    {"name": "ui", "description": "Dashboard and exhibits"},
+    {"name": "simulation", "description": "Live session replay"},
+    {"name": "data", "description": "Measured artifacts and contract"}
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["ui"],
+        "summary": "Single-file D3COY dashboard",
+        "description": "Serves dashboard.html. Aggregate numbers are loaded by the browser from /exhibits; the page contains no hand-typed measurements.",
+        "responses": {
+          "200": {
+            "description": "Dashboard HTML",
+            "content": {"text/html": {"schema": {"type": "string"}}}
+          }
+        }
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "tags": ["ui"],
+        "summary": "Alias of /",
+        "responses": {
+          "200": {
+            "description": "Dashboard HTML",
+            "content": {"text/html": {"schema": {"type": "string"}}}
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["data"],
+        "summary": "Liveness probe",
+        "responses": {
+          "200": {
+            "description": "Server is up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["ok", "time"],
+                  "properties": {
+                    "ok": {"type": "boolean"},
+                    "time": {"type": "number", "description": "Unix epoch seconds"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contract": {
+      "get": {
+        "tags": ["data"],
+        "summary": "Load the L0 role contract the gateway enforces",
+        "responses": {
+          "200": {
+            "description": "Contract fields",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Contract"}
+              }
+            }
+          },
+          "404": {"$ref": "#/components/responses/NotFound"}
+        }
+      }
+    },
+    "/scenarios": {
+      "get": {
+        "tags": ["simulation"],
+        "summary": "Scenario ids and human names",
+        "description": "Drives the dashboard dropdown. Includes benign, legit_change and a1-a9.",
+        "responses": {
+          "200": {
+            "description": "Scenario map",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["scenarios"],
+                  "properties": {
+                    "scenarios": {
+                      "type": "object",
+                      "additionalProperties": {"type": "string"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/run": {
+      "get": {
+        "tags": ["simulation"],
+        "summary": "Run N live sessions of one scenario",
+        "description": "Live simulation output. Not the seed-7 canonical aggregate; use /exhibits for that.",
+        "parameters": [
+          {"$ref": "#/components/parameters/Scenario"},
+          {"$ref": "#/components/parameters/Mode"},
+          {"$ref": "#/components/parameters/N"},
+          {"$ref": "#/components/parameters/Seed"},
+          {"$ref": "#/components/parameters/Phase2"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Session summaries with timelines and alert cards",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/RunResponse"}
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "404": {"$ref": "#/components/responses/NotFound"}
+        }
+      },
+      "post": {
+        "tags": ["simulation"],
+        "summary": "Run sessions with a JSON body",
+        "description": "Same semantics and defaults as GET /run; parameters come from a JSON object.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/RunParams"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session summaries with timelines and alert cards",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/RunResponse"}
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "404": {"$ref": "#/components/responses/NotFound"}
+        }
+      }
+    },
+    "/stream": {
+      "get": {
+        "tags": ["simulation"],
+        "summary": "Stream one live session as Server-Sent Events",
+        "description": "Emits data: messages. Types: event, decision, alert, done, error. Runs one session (n=1, seed=7, phase2=true).",
+        "parameters": [
+          {"$ref": "#/components/parameters/Scenario"},
+          {"$ref": "#/components/parameters/Mode"}
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream",
+            "content": {"text/event-stream": {"schema": {"type": "string"}}}
+          }
+        }
+      }
+    },
+    "/results": {
+      "get": {
+        "tags": ["data"],
+        "summary": "Raw canonical results.json (schema v2)",
+        "responses": {
+          "200": {
+            "description": "Measured results",
+            "content": {
+              "application/json": {
+                "schema": {"type": "object", "additionalProperties": true}
+              }
+            }
+          },
+          "404": {"$ref": "#/components/responses/NotFound"}
+        }
+      }
+    },
+    "/exhibits": {
+      "get": {
+        "tags": ["ui", "data"],
+        "summary": "Generated exhibit index (captions, sources, units, n)",
+        "description": "Served from results/exhibits/INDEX.json, which is byte-checked against results/results.json. If the file is missing the response is an explicit 404, never zeros.",
+        "responses": {
+          "200": {
+            "description": "Exhibit index",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ExhibitIndex"}
+              }
+            }
+          },
+          "404": {"$ref": "#/components/responses/NotFound"}
+        }
+      }
+    },
+    "/exhibits/{name}.svg": {
+      "get": {
+        "tags": ["ui", "data"],
+        "summary": "One generated exhibit SVG",
+        "description": "Allowlisted basename only. Path separators, dot-dot, absolute paths and percent-escaped traversal are rejected with 404 {\"error\": \"unknown exhibit\"} before any filesystem join.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Exhibit stem; the literal .svg suffix is part of the path",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "detection",
+                "leak",
+                "cusum",
+                "ablation",
+                "ladder",
+                "latency",
+                "identity",
+                "attackmap",
+                "utility"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Generated SVG",
+            "content": {"image/svg+xml": {"schema": {"type": "string"}}}
+          },
+          "404": {"$ref": "#/components/responses/NotFound"}
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "Scenario": {
+        "name": "scenario",
+        "in": "query",
+        "required": false,
+        "schema": {"type": "string", "default": "a1_pdf_injection"}
+      },
+      "Mode": {
+        "name": "mode",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": ["none", "textgate", "tether"],
+          "default": "tether"
+        }
+      },
+      "N": {
+        "name": "n",
+        "in": "query",
+        "required": false,
+        "description": "Clamped to 1..20",
+        "schema": {"type": "integer", "minimum": 1, "maximum": 20, "default": 1}
+      },
+      "Seed": {
+        "name": "seed",
+        "in": "query",
+        "required": false,
+        "schema": {"type": "integer", "default": 7}
+      },
+      "Phase2": {
+        "name": "phase2",
+        "in": "query",
+        "required": false,
+        "schema": {"type": "boolean", "default": true}
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Malformed parameter",
+        "content": {
+          "application/json": {
+            "schema": {"$ref": "#/components/schemas/Error"}
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Unknown scenario, exhibit or missing artifact",
+        "content": {
+          "application/json": {
+            "schema": {"$ref": "#/components/schemas/Error"}
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {"error": {"type": "string"}}
+      },
+      "RunParams": {
+        "type": "object",
+        "properties": {
+          "scenario": {"type": "string", "default": "a1_pdf_injection"},
+          "mode": {"type": "string", "enum": ["none", "textgate", "tether"], "default": "tether"},
+          "n": {"type": "integer", "minimum": 1, "maximum": 20, "default": 1},
+          "seed": {"type": "integer", "default": 7},
+          "phase2": {"type": "boolean", "default": true}
+        }
+      },
+      "RunResponse": {
+        "type": "object",
+        "required": ["sessions"],
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/Session"}
+          }
+        }
+      },
+      "Session": {
+        "type": "object",
+        "required": [
+          "session", "tier", "attack", "mode", "detected", "first_alert_step",
+          "leak_records", "utility", "timeline", "alert"
+        ],
+        "properties": {
+          "session": {"type": "string"},
+          "tier": {"type": "string"},
+          "attack": {"type": "string"},
+          "mode": {"type": "string", "enum": ["none", "textgate", "tether"]},
+          "detected": {"type": "boolean"},
+          "first_alert_step": {"type": ["integer", "null"]},
+          "leak_records": {"type": "integer"},
+          "utility": {"type": "string", "description": "legit steps executed / planned, e.g. 4/4"},
+          "timeline": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/TimelineEntry"}
+          },
+          "alert": {
+            "oneOf": [
+              {"$ref": "#/components/schemas/AlertCard"},
+              {"type": "null"}
+            ]
+          }
+        }
+      },
+      "TimelineEntry": {
+        "type": "object",
+        "required": ["step", "tool", "action", "score", "labels", "reasons"],
+        "properties": {
+          "step": {"type": "integer"},
+          "tool": {"type": "string"},
+          "action": {
+            "type": "string",
+            "enum": [
+              "allow", "hold", "narrow", "quarantine", "isolate", "block",
+              "skipped"
+            ]
+          },
+          "score": {"type": "number", "minimum": 0, "maximum": 100},
+          "labels": {"type": "array", "items": {"type": "string"}},
+          "reasons": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Top two human-readable detector reasons"
+          }
+        }
+      },
+      "AlertCard": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["schema", "event_id", "score", "severity", "action_taken", "reasons"],
+        "properties": {
+          "schema": {"type": "string", "const": "tether.alert_card/1"},
+          "event_id": {"type": "string"},
+          "score": {"type": "number"},
+          "severity": {"type": "string", "enum": ["none", "elevated", "critical"]},
+          "confidence": {"type": "number"},
+          "baseline_maturity": {"type": "number"},
+          "action_taken": {"type": "string"},
+          "reasons": {"type": "array", "items": {"type": "string"}},
+          "evidence": {"type": "array", "items": {"type": "string"}},
+          "counterfactual": {"type": "string"},
+          "session": {"type": "string"},
+          "role": {"type": "string"},
+          "lineage": {"type": "array", "items": {"type": "string"}}
+        }
+      },
+      "Contract": {
+        "type": "object",
+        "required": [
+          "role", "blueprint_version", "permitted_tools", "data_classes",
+          "egress_allowlist", "ceilings"
+        ],
+        "properties": {
+          "role": {"type": "string"},
+          "blueprint_version": {"type": "string"},
+          "permitted_tools": {"type": "array", "items": {"type": "string"}},
+          "data_classes": {"type": "object", "additionalProperties": true},
+          "egress_allowlist": {"type": "array", "items": {"type": "string"}},
+          "ceilings": {
+            "type": "object",
+            "properties": {
+              "records_per_session": {"type": "integer"},
+              "bytes_out_per_session": {"type": "integer"}
+            }
+          }
+        }
+      },
+      "ExhibitSummary": {
+        "type": "object",
+        "required": ["seed", "attack_n", "benign", "approved_change", "unit"],
+        "properties": {
+          "seed": {"type": "integer"},
+          "attack_n": {"type": "integer"},
+          "benign": {"type": "integer"},
+          "approved_change": {"type": "integer"},
+          "unit": {"type": "string"}
+        }
+      },
+      "ExhibitEntry": {
+        "type": "object",
+        "required": [
+          "id", "name", "title", "renderer", "svg", "source", "unit", "n", "caption"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^E[1-9]$"},
+          "name": {"type": "string"},
+          "title": {"type": "string"},
+          "renderer": {"type": "string"},
+          "svg": {"type": "string"},
+          "source": {"type": "string"},
+          "unit": {"type": "string"},
+          "n": {"type": "string"},
+          "caption": {
+            "type": "string",
+            "description": "Contains seed, n and unit; byte-checked against results.json"
+          }
+        }
+      },
+      "ExhibitIndex": {
+        "type": "object",
+        "required": [
+          "schema_version", "generated_from", "results_sha256", "summary",
+          "counts", "exhibits"
+        ],
+        "properties": {
+          "schema_version": {"type": "integer", "const": 1},
+          "generated_from": {"type": "string", "const": "results/results.json"},
+          "results_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "summary": {"$ref": "#/components/schemas/ExhibitSummary"},
+          "counts": {
+            "type": "object",
+            "additionalProperties": {"type": "integer"}
+          },
+          "exhibits": {
+            "type": "array",
+            "minItems": 9,
+            "maxItems": 9,
+            "items": {"$ref": "#/components/schemas/ExhibitEntry"}
+          }
+        }
+      }
+    }
+  }
+}

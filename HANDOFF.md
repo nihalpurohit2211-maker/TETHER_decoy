@@ -1,9 +1,10 @@
-# HANDOFF.md — Tether v2 (M12 done)
+# HANDOFF.md — Tether v2 (M13a done)
 
 ## Status
 
 v1 complete (`final`). M8 framing, M9 identity layer, M10 reachable ladder,
-M11 evaluation v2 and **M12 judge-facing exhibits/dashboard all done**.
+M11 evaluation v2, M12 judge-facing exhibits/dashboard and **M13a judge
+package all done**.
 The results pipeline produces Wilson 95 % CIs, full leak vectors + p90,
 latency p50/p95/p99/max with n and a CDF, a per-corpus CUSUM trajectory, a
 report-only threshold sweep, a leave-one-out detector ablation, `MANIFEST.json`
@@ -14,13 +15,16 @@ manifest hash, replicates a3/a4 at seed 11, and refreshes verdicts.
 M12 adds `tether/exhibits.py` (nine deterministic SVGs + `INDEX.json`),
 `/exhibits` + `/exhibits/<name>.svg` API routes, a rewritten D3COY dark
 dashboard (live replay stepper, alert export, deep links, explicit no-results
-state), and `tests/test_exhibits.py`. `docs_check.py` now also fails if any SVG
-or caption is stale or hand-edited (eight checks total).
+state), and `tests/test_exhibits.py`. M13a adds `BENCHMARK.md` (enforced
+generated claims block), `openapi.json` (ten routes, nine exhibit names),
+README v2 with a CLAIMS CHECK table, and VERIFIED exhibit captions.
+`docs_check.py` now fails on stale SVGs/captions or an OpenAPI/route mismatch
+(ten checks total).
 
-**126/126 tests green.** `results/` was regenerated exactly once under the v2
+**132/132 tests green.** `results/` was regenerated exactly once under the v2
 arms (D39): seed 7, 200 sessions/attack, 900 benign, 100 approved-change,
-11 105 gateway decisions. The exhibits were generated from that artifact; they
-are not a second measurement.
+11 105 gateway decisions. The exhibits and benchmark card were generated from
+that artifact; they are not a second measurement.
 
 Honest headline: H1–H5, H8, H9 pass; H6/H7 are decided by `verify.py` (below).
 a3/a4 remain **Phase-1 misses by design** (0.0 % each) and are caught only with
@@ -48,7 +52,8 @@ a9_impersonation: detected=100.0% [98.1,100.0] caught=100.0% [98.1,100.0] leak_m
 clean: false_alerts_per_1000_incl_legit_change=0.0 utility=100.0% attack_session_utility=58.8%
 identity_arm: a1_pdf_injection=0.0% a2_tool_poisoning=0.0% a3_mimicry=0.0% a4_low_and_slow=0.0% a5_stolen_token=100.0% a6_delegation=100.0% a7_persistent=0.0% a8_composition=0.0% a9_impersonation=100.0%
 ladder_total: allow=2545 hold=577 narrow=4 quarantine=6 isolate=1382 block=3
-latency: p50=0.215ms p95=0.873ms p99=1.307ms n=11105
+latency: p50=0.215ms p95=0.873ms p99=1.307ms max=130.682ms n=11105
+ablation: largest_caught_loss=99.5pp removed=drift attack=a3_mimicry (0 = no measured loss on that corpus)
 hypotheses: H1=PASS H2=PASS H3=PASS H4=PASS H5=PASS H6=PASS H7=PASS H8=PASS H9=PASS
 <!-- END GENERATED CLAIMS -->
 ```
@@ -59,29 +64,27 @@ Exhibits: `results/exhibits/INDEX.json` + nine SVGs.
 
 ## NEXT ACTION
 
-M13a: judge package (required). M13b slides stay optional and last.
+M14: final. (M13b slides remain optional and come after M14.)
 
-1. `README.md` v2: state the problem, the three drift classes, the v1→v2 delta,
-   the honest misses, and the reproduce commands. Keep the generated claims
-   block markers intact (run `python docs_check.py --fix` after editing).
-2. `EXHIBITS.md`: move E1–E9 status from BUILT to VERIFIED after reviewing every
-   caption against the rules (seed/n/unit already enforced; check "miss"
-   wording, CIs, and the identity key-compromise note).
-3. `openapi.json`: document every route actually served by `tether/api.py`
-   (`/`, `/health`, `/contract`, `/scenarios`, `/results`, `/exhibits`,
-   `/exhibits/{name}.svg`, `/run`, `/stream`), including the 404 shape for an
-   unknown exhibit. No route that does not exist.
-4. `BENCHMARK.md`: seed-7 run metadata, per-attack table, latency, leak tails,
-   ablation, ladder reachability, and the explicit limitations (D55, a5 replay,
-   HMAC stand-in, simulation only). Every number from `results/`.
-5. `CLAIMS CHECK v2`: a table of claim -> evidence path -> status, including the
-   Phase-1 a3/a4 miss and the attack-session utility gap.
-6. Re-run `python -m tether.exhibits --check`, `python docs_check.py`, the full
-   test suite, and tag `m13a`.
+1. Run the full test suite, `python -m tether.exhibits --check`, a fresh
+   `python verify.py` (two evaluation runs must produce one results digest and
+   one manifest hash; it does not overwrite `results/results.json`), and
+   `python docs_check.py`. Do not regenerate `results/` for cosmetic reasons:
+   the latency CDF is part of E6 and would need an exhibit rewrite.
+2. Cold-resume drill: start from `HANDOFF.md` only, follow its commands, confirm
+   the 132-test count and the digest
+   `e1b8fef23abf39c5cacef25b53fd2e015da53362be8a0bb46c7a9eaca97ac9aa`, then make
+   one small change named in this file (e.g. a README wording fix) and record
+   the drill in HISTORY.md.
+3. Make `HANDOFF.md` FINAL: results table pointer, explicit misses, CLAIMS CHECK
+   v2 summary, exact commands, unfinished items with next action, tag `v2`.
+4. Finalize `TRANSFER.md` (endpoints incl. `/exhibits`, benchmark/openapi map,
+   current test count, no stale v1 dashboard instructions). Confirm the working
+   tree is clean and every tag `m8`–`m13a` plus `v2` exists.
+5. Only after M14: optionally build M13b slides from the same generated data;
+   the build must not block or alter the tagged v2 artifacts.
 
-Do not change detectors, attacks, thresholds or the measured artifacts in M13a.
-If a document cannot be supported by `results/`, it says so rather than
-inventing a number.
+No detectors, thresholds, attacks, metrics or measured artifacts change in M14.
 
 ## How to run and test
 
@@ -91,8 +94,8 @@ python -m tether.evaluate --seed 7 --ablation     # ~78 s, writes results/
 python -m tether.exhibits --write                 # regenerate 9 SVGs + INDEX
 python -m tether.exhibits --check                 # byte-compare with results/
 python verify.py                                  # two runs + replication
-python docs_check.py                              # docs/results/exhibit drift
-python docs_check.py --fix                        # refresh claims block
+python docs_check.py                              # results/exhibits/openapi/docs drift
+python docs_check.py --fix                        # refresh claims blocks
 python -m tether.api                              # http://127.0.0.1:8765/
 ```
 
@@ -101,8 +104,9 @@ unittest writes to stderr).
 
 ## Last test result
 
-2026-10-25 23:35 — `Ran 126 tests ... OK`, EXIT=0 (113 through M11 + 13
-exhibit/API/dashboard tests). M12 visual QA done in Chromium at 1440 px.
+2026-10-25 22:49 — `Ran 132 tests ... OK`, EXIT=0 (113 through M11 + 13
+exhibit/API/dashboard tests + 6 OpenAPI contract tests). M12 visual QA done in
+Chromium at 1440 px; M13a docs checked 10/10.
 
 Full seed-7 run: `wall_seconds=77.49`, 11 105 decisions, results digest
 `e1b8fef23abf39c5cacef25b53fd2e015da53362be8a0bb46c7a9eaca97ac9aa`;
@@ -137,11 +141,13 @@ exhibit `INDEX.json` carries the same digest.
 - PREREG.md — FROZEN metrics H1–H9 (tag m8)
 - THREAT_MODEL.md — P1–P9, a1–a9, out-of-scope boundaries
 - PROBLEM_STATEMENT.md — three drift classes, PS demands -> mechanisms
-- EXHIBITS.md — E1–E9 exhibit contract (BUILT; verify at M13a)
-- HANDOFF.md / HISTORY.md / DECISIONS.md (D1–D57) / TODO.md / RESUME_PROMPT.md
+- EXHIBITS.md — E1–E9 exhibit contract (VERIFIED at M13a)
+- BENCHMARK.md — judge benchmark card (generated claims block enforced)
+- openapi.json — 10-route API contract, 9 exhibit names
+- HANDOFF.md / HISTORY.md / DECISIONS.md (D1–D60) / TODO.md / RESUME_PROMPT.md
 - TRANSFER.md — endpoints/payloads/dashboard map (v2 banner)
 - verify.py — two-run determinism + seed-11 replication + verdicts
-- docs_check.py — manifest/table/claims/exhibits/test-count/link/PREREG checks
+- docs_check.py — manifest/table/claims/exhibits/openapi/test-count/link/PREREG
 - tether/stats.py — Wilson CI, percentile, CDF, rate_with_ci
 - tether/report.py — digest, MANIFEST, RESULTS_TABLE, claims block
 - tether/ablation.py — leave-one-out detector ablation
@@ -156,5 +162,5 @@ exhibit `INDEX.json` carries the same digest.
 - tether/evaluate.py — arms, CIs, leak vectors, trajectory, sweep, ablation
 - tether/sim/scenarios.py — a1–a9 (a7 three phases, a8 composition, a9)
 - tether/demo.py, tether/api.py, dashboard.html — demo/API/UI (M12 rewritten)
-- tests/ — 126 tests in 8 files
+- tests/ — 132 tests in 9 files
 - results/ — v2 measured artifacts + MANIFEST + VERIFY + RESULTS_TABLE + exhibits/

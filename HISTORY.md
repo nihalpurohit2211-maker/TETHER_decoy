@@ -296,3 +296,32 @@ are recorded as approximate wall-clock text from the session clock
 - DECISIONS: D57 generated exhibits are byte-checked; D58 dashboard aggregate
   numbers only from /exhibits; D59 exhibit route allowlist; D60 visual QA fixes
   stay presentational.
+
+## 2026-10-25 22:49 - v2 M13a: judge package (README v2, openapi, benchmark, claims)
+
+- README v2: dashboard/exhibit section (measured vs live replay, deep links,
+  explicit no-results state), benchmark pointer, and CLAIMS CHECK v2 table with
+  SUPPORTED / PARTIAL / DISCLOSED LIMITATION statuses. The latency claim is
+  PARTIAL (p95/p99 pass, 130.682 ms warm-up max disclosed); zero-leak is scoped
+  to records; low-and-slow is PARTIAL (Phase 2 misses 7.5 %).
+- BENCHMARK.md: what was measured, how to read it, threats to validity, and the
+  reproduce commands. Its numeric block is the same enforced claims block as
+  HANDOFF/README (extended with latency max and the largest ablation loss:
+  99.5 pp, drift removed, a3). No second hand-written table.
+- openapi.json (OpenAPI 3.1): ten paths, GET+POST /run, SSE /stream, /results,
+  /exhibits and /exhibits/{name}.svg with the nine-name enum; local server URL
+  only; schemas for Session/TimelineEntry/AlertCard/Contract/ExhibitIndex.
+  tests/test_openapi.py (6 tests) guards paths, enum, local-only server and
+  no external refs.
+- docs_check.py: ninth check validates openapi.json against the route set and
+  exhibit enum; BENCHMARK.md added to the core docs and generated-claim docs
+  (missing claim markers are now a failure, not a skip). Reports 10/10 PASS.
+- EXHIBITS.md: E1-E9 BUILT -> VERIFIED after caption review. E2 now reports the
+  a7 tail as "3/200 sessions leak, max 4 records" (median 0/p90 0 alone hid the
+  tail); identity caption collapses equal ranges to "all 0.0 %" / "all 100.0 %".
+  Exhibits regenerated from the same frozen results; digest unchanged.
+- Results/measurements were not regenerated. Claim-block change is additive
+  (latency max, ablation line) and enforced by docs_check --fix.
+- Tests: 126 -> 132 green (+6 OpenAPI contract tests).
+- DECISIONS: D61 OpenAPI is a checked contract; D62 benchmark reuses the
+  generated claims block; D63 captions reviewed; D64 CLAIMS CHECK statuses.

@@ -6,19 +6,23 @@ dashboard, or in any slide is hand-typed.** Each exhibit declares the exact
 `results/` path it reads, the unit, and its n. `docs_check.py` fails the build if
 an exhibit's rendered number disagrees with `results/results.json`.
 
-Status legend: PLANNED (M8) -> BUILT (M12) -> VERIFIED (M13a).
+Status legend: PLANNED (M8) -> BUILT (M12) -> VERIFIED (M13a). All nine were
+reviewed at M13a against the rules below; every caption states seed, n and unit,
+the a3/a4 Phase-1 misses are called misses, the a7 leak caption prints both the
+number of leaking sessions and the maximum, and the identity caption states the
+key-compromise limitation.
 
 | # | Exhibit | Name (`?exhibit=`) | Source in results/ | Unit / n | Status |
 |---|---|---|---|---|---|
-| E1 | Detection by attack, with Wilson CIs | `detection` | `attacks[].detected_pct`, `attacks[].phase2.detected_pct`, `attacks[].detected_ci95` | % of sessions, n=200/attack | BUILT |
-| E2 | Leak distribution: none vs tether | `leak` | `attacks[].leak_samples_none`, `attacks[].leak_samples_tether`, `attacks[].leak_p90_tether` | records/session, n=200/attack | BUILT |
-| E3 | Cumulative drift (CUSUM) trajectory | `cusum` | `drift_trajectory` | standardized CUSUM units, per session | BUILT |
-| E4 | Ablation heatmap (detector x attack) | `ablation` | `ablation.rows[].attacks[].delta_caught_pp` | delta pp vs full arm, n=200/attack | BUILT |
-| E5 | Ladder usage per rung | `ladder` | `ladder_usage_total.actions` | decision count | BUILT |
-| E6 | Latency CDF | `latency` | `latency_ms.cdf`, `latency_ms.p50/p95/p99/max` | ms per decision, n = all decisions | BUILT |
-| E7 | Identity arm: what it does and does not see | `identity` | `identity_arm.attacks[]` | % of sessions, n=200/attack | BUILT |
-| E8 | Attack map: a1-a9 -> detector -> rung | `attackmap` | `attacks[]` + `THREAT_MODEL.md` ids | categorical, no numbers | BUILT |
-| E9 | Containment vs utility (the trade-off) | `utility` | `benign.*`, `attack_session_utility_pct`, `ladder_usage.benign` | %, n=1000 legit sessions | BUILT |
+| E1 | Detection by attack, with Wilson CIs | `detection` | `attacks[].detected_pct`, `attacks[].phase2.detected_pct`, `attacks[].detected_ci95` | % of sessions, n=200/attack | VERIFIED |
+| E2 | Leak distribution: none vs tether | `leak` | `attacks[].leak_samples_none`, `attacks[].leak_samples_tether`, `attacks[].leak_p90_tether` | records/session, n=200/attack | VERIFIED |
+| E3 | Cumulative drift (CUSUM) trajectory | `cusum` | `drift_trajectory` | standardized CUSUM units, per session | VERIFIED |
+| E4 | Ablation heatmap (detector x attack) | `ablation` | `ablation.rows[].attacks[].delta_caught_pp` | delta pp vs full arm, n=200/attack | VERIFIED |
+| E5 | Ladder usage per rung | `ladder` | `ladder_usage_total.actions` | decision count | VERIFIED |
+| E6 | Latency CDF | `latency` | `latency_ms.cdf`, `latency_ms.p50/p95/p99/max` | ms per decision, n = all decisions | VERIFIED |
+| E7 | Identity arm: what it does and does not see | `identity` | `identity_arm.attacks[]` | % of sessions, n=200/attack | VERIFIED |
+| E8 | Attack map: a1-a9 -> detector -> rung | `attackmap` | `attacks[]` + `THREAT_MODEL.md` ids | categorical, no numbers | VERIFIED |
+| E9 | Containment vs utility (the trade-off) | `utility` | `benign.*`, `attack_session_utility_pct`, `ladder_usage.benign` | %, n=1000 legit sessions | VERIFIED |
 
 ## Caption rules (seed/n/unit enforced by `--check`; wording reviewed at M13a)
 

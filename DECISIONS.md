@@ -373,3 +373,35 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   200 samples per arm (~281 KB) rather than subsampling, so the leak tail is
   inspectable; file size is accepted as the cost of showing the real
   distribution.
+- D61 (the OpenAPI file is a checked route contract). `openapi.json` documents
+  exactly the ten paths the server exposes (`/`, `/dashboard`, `/health`,
+  `/contract`, `/scenarios`, `/run` GET+POST, `/stream`, `/results`,
+  `/exhibits`, `/exhibits/{name}.svg`), only local server URLs, and exactly the
+  nine exhibit names from `tether.exhibits.INDEX`. `docs_check.py` fails on path
+  drift or an enum mismatch, and `tests/test_openapi.py` guards the same contract
+  (plus no external `$ref`). Rejected: prose-only endpoint docs (already drifted
+  from the v1 dashboard) and generating the spec into the server (the spec is
+  static, the route set is small).
+- D62 (the benchmark headline reuses the generated claims block). Rather than a
+  second hand-written table, `BENCHMARK.md` embeds the same block that
+  `docs_check.py --fix` writes into HANDOFF/README, extended with the latency
+  **max** and the single largest ablation loss. The block is the one numeric
+  source of truth; the rest of BENCHMARK.md is methodology, limitations and
+  pointers to `RESULTS_TABLE.md`/exhibits. Rejected: a separate benchmark table
+  renderer (duplicate data path, another drift surface) and prose-only numbers
+  (exactly what v1 did wrong).
+- D63 (exhibit captions were reviewed, not just generated). At M13a every
+  caption was read against the EXHIBITS rules: seed/n/unit are enforced by
+  `--check`; a3/a4 misses are called misses; the E2 caption now prints how many
+  a7 sessions leak and the maximum (3/200, max 4) instead of only median/p90,
+  because median 0 + p90 0 alone would hide the real tail; the identity caption
+  states the key-compromise limitation and collapses equal ranges to "all 0.0 %"
+  / "all 100.0 %". Status moved BUILT -> VERIFIED. No measurement was
+  regenerated.
+- D64 (CLAIMS CHECK v2 is statused, not promotional). The README table maps each
+  claim to evidence and marks it SUPPORTED, PARTIAL, or DISCLOSED LIMITATION.
+  "Gate latency under 5 ms" is PARTIAL: true at p95/p99, false for the
+  130.682 ms warm-up maximum. "Zero bytes leaked" is SUPPORTED for records only,
+  because the harness measures records, not bytes. "Low-and-slow is caught" is
+  PARTIAL because Phase 2 still misses 7.5 %. Attack-session utility 58.8 % is
+  disclosed as containment cost (D55), never averaged with benign utility.

@@ -809,10 +809,15 @@ def _caption(name: str, result: dict) -> str:
         )
     if name == "leak":
         a7 = by_id.get("a7_persistent", {})
+        a7_samples = [float(v) for v in a7.get("leak_samples_tether", [])]
+        leaking = [v for v in a7_samples if v > 0]
+        tail = (f"{len(leaking)}/{len(a7_samples)} sessions leak, max "
+                f"{max(leaking):.0f} records" if leaking else "no session leaks")
         return (
             f"Seed {seed} - n = {nlabel} - unit = {unit}. Every sample in both "
             f"arms is drawn; each row uses its own vertical scale (max printed). "
-            f"a7 residual tail: median {a7.get('records_out_tether_median', 0.0):.1f}, "
+            f"a7 residual tail: {tail}; median "
+            f"{a7.get('records_out_tether_median', 0.0):.1f}, "
             f"p90 {a7.get('leak_p90_tether', 0.0):.1f} records/session."
         )
     if name == "cusum":
@@ -866,10 +871,13 @@ def _caption(name: str, result: dict) -> str:
         low_max = max(lows) if lows else 0.0
         high_min = min(highs) if highs else 0.0
         high_max = max(highs) if highs else 0.0
+        low_txt = (f"all {low_min:.1f}%" if low_min == low_max
+                   else f"{low_min:.1f}-{low_max:.1f}%")
+        high_txt = (f"all {high_min:.1f}%" if high_min == high_max
+                    else f"{high_min:.1f}-{high_max:.1f}%")
         return (
             f"Seed {seed} - n = {nlabel} - unit = {unit}. Content attacks a1-a4 = "
-            f"{low_min:.1f}-{low_max:.1f}%; identity attacks "
-            f"a5/a6/a9 = {high_min:.1f}-{high_max:.1f}%. "
+            f"{low_txt}; identity attacks a5/a6/a9 = {high_txt}. "
             f"Key-compromise limitation (THREAT_MODEL section 5.3): a stolen "
             f"signing key is not detectable by this layer; a5 models replay, not "
             f"key compromise."

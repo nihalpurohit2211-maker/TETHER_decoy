@@ -43,7 +43,7 @@
       "source": "results.json -> attacks[].leak_samples_none, attacks[].leak_samples_tether, attacks[].leak_p90_tether",
       "unit": "records leaked per session",
       "n": "200 sessions/attack",
-      "caption": "Seed 7 - n = 200 sessions/attack - unit = records leaked per session. Every sample in both arms is drawn; each row uses its own vertical scale (max printed). a7 residual tail: median 0.0, p90 0.0 records/session."
+      "caption": "Seed 7 - n = 200 sessions/attack - unit = records leaked per session. Every sample in both arms is drawn; each row uses its own vertical scale (max printed). a7 residual tail: 11/200 sessions leak, max 4 records; median 0.0, p90 0.0 records/session."
     },
     {
       "id": "E3",
@@ -98,7 +98,7 @@
       "source": "results.json -> identity_arm.attacks[], identity_arm.false_alerts_per_1000_incl_legit_change",
       "unit": "% of sessions detected by identity evidence alone",
       "n": "200 sessions/attack",
-      "caption": "Seed 7 - n = 200 sessions/attack - unit = % of sessions detected by identity evidence alone. Content attacks a1-a4 = 0.0-0.0%; identity attacks a5/a6/a9 = 100.0-100.0%. Key-compromise limitation (THREAT_MODEL section 5.3): a stolen signing key is not detectable by this layer; a5 models replay, not key compromise."
+      "caption": "Seed 7 - n = 200 sessions/attack - unit = % of sessions detected by identity evidence alone. Content attacks a1-a4 = all 0.0%; identity attacks a5/a6/a9 = all 100.0%. Key-compromise limitation (THREAT_MODEL section 5.3): a stolen signing key is not detectable by this layer; a5 models replay, not key compromise."
     },
     {
       "id": "E8",

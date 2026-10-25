@@ -8,16 +8,18 @@ Read order if you want depth later: `PROJECT_BRIEF.md` (context) →
 `tether_build_prompt.md` (operative spec) → `HANDOFF.md` (current status and
 NEXT ACTION) → `DECISIONS.md` (why things are the way they are, D1–D40).
 
-> **v2 note (M12).** This document describes the v1 system, which is complete and
-> tagged `final`, plus the v2 additions through M12. The authoritative plan is
-> `PLAN_V2.md` and the frozen metrics are `PREREG.md`. Landed: identity layer
+> **v2 note (M13a).** This document describes the v1 system, which is complete
+> and tagged `final`, plus the v2 additions through M13a. The authoritative plan
+> is `PLAN_V2.md` and the frozen metrics are `PREREG.md`. Landed: identity layer
 > (signed envelopes, nonce cache, delegation certs, key->role binding),
 > identity-scoped escalation, attacks a7-a9, v2 evaluation (Wilson CIs, leak
 > vectors, latency CDF, CUSUM trajectory, ablation, MANIFEST + `verify.py` +
-> `docs_check.py`; seed 7, n=200/attack, H1-H9 all PASS), and the M12 D3COY
-> dashboard + nine generated exhibits. `/exhibits` and `/exhibits/<name>.svg`
-> are the measured-data surface; `/run` and `/stream` still run live sessions
-> unchanged. Sections 4.9, 4.10 and 6 are the current v2 reference.
+> `docs_check.py`; seed 7, n=200/attack, H1-H9 all PASS), the M12 D3COY
+> dashboard + nine generated exhibits, and the M13a judge package
+> (`BENCHMARK.md`, `openapi.json`, README CLAIMS CHECK, VERIFIED captions).
+> `/exhibits` and `/exhibits/<name>.svg` are the measured-data surface; `/run`
+> and `/stream` still run live sessions unchanged. Sections 4.9, 4.10 and 6 are
+> the current v2 reference; `openapi.json` is the checked route contract.
 
 ---
 
@@ -96,9 +98,12 @@ tether/
   demo.py                       colored step-by-step CLI demo
   api.py                        stdlib JSON API + SSE + dashboard/exhibit server
 dashboard.html                  single-file D3COY dashboard (no libs, no CDN)
-tests/                          unittest suite (126 tests)
+tests/                          unittest suite (132 tests)
 results/                        measured artifacts + MANIFEST + VERIFY +
                                 RESULTS_TABLE + exhibits/
+BENCHMARK.md                    judge benchmark card (enforced claims block)
+openapi.json                    checked API contract (10 routes, 9 exhibits)
+EXHIBITS.md                     E1-E9 contract (VERIFIED)
 calibrate_drift.py              null-traffic calibration for drift h (evidence)
 ```
 
@@ -450,24 +455,22 @@ Safe-change checklist for UI work:
   steps after a *blocked injection vector*; in this corpus pdf.read usually
   executes and gets narrowed instead. a5 (stolen token) is context-based and
   never marks steps `poisoned`, so it shows no skips.
-- **latency `max` ~65–120 ms** is first-decision warmup (machine timing, not
-  seeded); p50 0.15 ms / p95 0.79 ms are the real numbers.
+- **latency `max` 130.682 ms** is first-decision warmup (machine timing, not
+  seeded); p50 0.215 ms / p95 0.873 ms are the steady-state numbers.
 - **a6 uses a fixed parent/child pair** — a discovery test is future work.
 
-## 9. Measured results (seed 7, for context)
+## 9. Measured results (seed 7)
 
-```
-attack              | phase1 det% | phase2 det% | leak none | leak p1 | leak p2
---------------------+-------------+-------------+-----------+---------+--------
-a1_pdf_injection    | 100.0       | 100.0       | 148       | 0       | 0
-a2_tool_poisoning   | 100.0       | 100.0       | 131       | 0       | 0
-a3_mimicry          |   0.0       |  99.5       |  18       | 18      | 0
-a4_low_and_slow     |   0.0       |  92.5       |   2       |  2      | 0
-a5_stolen_token     | 100.0       | 100.0       | 328.5     | 0       | 0
-a6_delegation       | 100.0       | 100.0       | 150       | 0       | 0
+There is no hand-copied results table here. The source of truth is
+`results/RESULTS_TABLE.md` (byte-checked by `docs_check.py`), the judge-facing
+card is `BENCHMARK.md`, and the caption/units/n for every figure are in
+`results/exhibits/INDEX.json`. The generated claims block in HANDOFF/README/
+BENCHMARK is rewritten by `python docs_check.py --fix`.
 
-benign false alerts : 0/1000 (both phases)   benign utility: 100%
-attack utility      : 93.2%   latency: p50 0.15ms / p95 0.79ms / max ~108ms warmup
-```
+Headline for orientation: a1/a2/a5/a6/a8/a9 are detected in Phase 1; a3/a4 are
+honest Phase-1 misses and are caught by the Phase-2 drift budget; a7 is a
+partial catch with a small residual leak tail; benign/approved-change utility is
+100 % with zero false alerts; attack-session utility is lower because repeated
+incidents escalate (D55). Quote numbers only from the generated block.
 
-Full claims audit: `HANDOFF.md` § CLAIMS CHECK.
+Full claims audit: `README.md` § CLAIMS CHECK v2.

@@ -266,8 +266,22 @@ def render_claims_block(result: dict, hypotheses: dict | None = None) -> str:
     )
     lines.append(
         f"latency: p50={lat.get('p50', 0.0):.3f}ms p95={lat.get('p95', 0.0):.3f}ms "
-        f"p99={lat.get('p99', 0.0):.3f}ms n={lat.get('n', 0)}"
+        f"p99={lat.get('p99', 0.0):.3f}ms max={lat.get('max', 0.0):.3f}ms "
+        f"n={lat.get('n', 0)}"
     )
+    ablations = (result.get("ablation") or {}).get("rows") or []
+    worst = (0.0, "none", "none")
+    for row in ablations:
+        for aid, cell in (row.get("attacks") or {}).items():
+            delta = float(cell.get("delta_caught_pp", 0.0))
+            if delta > worst[0]:
+                worst = (delta, str(row.get("removed", "?")), aid)
+    if ablations:
+        lines.append(
+            f"ablation: largest_caught_loss={worst[0]:.1f}pp "
+            f"removed={worst[1]} attack={worst[2]} "
+            f"(0 = no measured loss on that corpus)"
+        )
     if hypotheses:
         lines.append(
             "hypotheses: " + " ".join(
