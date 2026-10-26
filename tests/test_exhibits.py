@@ -178,8 +178,10 @@ class TestDashboardContract(unittest.TestCase):
         self.assertIn("?exhibit=", text)
         self.assertIn("NO MEASURED RESULTS", text)
         self.assertIn("export alert JSON", text)
-        for token in ("#0d0d12", "#c41e3a", "#16161e", "#3a1f25",
-                      "#e0e0e0", "#ff6b6b"):
+        # Light SecOps palette (Stitch UI revamp): canvas, panel, hairline,
+        # ink, nominal emerald, breach red must all be present.
+        for token in ("#f8fafc", "#ffffff", "#e2e8f0", "#0f172a",
+                      "#059669", "#dc2626"):
             self.assertIn(token, text)
 
 

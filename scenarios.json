@@ -1,0 +1,15 @@
+{
+  "scenarios": {
+    "benign": "ordinary procurement work",
+    "legit_change": "approved change traffic",
+    "a1_pdf_injection": "pdf injection chain",
+    "a2_tool_poisoning": "poisoned tool description",
+    "a3_mimicry": "in-contract mimicry",
+    "a4_low_and_slow": "low-and-slow drip",
+    "a5_stolen_token": "stolen-token replay",
+    "a6_delegation": "malicious delegation",
+    "a7_persistent": "persistent intruder (repeat offense)",
+    "a8_composition": "composition chain (every step legal)",
+    "a9_impersonation": "identity laundering (role/blueprint mismatch)"
+  }
+}

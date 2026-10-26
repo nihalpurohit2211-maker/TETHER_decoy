@@ -1,0 +1,11 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/dashboard.html" },
+    { "source": "/results", "destination": "/results/results.json" },
+    { "source": "/exhibits", "destination": "/results/exhibits/INDEX.json" },
+    { "source": "/exhibits/:name.svg", "destination": "/results/exhibits/:name.svg" },
+    { "source": "/contract", "destination": "/tether/contract.json" },
+    { "source": "/scenarios", "destination": "/scenarios.json" },
+    { "source": "/run", "destination": "/static-run.json" }
+  ]
+}

@@ -1,38 +1,36 @@
-# TRANSFER.md — Tether Round 0 transfer document
+# TRANSFER.md: Tether Round 0 transfer document
 
-Single file for a new engineer **or a new LLM session** to understand the
-project, run it, and change the UI without breaking anything. Self-contained:
-everything below was captured from the real running system.
+One file a new engineer can use to understand the project, run it, and change
+the UI without breaking anything. Everything below was captured from the running
+system.
 
-Read order if you want depth later: `PROJECT_BRIEF.md` (context) →
-`tether_build_prompt.md` (operative spec) → `HANDOFF.md` (current status and
-NEXT ACTION) → `DECISIONS.md` (why things are the way they are, D1–D65).
+If you want more depth: `PROJECT_BRIEF.md` (context), `tether_build_prompt.md`
+(operative spec), `HANDOFF.md` (current status and next action), then
+`DECISIONS.md` (why things are the way they are, D1-D65).
 
-> **v2 note (M14 FINAL, tag `v2`).** v1 is complete and tagged `final`; v2 is
-> complete and tagged `v2`. The authoritative plan is `PLAN_V2.md` and the frozen
-> metrics are `PREREG.md`. Landed: identity layer (signed envelopes, nonce cache,
-> delegation certs, key->role binding), identity-scoped escalation, attacks
-> a7-a9, v2 evaluation (Wilson CIs, leak vectors, latency CDF, CUSUM trajectory,
-> ablation, MANIFEST + `verify.py` + `docs_check.py`; seed 7, n=200/attack,
-> H1-H9 all PASS), the D3COY dashboard + nine generated exhibits, and the judge
-> package (`BENCHMARK.md`, `openapi.json`, README CLAIMS CHECK, VERIFIED
-> captions). `/exhibits` and `/exhibits/<name>.svg` are the measured-data
-> surface; `/run` and `/stream` still run live sessions. Sections 4.9, 4.10 and
-> 6 are the current reference; `openapi.json` is the checked route contract.
-> M13b slides are the only optional follow-up and must not alter tagged v2
-> artifacts.
+v1 is tagged `final`; v2 is tagged `v2`. The plan is `PLAN_V2.md` and the frozen
+metrics are `PREREG.md`. v2 added the identity layer (signed envelopes, nonce
+cache, delegation certs, key-to-role binding), identity-scoped escalation,
+attacks a7-a9, the v2 evaluation (Wilson CIs, leak vectors, latency CDF, CUSUM
+trajectory, ablation, MANIFEST, `verify.py`, `docs_check.py`; seed 7,
+n=200/attack, H1-H9 all PASS), the dashboard and nine generated exhibits, and the
+judge package (`BENCHMARK.md`, `openapi.json`, README claims check, verified
+captions). `/exhibits` and `/exhibits/<name>.svg` are the measured-data surface;
+`/run` and `/stream` run live sessions. Sections 4.9, 4.10 and 6 are the current
+reference. `openapi.json` is the checked route contract. M13b slides are the only
+optional follow-up and must not alter tagged v2 artifacts.
 
 ---
 
 ## 1. What this project is
 
-**Tether** is an identity-drift detector for autonomous AI agents, built as a
+Tether is an identity-drift detector for autonomous AI agents, built as a
 deterministic simulation (D3COY Round 0). A simulated procurement agent
-(`procurement_agent`) runs scripted tool-call sessions. A **gateway** sits at
-the single enforcement point between the agent and its tools and decides,
-per event: allow / hold / narrow / block / quarantine / isolate. Six attack
-families (a1–a6) try to make the agent leak data or exceed its role; the
-gateway's detectors are supposed to catch them without disturbing benign work.
+(`procurement_agent`) runs scripted tool-call sessions. A gateway sits at the
+single enforcement point between the agent and its tools and decides, per event:
+allow / hold / narrow / block / quarantine / isolate. Nine attack families
+(a1-a9) try to make the agent leak data or exceed its role. The gateway's
+detectors are supposed to catch them without disturbing benign work.
 
 Three defense modes are compared everywhere:
 
@@ -42,17 +40,17 @@ Three defense modes are compared everywhere:
 | `textgate` | comparison defense: a stand-in TF-IDF gate screens pdf.read document text only |
 | `tether` | the full system: contract + provenance + baseline + intent + context + drift budget + delegation checks |
 
-**Hard constraints of the whole repo** (do not violate in changes):
-Python 3.10+ **standard library only** — no pip installs, no network calls,
-no LLM calls. Everything is seeded and deterministic (default seed 7).
-The dashboard is a single HTML file with **no external libraries/CDN**.
+The whole repo has three hard constraints. Python 3.10+ with the standard
+library only: no pip installs, no network calls, no LLM calls. Everything is
+seeded and deterministic (default seed 7). The dashboard is one HTML file with
+no external libraries or CDN.
 
 ---
 
 ## 2. How to run everything
 
 ```bash
-python -m unittest discover -s tests -t .          # 45/45 OK
+python -m unittest discover -s tests -t .          # 132/132 OK
 python -m tether.evaluate --seed 7                 # writes results/ (~11 s)
 python -m tether.demo --scenario a1_pdf_injection --mode tether   # also --mode none|textgate
 python -m tether.api                               # API + dashboard on http://127.0.0.1:8765/
@@ -61,9 +59,9 @@ python calibrate_drift.py                          # drift h=8 null-traffic cali
 
 - The API server binds `127.0.0.1` (localhost only), port configurable via
   `--port`. `ThreadingHTTPServer`, so concurrent requests are fine.
-- **Windows/PowerShell note:** run the test suite as
+- On Windows/PowerShell, run the test suite as
   `cmd /c "python -m unittest discover -s tests -t . 2>&1"; echo "EXIT=$LASTEXITCODE"`
-  — plain PowerShell shows exit 1 even on OK because unittest writes to stderr.
+  because plain PowerShell shows exit 1 even on OK (unittest writes to stderr).
 - No build step for the dashboard: edit `dashboard.html`, refresh the browser.
 
 ---
@@ -116,9 +114,9 @@ chain) and kept as `decision_events` pairs → `alert.card_from_result` builds
 the alert card if the session alerted.
 
 Key semantic detail for UI work: the API timeline is built from
-**`decision_events`** — real decisions the gateway made. Steps that were
-**never evaluated** (quarantined injected steps, steps after isolation) appear
-as `action: "skipped"` so the UI can render them differently.
+`decision_events`, the real decisions the gateway made. Steps that were never
+evaluated (quarantined injected steps, steps after isolation) appear as
+`action: "skipped"` so the UI can render them differently.
 
 ---
 
@@ -129,8 +127,8 @@ All JSON endpoints send `Content-Type: application/json; charset=utf-8` and
 `Cache-Control: no-store`. Unknown paths → `404 {"error": "not found"}`.
 
 ### 4.1 `GET /` and `GET /dashboard`
-Serves `dashboard.html` (`text/html`). No static file directory exists —
-the dashboard is the one HTML file; keep assets inline.
+Serves `dashboard.html` (`text/html`). There is no static file directory. The
+dashboard is the one HTML file, so keep assets inline.
 
 ### 4.2 `GET /health`
 Liveness probe.
@@ -165,7 +163,7 @@ Scenario ids and human names (drives the dashboard dropdown).
   "a6_delegation": "malicious delegation"}}
 ```
 
-### 4.5 `GET /run` — run N sessions of one scenario
+### 4.5 `GET /run`: run N sessions of one scenario
 
 Query parameters (all optional):
 
@@ -177,12 +175,12 @@ Query parameters (all optional):
 | `seed` | `7` | any int; results are deterministic per (scenario, mode, seed, i) |
 | `phase2` | `true` | `"false"` disables the drift budget / context / delegation phase |
 
-**Errors:** malformed params → `400 {"error": "..."}` (e.g. `"mode must be
-one of none, textgate, tether"`, `"n must be an integer"`);
-unknown scenario → `404 {"error": "unknown scenario"}`.
+**Errors:** malformed params return `400 {"error": "..."}` (for example
+`"mode must be one of none, textgate, tether"` or `"n must be an integer"`).
+An unknown scenario returns `404 {"error": "unknown scenario"}`.
 
-**Real response** (`/run?scenario=a1_pdf_injection&mode=tether&n=1&seed=7`,
-attack session that alerts — captured live):
+**Real response** (`/run?scenario=a1_pdf_injection&mode=tether&n=1&seed=7`, an
+attack session that alerted, captured live):
 
 ```json
 {"sessions": [{
@@ -243,10 +241,10 @@ attack session that alerts — captured live):
 }]}
 ```
 
-**Benign runs differ only in:** `tier: ""`, `detected: false`,
-`first_alert_step: null`, `alert: null`, every timeline `action: "allow"`,
-`utility: "6/6"`. (Captured live from
-`/run?scenario=benign&mode=tether&n=1&seed=7`.)
+**Benign runs differ only in** `tier: ""`, `detected: false`,
+`first_alert_step: null`, `alert: null`, every timeline `action: "allow"`, and
+`utility: "6/6"`. Captured live from
+`/run?scenario=benign&mode=tether&n=1&seed=7`.
 
 ### 4.6 `POST /run`
 Same as GET /run but parameters come from a JSON body:
@@ -255,7 +253,7 @@ Same as GET /run but parameters come from a JSON body:
 ```
 Response and errors identical to GET. A non-dict JSON body is treated as `{}`.
 
-### 4.7 `GET /stream?scenario=...&mode=...` — Server-Sent Events
+### 4.7 `GET /stream?scenario=...&mode=...`: Server-Sent Events
 Runs **one** session (n=1, seed=7, phase2=true) and streams it as SSE
 (`text/event-stream`). Each message is a `data: {json}\n\n` line. Three
 message types, in order:
@@ -321,7 +319,7 @@ Returns the generated `results/exhibits/INDEX.json` (`application/json`):
 summary (seed, attack n, benign, approved change), counts, `results_sha256`,
 and nine exhibit entries with `id`, `name`, `title`, `renderer`, `svg`,
 `source`, `unit`, `n`, `caption`. Captions are byte-checked against
-`results/results.json`; they are not a second source of truth. If `--write` has
+`results/results.json`; they are not maintained by hand. If `--write` has
 not run: `404 {"error": "exhibits not generated yet; run `python -m
 tether.exhibits --write`"}`.
 
@@ -341,7 +339,7 @@ exhibit"}` before any path join. There is no directory listing.
 |---|---|
 | `step` | 1-based step index in the session plan |
 | `tool` | tool called, e.g. `pdf.read`, `hr_db.query` |
-| `action` | gateway decision: `allow`, `hold`, `narrow`, `block`, `quarantine`, `isolate`, or `skipped` (never evaluated — quarantined injected step or step after isolation) |
+| `action` | gateway decision: `allow`, `hold`, `narrow`, `block`, `quarantine`, `isolate`, or `skipped` (never evaluated: a quarantined injected step or a step after isolation) |
 | `score` | fused detector score (0–100) |
 | `labels` | taint labels on the event: `UNTRUSTED`, `CARRY` (carries untrusted taint), `RESTRICTED`, `EXTERNAL` |
 | `reasons` | top-2 detector reasons (human-readable strings) |
@@ -352,14 +350,14 @@ exhibit"}` before any path join. There is no directory listing.
 | `schema` | always `tether.alert_card/1` |
 | `event_id` | id of the triggering event (session id + step number) |
 | `score` / `severity` | fused score; severity ladder: `none` → `elevated` → `critical` |
-| `confidence` | detector confidence (low during cold start — see `baseline_maturity`) |
+| `confidence` | detector confidence (low during cold start; see `baseline_maturity`) |
 | `reasons` | why it fired (plain strings; safe to render) |
 | `evidence` | machine-ish pointers: `contract:clause=...`, `baseline:first_seen=(tool=...)`, `intent:cosine=...` |
 | `baseline_vs_now` | session totals + event-id lists (`untrusted_event_ids`, `restricted_event_ids`, `external_send_event_ids`) |
 | `action_taken` | highest rung reached: `log`, `annotate`, `hold`, `narrow`, `block` (enforcement) |
 | `counterfactual` | what the legit flow WOULD have needed (populated when a legit step was held) |
 | `session` / `role` / `lineage` | attribution (lineage covers delegation chains, a6) |
-| `baseline_maturity` | `learned/(learned+10)` — 0.0 means the baseline was cold; UI should show confidence in that light |
+| `baseline_maturity` | `learned/(learned+10)`; 0.0 means the baseline was cold, so show confidence in that light |
 
 ### `results.json` attack entry
 `detected_pct` (phase 1), `phase2.detected_pct`, `records_out_none` (leak
@@ -372,23 +370,36 @@ plain/mild/mimic).
 
 ## 6. Dashboard guide (`dashboard.html`, single file, no build step, v2)
 
-Served at `/`. This file was rewritten at M12; the v1 ids (`#timeline`,
-`#summary`, `#chart`, `#stream`) no longer exist. The page has two surfaces:
+Served at `/`. The file was rebuilt at M12 and restyled after v2. The v1 ids
+(`#timeline`, `#summary`, `#chart`, `#stream`) no longer exist. The page has two
+surfaces:
 
-1. **Measured exhibits (E1-E9, the only aggregate numbers).** Loaded from
+1. Measured exhibits (E1-E9, the only aggregate numbers). Loaded from
    `/exhibits` and displayed as `<img src="/exhibits/<name>.svg">`. The
-   dashboard never computes or hardcodes an aggregate; the caption, source,
-   unit and n shown under each figure come from `INDEX.json`.
-2. **Live replay (explicitly NOT the aggregate).** One `/run` session, stepped
-   with prev/next/play or the arrow keys. The UI labels it "live simulation
-   output" so it cannot be quoted as the seed-7 result.
+   dashboard never computes or hardcodes an aggregate. The caption, source, unit
+   and n under each figure come from `INDEX.json`.
+2. Live replay (not the aggregate). One `/run` session, stepped with
+   prev/next/play or the arrow keys. The UI labels it "live simulation output" so
+   it cannot be quoted as the seed-7 result.
 
-Theme: D3COY dark tokens in `:root` of the inline `<style>`:
-`--bg #0d0d12`, `--panel #16161e`, `--panel-2 #1c1c26`, `--edge #3a1f25`,
-`--accent #c41e3a`, `--accent-soft #d46a6a`, `--text #e0e0e0`,
-`--dim #9a9aa6`, `--num #ff6b6b`, `--ok #3fb96e`, `--warn #e0a030`.
-Serif (`--serif`) for the wordmark/titles, monospace (`--mono`, tabular
-numerals) for all data. No external fonts, scripts, or images.
+The post-v2 UI uses the light "Stitch" palette. The dashboard reads runtime
+variables from `:root`, and `tether/exhibits.py` carries the matching constants
+for the SVGs:
+
+| Dashboard token | Value | Exhibit constant |
+|---|---|---|
+| `--canvas` | #f8fafc | `BG` (#ffffff) |
+| `--panel` | #ffffff | `PANEL` (#f8fafc) |
+| `--wash-2` | #f1f5f9 | `PANEL2` (#f1f5f9) |
+| `--line-hi` | #cbd5e1 | `EDGE` (#cbd5e1) |
+| `--info` | #2563eb | `ACCENT` (#2563eb) |
+| `--ink` | #0f172a | `TEXT` (#0f172a) |
+| `--bad` | #dc2626 | `NUM` (#dc2626) |
+| `--ok` | #059669 | `OK` (#059669) |
+| `--warn` | #d97706 | `WARN` (#d97706) |
+
+Sans (`--sans`) for body and titles, monospace (`--mono`, tabular numerals) for
+data. No external fonts, scripts or images.
 
 | Panel | Data source | DOM ids / hooks |
 |---|---|---|
@@ -425,53 +436,55 @@ Safe-change checklist for UI work:
 
 ---
 
-## 7. Ground rules for anyone editing (incl. LLMs)
+## 7. Ground rules for anyone editing
 
-1. **Stdlib only.** No pip, no CDN scripts, no fetch to external hosts.
-2. **Determinism.** All randomness flows from the seed. Never introduce
-   unseeded randomness or wall-clock dependence into detection paths
-   (latency *measurement* is the only timing-sensitive number).
-3. **Never tune detectors, thresholds, or attacks to hit target numbers.**
-   Misses are reported honestly (see HANDOFF.md). This is a project rule.
-4. **The ledger is append-only and hash-chained.** Don't rewrite event/decision
-   semantics; `rows_for_session()` relies on decisions being appended
-   immediately after their event (D31).
-5. **`decision_events` is the UI's source of truth.** If you change what the
-   gateway records, update `_timeline()` in `api.py` and the glossary above.
-6. After changes: run the test suite (command in §2), keep it green, commit.
+1. Standard library only. No pip, no CDN scripts, no fetch to external hosts.
+2. Determinism. All randomness flows from the seed. Do not introduce unseeded
+   randomness or wall-clock dependence into detection paths. Latency measurement
+   is the only timing-sensitive number.
+3. Never tune detectors, thresholds or attacks to hit target numbers. Report
+   misses as they are (see `HANDOFF.md`).
+4. The ledger is append-only and hash-chained. Do not rewrite event or decision
+   semantics. `rows_for_session()` relies on decisions being appended immediately
+   after their event (D31).
+5. `decision_events` is the UI's only data source. If you change what the gateway
+   records, update `_timeline()` in `api.py` and the glossary above.
+6. After changes: run the test suite (command in section 2), keep it green,
+   commit.
 
-## 8. Things that look like bugs but are NOT — do not "fix" without reading DECISIONS.md
+## 8. Things that look like bugs but are not
 
-- **A3 mimicry phase-1 detection is 0%** — by design: every step is
-  in-contract, so a per-session detector that fired would also fire on
-  identical benign work. It is *bounded* (ceilings), and phase 2 catches
-  99.5% via the drift budget.
-- **A4 low-and-slow phase-1 detection is 0%** — a 1–3 record drip inside
-  ceilings is indistinguishable from routine mail per-session. Phase 2:
-  92.5%, 0 median leak; the residual 7.5% is honest.
-- **textgate tier artifact** (a1: plain 0%, mild 100%, mimic 0%) — measured,
-  deliberately not retuned; it demonstrates why lexical gates fail on
-  paraphrase. Replaced only by a real LLM judge (future work).
-- **`skipped` timeline entries are rare** — they appear only for poisoned
-  steps after a *blocked injection vector*; in this corpus pdf.read usually
-  executes and gets narrowed instead. a5 (stolen token) is context-based and
-  never marks steps `poisoned`, so it shows no skips.
-- **latency `max` 130.682 ms** is first-decision warmup (machine timing, not
-  seeded); p50 0.215 ms / p95 0.873 ms are the steady-state numbers.
-- **a6 uses a fixed parent/child pair** — a discovery test is future work.
+Read `DECISIONS.md` before "fixing" any of these.
+
+- A3 mimicry has 0 % Phase-1 detection by design. Every step is in-contract, so a
+  per-session detector that fired would also fire on identical benign work. It is
+  bounded by ceilings, and Phase 2 catches 99.5 % via the drift budget.
+- A4 low-and-slow has 0 % Phase-1 detection. A 1-3 record drip inside ceilings is
+  indistinguishable from routine mail per session. Phase 2 reaches 92.5 % with a
+  0 median leak. The residual 7.5 % is real.
+- The textgate tier artifact (a1: plain 0 %, mild 100 %, mimic 0 %) is measured,
+  not retuned. It shows why lexical gates fail on paraphrase. A real LLM judge
+  would replace it in future work.
+- `skipped` timeline entries are rare. They appear only for poisoned steps after
+  a blocked injection vector. In this corpus `pdf.read` usually executes and gets
+  narrowed instead. a5 uses context and never marks steps `poisoned`, so it shows
+  no skips.
+- The latency `max` of 130.682 ms is first-decision warm-up, not steady state.
+  p50 0.215 ms and p95 0.873 ms are the numbers to quote.
+- a6 uses a fixed parent/child pair. A delegation-discovery test is future work.
 
 ## 9. Measured results (seed 7)
 
-There is no hand-copied results table here. The source of truth is
-`results/RESULTS_TABLE.md` (byte-checked by `docs_check.py`), the judge-facing
-card is `BENCHMARK.md`, and the caption/units/n for every figure are in
-`results/exhibits/INDEX.json`. The generated claims block in HANDOFF/README/
-BENCHMARK is rewritten by `python docs_check.py --fix`.
+There is no hand-copied results table here. The source is
+`results/RESULTS_TABLE.md` (byte-checked by `docs_check.py`). The benchmark card
+is `BENCHMARK.md`, and the caption, units and n for every figure are in
+`results/exhibits/INDEX.json`. `python docs_check.py --fix` rewrites the
+generated claims block in `HANDOFF.md`, `README.md` and `BENCHMARK.md`.
 
-Headline for orientation: a1/a2/a5/a6/a8/a9 are detected in Phase 1; a3/a4 are
-honest Phase-1 misses and are caught by the Phase-2 drift budget; a7 is a
-partial catch with a small residual leak tail; benign/approved-change utility is
-100 % with zero false alerts; attack-session utility is lower because repeated
-incidents escalate (D55). Quote numbers only from the generated block.
+For orientation: a1/a2/a5/a6/a8/a9 are detected in Phase 1. a3/a4 are Phase-1
+misses and are caught by the Phase-2 drift budget. a7 is a partial catch with a
+small residual leak tail. Benign and approved-change utility is 100 % with zero
+false alerts. Attack-session utility is lower because repeated incidents
+escalate (D55). Quote numbers only from the generated block.
 
-Full claims audit: `README.md` § CLAIMS CHECK v2.
+Full claims audit: `README.md`, section "Claims check v2".

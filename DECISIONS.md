@@ -1,4 +1,4 @@
-# DECISIONS.md — every design choice and every deviation
+# DECISIONS.md: design choices and deviations
 
 Numbered, append-mostly. Reason required for each. "Deck/Brief" refers to the
 slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
@@ -23,7 +23,7 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   change.
 - D5 (timestamp source). `date` cannot run (broken shell), so HISTORY.md
   uses approximate absolute times from the session clock. Reason: shell
-  unavailable; the protocol's intent (ordered, honest checkpoint log) is
+  unavailable; the protocol's intent (an ordered checkpoint log) is
   preserved.
 - D6 (git). `git init`, commits and tags are pending until the shell works.
   Exact commands are recorded in TODO/HANDOFF. Reason: no terminal available.
@@ -62,7 +62,7 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   as recommended for sponsor approval. Reason: automatically revoking a
   production identity on a single fused number contradicts the "without
   disrupting legitimate work" requirement; this is a response-policy choice
-  logged for honesty.
+  logged as a policy choice.
 - D13 (baseline learns only clean sessions). A session is learnable iff it
   finished with no decision above the log rung and no CARRY-labeled event.
   Cold start seeds pseudo-counts (count 10) for every (tool, data class)
@@ -96,12 +96,12 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
 - D18 (records-out accounting). `leak` steps in the plans are attacker-benefit
   transfers; any executed leak step adds its records to that session's
   leak count. Per attack we report median leak records under no-defense and
-  under tether, so "data at risk" is directly comparable. Reason: honest
-  comparable metric.
+  under tether, so "data at risk" is directly comparable. Reason: keeps the
+  comparison direct.
 - D19 (mimicry attack). a3 stays inside tools, data classes, egress and
   per-session ceilings; payloads go to supplier-portal.example, an allowlisted
   destination whose supplier account we model as attacker-controlled. Expected
-  honest result: not detected, blast radius bounded by ceilings.
+  result: not detected, blast radius bounded by ceilings.
 - D20 (API). Pure request handlers as plain functions plus a thin
   http.server shell, so handlers are unit-testable without sockets. One
   ThreadingHTTPServer serves JSON endpoints, SSE stream and the static
@@ -120,8 +120,8 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   tools in the intersection of A's grant (its permitted tools) and B's
   contract, plus inter-agent message taint (CARRY labels on `carries` in a
   delegation envelope). Phase 2 enables delegation attack + detector.
-- D25 (results caveats). Every results.json carries the required hardcoded
-  honesty set plus measured misses discovered in the run, never a target.
+- D25 (results caveats). Every results.json carries the required caveat list
+  plus measured misses discovered in the run, never a target.
 
 - D26 (drift budget rebuild). The first-execution numbers exposed that the
   original DriftBudget (raw per-event bytes vs a hardcoded anchor) could
@@ -187,10 +187,10 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   metrics were chosen while building; v2 must be able to fail visibly.
 - D35 (detection metric). v2 keeps v1's primary `detected_pct` (session has >=1
   decision with action != allow) so v1 and v2 tables remain comparable, and adds
-  `caught_before_harmful_send_pct` (no `leak` step executed) as the honest
+  `caught_before_harmful_send_pct` (no `leak` step executed) as a stricter
   secondary. Reason: changing the primary would silently invalidate the v1
   numbers already quoted in HANDOFF/README; adding a stricter metric exposes
-  the holds-on-legit-steps artifact instead of hiding it.
+  the holds-on-legit-steps artifact instead of leaving it implicit.
 - D36 (identity arm semantics). `identity` mode enables ONLY the identity
   detector (signatures, nonce freshness, key->role/blueprint binding, delegation
   certs). No contract, provenance, baseline, context, drift or intent. Reason:
@@ -198,8 +198,9 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   on a1-a4 it would prove the layer is behavioural in disguise.
 - D37 (a5 model). a5 is replay of captured signed envelopes (nonce reuse) from a
   foreign host, not signing-key compromise. Reason: under key compromise the
-  identity arm cannot win by construction, and pretending otherwise would be
-  dishonest. The limitation is stated in THREAT_MODEL.md 5.3 and the a5 row.
+  identity arm cannot win by construction, and claiming otherwise would
+  overstate the arm. The limitation is stated in THREAT_MODEL.md 5.3 and the a5
+  row.
 - D38 (attack id map). a1-a6 keep their v1 ids and meanings. New: a7 persistent
   intruder (full ladder), a8 composition chain (every step contract-legal), a9
   impersonation (key valid, claimed role/blueprint wrong). The approved-change
@@ -243,7 +244,7 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   sponsor key is derived from a constant in `tether/identity.py` and
   `contract.sig.json` is committed, so verification catches accidental or
   pipeline edits to `contract.json`, not an attacker with repo write access.
-  Stated here and in THREAT_MODEL.md 5.2 so the claim is not overreached.
+  Stated here and in THREAT_MODEL.md 5.2 so the scope is clear.
 - D45 (a5 nonce pre-seeding). a5's envelopes are a captured batch, so
   `evaluate`/api/demo seed their nonces as already used before running. The
   alternative (letting the first replay through because the process cache was
@@ -267,9 +268,9 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   capsule that denies three calls in a row is one offense, not three).
   History decays after 25 offense-free sessions. Containment stays SESSION-
   scoped: no role-wide credential revocation, because that would take out
-  legitimate work and violate the PS's fifth demand. Deliberate trade-off:
+  legitimate work and violate the PS's fifth demand. Accepted trade-off:
   attack-session utility drops when a corpus repeats the same attacking
-  identity (reported honestly, not hidden); benign utility stays 100 %.
+  identity (reported as measured); benign utility stays 100 %.
 - D48 (a7 is a three-phase scenario, by session index). v1 had no persistence.
   a7 is: retry (sessions 0-4, full a1-style chain), slow (5-14, drip to an
   allowed destination so the drift budget latches and produces a real `hold`),
@@ -310,7 +311,7 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   `enabled` set into Gateway; disabled detectors simply do not report. Fusion
   weights, bands and attack plans are untouched. Canonical floors follow the
   contract detector, because a floor is contract policy, not a separate signal -
-  so removing `contract` removes the floors as well. Reason: the only honest
+  so removing `contract` removes the floors as well. Reason: the useful
   question is "what stops being caught if this signal is absent", and an
   ablation that quietly keeps the floors would overstate the detector.
 - D54 (verdicts are code, thresholds are frozen). H1-H9 thresholds live in
@@ -318,7 +319,7 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   A FAIL changes the document's claim, never the threshold, the detector or the
   attack. verify.py prints FAILs and still exits 0 when the measurement itself
   is deterministic; a non-deterministic build is the only hard failure.
-- D55 (escalation across separately-evaluated corpora - honest limitation).
+- D55 (escalation across separately-evaluated corpora: limitation).
   Corpora are evaluated separately and every attack session uses the same role
   identity, so `EscalationState` sees independent incidents as repeat offenses:
   from the third incident onward a1/a2/a8 sessions isolate on their first alert
@@ -335,7 +336,7 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   documented test count differs from the collected count; a local markdown link
   is broken; or PREREG.md changed after tag m8 without a "PREREG deviation:"
   line in this file. Reason: v1's docs drifted (39 vs 45 tests, stale TODO), and
-  hand-copied numbers are the easiest way for a judge-facing claim to become
+  hand-copied numbers are the easiest way for a claim in the judge package to become
   false.
 - D57 (exhibits are generated artifacts, not hand-drawn charts). Each of E1-E9
   is rendered by `tether/exhibits.py` from `results/results.json`; captions,
@@ -369,7 +370,7 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   were rendered in Chromium at 1440 px and inspected. Fixes: wider E1/E2 name
   columns, E2 strip-label collision removed, E6 max-tick collision removed, E9
   height trimmed and its note shortened. No detector, threshold, attack, metric
-  or `results/` artifact changed for layout reasons. E2 deliberately draws all
+  or `results/` artifact changed for layout reasons. E2 draws all
   200 samples per arm (~281 KB) rather than subsampling, so the leak tail is
   inspectable; file size is accepted as the cost of showing the real
   distribution.
@@ -385,8 +386,8 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
 - D62 (the benchmark headline reuses the generated claims block). Rather than a
   second hand-written table, `BENCHMARK.md` embeds the same block that
   `docs_check.py --fix` writes into HANDOFF/README, extended with the latency
-  **max** and the single largest ablation loss. The block is the one numeric
-  source of truth; the rest of BENCHMARK.md is methodology, limitations and
+  max and the single largest ablation loss. The block is the only numeric copy;
+  the rest of BENCHMARK.md is methodology, limitations and
   pointers to `RESULTS_TABLE.md`/exhibits. Rejected: a separate benchmark table
   renderer (duplicate data path, another drift surface) and prose-only numbers
   (exactly what v1 did wrong).

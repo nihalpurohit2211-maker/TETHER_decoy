@@ -277,7 +277,7 @@ class DriftBudget:
     relevant volume tracked here. k=0.5 and h=5 are textbook one-sided CUSUM
     values, chosen a priori. The score always reflects committed (completed
     session) evidence, so detection lags the first session by design.
-    Deliberately silent in Phase 1 (gateway only receives a budget when
+    Silent in Phase 1 (gateway only receives a budget when
     phase2 is on)."""
 
     DEFAULT_ANCHOR = {"mu_records": 1.0, "sigma_records": 1.0}

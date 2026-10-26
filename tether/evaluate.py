@@ -2,7 +2,7 @@
 
 Metrics come only from measurement; caveats always included (build prompt).
 The same session corpus is replayed per mode. When Phase 2 is enabled the
-tether path runs twice so Phase-1 and Phase-2 numbers are both honest.
+tether path runs twice so both Phase-1 and Phase-2 numbers are measured.
 """
 from __future__ import annotations
 

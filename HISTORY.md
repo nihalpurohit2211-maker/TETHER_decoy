@@ -1,10 +1,10 @@
-# HISTORY.md — append-only checkpoint log
+# HISTORY.md - append-only checkpoint log
 
 Time source note: the local shell is broken, so `date` cannot run. Timestamps
 are recorded as approximate wall-clock text from the session clock
 (2026-10-25). Every entry says what was done, what failed, what was learned.
 
-## 2026-10-25 ~00:00 — checkpoint 1 (bootstrap)
+## 2026-10-25 ~00:00 - checkpoint 1 (bootstrap)
 
 - Read tether_build_prompt.md fully, then PROJECT_BRIEF.md fully.
 - Created the five handoff files (this protocol) in the project root.
@@ -54,7 +54,7 @@ are recorded as approximate wall-clock text from the session clock
 - Measured results (seed 7): A1/A2/A5/A6 100% detected, 0 leak; A3 0% p1
   (by design) / 99.5% p2; A4 0% p1 (expected) / 92.5% p2; benign utility
   100% both phases; attack utility 93.2% (routine emails held while a
-  destination is under drift containment - honest cost, reported).
+  destination is under drift containment, a real cost that is reported).
 - Learned: latch-without-review converts one statistical fluke into hundreds
   of false alerts; review-with-evidence keeps attack containment near 100%
   while bounding benign damage to R sessions per fluke.
@@ -81,13 +81,13 @@ are recorded as approximate wall-clock text from the session clock
 ## Checkpoint (post-final): TRANSFER.md + API hardening
 
 - Added TRANSFER.md: single self-contained transfer doc for the team and
-  future LLM sessions � all HTTP endpoints with live-captured request/
+  future LLM sessions - all HTTP endpoints with live-captured request/
   response payloads (/health /contract /scenarios /run GET+POST /stream SSE
   /results), field glossaries (timeline, alert card, results.json),
   dashboard panel->endpoint->DOM-id map, ground rules, and the
   do-not-"fix" caveat list.
 - API hardening (D32): parse_run_params() validates mode in
-  (none|textgate|tether) � an unknown mode previously fell into the tether
+  (none|textgate|tether) - an unknown mode previously fell into the tether
   branch with gateway=None and crashed with a 500; malformed n/seed now
   return clean 400 JSON instead of an unhandled traceback; /run path match
   tightened to exact /run; POST rejects non-dict bodies. 6 new tests;
@@ -114,29 +114,29 @@ are recorded as approximate wall-clock text from the session clock
 - Tests: 45/45 OK (HTML not covered by tests; verified live via served
   / response containing new markup and no leftover els.alert references).
 
-## 2026-10-25 21:43 � v2 M8: framing (PREREG, THREAT_MODEL, problem statement, exhibits)
+## 2026-10-25 21:43 - v2 M8: framing (PREREG, THREAT_MODEL, problem statement, exhibits)
 
 - Added PLAN_V2.md (copy of the authoritative v2 plan; commit b0a692a) so the
   handoff is self-contained.
 - Baseline verified before any v2 work: `python -m unittest discover` -> 45/45 OK.
 - M8 docs written, no code touched:
-  - PREREG.md � FROZEN at tag m8, before any v2 detector/attack/ladder change.
+  - PREREG.md - FROZEN at tag m8, before any v2 detector/attack/ladder change.
     Corpus (900 benign, 100 legit_change, 200/attack, seed 7 primary; 11/23
     replication), five arms (none/textgate/tether_p1/tether_p2/identity),
-    twelve metric definitions, H1-H9 with explicit support thresholds, honest
+    twelve metric definitions, H1-H9 with explicit support thresholds, pre-registered
     pre-registered attack expectations, and a "what we will not do after seeing
     results" list. Wilson 95% CIs mandated; no n=1 anecdotes, no pooled seeds.
-  - THREAT_MODEL.md � assets, trust boundaries, adversary profiles P1-P9,
+  - THREAT_MODEL.md - assets, trust boundaries, adversary profiles P1-P9,
     frozen a1-a9 catalogue with expected catcher and rung, three worked
     distinctions (a5 replay vs a9 impersonation; a7 needs history not a bigger
     floor; a8 is sequence-illegal while every clause is legal), explicit
     out-of-scope list incl. key compromise and injection prevention, and an
     assumption->failure-mode table.
-  - PROBLEM_STATEMENT.md � splits "identity drift" into scope / purpose /
+  - PROBLEM_STATEMENT.md - splits "identity drift" into scope / purpose /
     identity drift with one anchor and one failure mode each; maps the PS's five
     demands to mechanism and evidence; states the claim as bounded blast radius
-    + fast detection, NOT prevention; tables the v1 gaps vs falsifiable tests.
-  - EXHIBITS.md � E1-E9 judge exhibits, each with its exact results/ path, unit
+    + fast detection, NOT prevention; tables the v1 gaps vs tests.
+  - EXHIBITS.md - E1-E9 judge exhibits, each with its exact results/ path, unit
     and n, caption rules (misses captioned as misses; identity caption must
     carry the key-compromise limitation).
 - Two stale drifts recorded and cleaned (D40): TODO.md still claimed a broken
@@ -150,7 +150,7 @@ are recorded as approximate wall-clock text from the session clock
   D39 one-time v2 results reset (v1 recoverable from tag `final`), D40 doc drift.
 - Tests: 45/45 OK. No behavior changed, so no results regeneration.
 
-## 2026-10-25 21:56 � v2 M9: identity layer (signed envelopes, nonce, certs, binding)
+## 2026-10-25 21:56 - v2 M9: identity layer (signed envelopes, nonce, certs, binding)
 
 - New tether/identity.py (stdlib only, deterministic): HMAC-SHA256 canonical-JSON
   envelopes with key->role/blueprint binding; NonceCache (capacity 20k, logical
@@ -181,7 +181,7 @@ are recorded as approximate wall-clock text from the session clock
   corroboration). Intended for credential theft; H8 (zero benign isolations)
   is rechecked at M10.
 
-## 2026-10-25 22:01 � v2 M10: reachable ladder (escalation) + a7 persistent + a8 composition
+## 2026-10-25 22:01 - v2 M10: reachable ladder (escalation) + a7 persistent + a8 composition
 
 - Diagnosed the v1 defect precisely: `choose_action` needs 92 for isolate, the
   highest canonical floor is 90, and narrowing at 70 installs a capsule that
@@ -205,13 +205,13 @@ are recorded as approximate wall-clock text from the session clock
   a8 100 % detected, 0 leak. a1 100 %/0 leak, a3 p1 0 -> p2 95, a4 p1 0 -> p2 80
   (drift timing shifts with corpus size; final n=200 in M11). benign 0 false
   alerts, utility 100 %, zero isolations (H8).
-- Honest trade-off found and kept: attack-session utility drops (62.5 % at this
+- Trade-off found and kept: attack-session utility drops (62.5 % at this
   n) because a repeated attacking identity is escalated; phase-B drip leaks
   ~2 records before the drift latch. Both are reported, not suppressed.
 - Tests: 65 -> 76 green in 4 files (escalation policy, rung coverage, benign
   never isolated, a8 legality + catch, hard-phase exfil blocked).
 
-## 2026-10-25 22:20 � v2 M11: evaluation v2 (CIs, ablation, determinism, honest verdicts)
+## 2026-10-25 22:20 - v2 M11: evaluation v2 (CIs, ablation, determinism, verdicts)
 
 - New measurement modules: tether/stats.py (Wilson 95% CI, nearest-rank
   percentile, CDF points, rate_with_ci), tether/ablation.py (leave-one-out over
@@ -241,7 +241,7 @@ are recorded as approximate wall-clock text from the session clock
   digest + manifest; H7 a3 99.5 % / a4 92.5 % at seed 7 and 99.5 % / 97.0 % at
   seed 11; H8 zero isolations on benign+approved-change; H9 a8 100 % detected
   with every step contract-legal.
-- Honest findings kept, not tuned away:
+- Findings kept, not tuned away:
   * a3/a4 are 0.0 % in Phase 1 (leak unchanged) and 99.5 %/92.5 % only with the
     Phase-2 drift budget. The primary v1-compatible `detected_pct` shows the
     miss; the Phase-2 row is reported separately.
@@ -350,3 +350,19 @@ are recorded as approximate wall-clock text from the session clock
   stale v1 results table or v1 dashboard ids.
 - TODO.md M14 checked; M13b (slides) remains the only optional item.
 - No detector, threshold, attack, metric or results/ artifact changed in M14.
+
+## 2026-10-26 - post-v2 UI pass (visual only)
+
+- dashboard.html rebuilt in the light Stitch theme; all measured figures still
+  read at runtime from /results, /exhibits and /contract.
+- Own in-page analytics added: corpus scorecard (phase 1/2 + Wilson CI),
+  containment + speed (records out none->tether, median steps to detection),
+  latency empirical CDF with p50/p95/p99/max, threshold-sweep chart (full
+  matrix behind a disclosure), ladder usage by corpus, ledger in-cell bars,
+  ledger CSV export.
+- tether/exhibits.py theme tokens moved to the light palette; nine exhibit SVGs
+  regenerated with --write; `--check` byte-identical afterwards.
+- Narrow-screen overflow fixed (inline grid-template removed, min-width:0
+  containment); motion gated behind prefers-reduced-motion.
+- Verification: 132 tests OK, docs_check 10/10, exhibits --check PASS.
+- No detector, threshold, attack, metric, result or claim changed.

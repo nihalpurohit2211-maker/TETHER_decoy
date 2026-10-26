@@ -8,10 +8,10 @@ pre-empted by the narrowed capability set installed at 70: the next dangerous
 call is blocked by the capsule before fusion ever sees a quarantining score.
 So in practice only allow/hold/narrow/block fired.
 
-The dishonest fix is to lower the isolate band to 90. The honest fix is that a
-*repeat* offender should escalate: the same identity that already triggered
-containment and came back is a different risk than a first-time offender, and
-that difference is history, not a bigger score.
+The obvious fix would be to lower the isolate band to 90. That only moves a
+threshold. A repeat offender should escalate instead: the same identity that
+already triggered containment and came back is a different risk than a
+first-time offender, and that difference is history, not a bigger score.
 
 Policy (declared before measurement, PREREG H4)
 -----------------------------------------------
@@ -23,7 +23,7 @@ level 2: severity >= 3                       -> narrow/quarantine become isolate
 The window decays: a session with no offense clears the history after
 `window` sessions. Containment itself stays per-session (a session-scoped
 isolate blocks the rest of that session); this class only decides which rung a
-new offense lands on. Deliberately NOT a role-wide credential revocation -
+new offense lands on. This is not a role-wide credential revocation -
 that would take out legitimate work, which the PS's fifth demand forbids.
 """
 from __future__ import annotations

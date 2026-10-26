@@ -124,7 +124,7 @@ def _cert_from_payload(payload: dict, key_id: str, sig: str) -> DelegationCert:
 class NonceCache:
     """Bounded freshness cache. `use()` returns False on a replay.
 
-    Capacity is deliberately large (20k > every nonce in a 3k-session corpus)
+    Capacity is large (20k > every nonce in a 3k-session corpus)
     so eviction never manufactures a false replay inside one evaluation run.
     """
 
@@ -444,9 +444,9 @@ def load_verified_contract(
 ) -> Contract:
     """Load the contract only if its committed signature matches.
 
-    Honest limitation: the dev sponsor key is derived from a constant in this
-    file, so this is tamper-EVIDENT against accidental or pipeline edits, not
-    a security boundary against someone who can edit the repo.
+    Limitation: the dev sponsor key is derived from a constant in this file, so
+    this is tamper-EVIDENT against accidental or pipeline edits, not a security
+    boundary against someone who can edit the repo.
     """
     with open(path or os.path.join(os.path.dirname(__file__), "contract.json"),
               "r", encoding="utf-8") as fh:

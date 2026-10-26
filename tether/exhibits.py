@@ -1,4 +1,4 @@
-"""Generated judge-facing exhibits (M12).
+"""Generated exhibits (M12).
 
 Every SVG is rendered from `results/results.json`; nothing in this module is a
 hand-copied measurement. `write_all()` produces:
@@ -31,19 +31,21 @@ RESULTS_PATH = os.path.join(ROOT, "results", "results.json")
 EXHIBIT_DIR = os.path.join(ROOT, "results", "exhibits")
 
 # D3COY theme tokens (PLAN_V2 section 4). No gradients, no glass, no emoji.
-BG = "#0d0d12"
-PANEL = "#16161e"
-PANEL2 = "#1c1c26"
-EDGE = "#3a1f25"
-ACCENT = "#c41e3a"
-ACCENT_SOFT = "#d46a6a"
-TEXT = "#e0e0e0"
-DIM = "#9a9aa6"
-NUM = "#ff6b6b"
-OK = "#3fb96e"
-WARN = "#e0a030"
+# Light theme: white canvas, slate ink, blue accent - matches dashboard.html,
+# which embeds these exhibits as <img> (system fonts only, no network).
+BG = "#ffffff"
+PANEL = "#f8fafc"
+PANEL2 = "#f1f5f9"
+EDGE = "#cbd5e1"
+ACCENT = "#2563eb"
+ACCENT_SOFT = "#1d4ed8"
+TEXT = "#0f172a"
+DIM = "#64748b"
+NUM = "#dc2626"
+OK = "#059669"
+WARN = "#d97706"
 
-FONT_TITLE = "Georgia, 'Times New Roman', serif"
+FONT_TITLE = "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif"
 FONT_BODY = "'Segoe UI', Arial, sans-serif"
 FONT_DATA = "Consolas, 'Courier New', monospace"
 
@@ -120,7 +122,7 @@ EXHIBIT_ORDER = (
 )
 
 # Categorical mapping only (THREAT_MODEL.md section 4). Names/ids come from
-# results.json; this table deliberately carries no measured numbers.
+# results.json; this table carries no measured numbers.
 ATTACK_MAP = {
     "a1_pdf_injection": ("contract + provenance", "narrow -> block"),
     "a2_tool_poisoning": ("contract + provenance", "narrow -> block"),
@@ -140,7 +142,7 @@ RUNG_FOR_LABEL = {
 }
 LADDER_COLOR = {
     "allow": OK, "hold": WARN, "narrow": WARN,
-    "quarantine": ACCENT_SOFT, "isolate": ACCENT, "block": NUM,
+    "quarantine": WARN, "isolate": NUM, "block": NUM,
 }
 SERIES_COLOR = {"a3_mimicry": ACCENT, "a4_low_and_slow": WARN, "a7_persistent": NUM}
 
@@ -310,7 +312,7 @@ def render_detection(result: dict) -> str:
     # legend
     body.append(_rect(left, 78, 18, 8, fill=ACCENT))
     body.append(_text(left + 24, 86, "phase 1", size=10, fill=DIM))
-    body.append(_rect(left + 98, 78, 18, 8, fill=NUM))
+    body.append(_rect(left + 98, 78, 18, 8, fill=WARN))
     body.append(_text(left + 122, 86, "phase 2 (+ drift)", size=10, fill=DIM))
     for tick in (0, 25, 50, 75, 100):
         x = left + chart_w * tick / 100.0
@@ -331,7 +333,7 @@ def render_detection(result: dict) -> str:
                           size=10, fill=TEXT))
         for val, ci, y, color in (
             (p1, _ci(row), cy - 13, ACCENT),
-            (p2, _ci(row, p2=True), cy + 2, NUM),
+            (p2, _ci(row, p2=True), cy + 2, WARN),
         ):
             w = chart_w * max(0.0, min(100.0, val)) / 100.0
             body.append(_rect(left, y, max(1.5 if val > 0 else 0.0, w), 9,
@@ -346,9 +348,9 @@ def render_detection(result: dict) -> str:
             body.append(_line(xhi, y + 1.5, xhi, y + 7.5, stroke=TEXT,
                               width=0.8, opacity=0.72))
         body.append(_text(width - right + 8, cy - 3, f"{p1:.1f}%", size=11,
-                          fill=NUM, weight=700))
+                          fill=TEXT, weight=700))
         body.append(_text(width - right + 74, cy - 3, f"{p2:.1f}%", size=11,
-                          fill=NUM, weight=700))
+                          fill=TEXT, weight=700))
         body.append(_text(width - right + 8, cy + 11,
                           f"[{_ci(row)[0]:.1f}, {_ci(row)[1]:.1f}]", size=9,
                           fill=DIM))
@@ -406,7 +408,7 @@ def render_leak(result: dict) -> str:
                           f"{row.get('leak_p90_tether', 0.0):.1f}",
                           size=9, fill=DIM))
         body.append(_text(width - 26, cy - 2, f"max {nmax:.0f}", size=10,
-                          fill=NUM, anchor="end"))
+                          fill=TEXT, anchor="end"))
     body.append(_text(left, height - 8, "session index (0 -> n-1), one mark per session",
                       size=9, fill=DIM))
     return _svg(width, height, INDEX["leak"]["title"], body)
@@ -504,7 +506,7 @@ def render_ablation(result: dict) -> str:
                               weight=700 if val > 0 else 400))
     body.append(_text(width - 22, height - 12,
                       f"max measured loss {max_delta:.1f} pp", size=9,
-                      fill=NUM, anchor="end"))
+                      fill=TEXT, anchor="end"))
     return _svg(width, height, INDEX["ablation"]["title"], body)
 
 
@@ -534,7 +536,7 @@ def render_ladder(result: dict) -> str:
         w = chart_w * count / max(1, total)
         body.append(_rect(left, cy - 8, max(2.0 if count else 0.0, w), 16,
                           fill=LADDER_COLOR[rung], opacity=0.82))
-        body.append(_text(width - 26, cy + 4, _n(count), size=12, fill=NUM,
+        body.append(_text(width - 26, cy + 4, _n(count), size=12, fill=TEXT,
                           anchor="end", weight=700))
         pct = 100.0 * count / max(1, total)
         body.append(_text(width - right + 10, cy + 4, f"{pct:.1f}%", size=9,
@@ -589,7 +591,7 @@ def render_latency(result: dict) -> str:
                           anchor="middle"))
     body.append(_text(left, height - 12, "latency (ms, log scale)", size=9,
                       fill=DIM))
-    body.append(_polyline([(sx(v), sy(p)) for v, p in cdf], stroke=NUM, width=2.0))
+    body.append(_polyline([(sx(v), sy(p)) for v, p in cdf], stroke=ACCENT, width=2.0))
     for key, label, color in (
         ("p50", "p50", ACCENT_SOFT), ("p95", "p95", WARN), ("p99", "p99", ACCENT),
     ):
@@ -649,7 +651,7 @@ def render_identity(result: dict) -> str:
                           opacity=0.62))
         body.append(_text(width - 26, cy + 4,
                           f"{val:.1f}%  [{float(ci[0]):.1f}, {float(ci[1]):.1f}]",
-                          size=10, fill=NUM if val > 0 else DIM, anchor="end"))
+                          size=10, fill=TEXT if val > 0 else DIM, anchor="end"))
     body.append(_text(left, height - 12,
                       "a1-a4/a7/a8: content or sequence; a5/a6/a9: identity evidence",
                       size=9, fill=DIM))

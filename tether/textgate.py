@@ -1,4 +1,4 @@
-"""Deliberately simple stand-in TEXT gate, NOT an LLM judge.
+"""Simple stand-in TEXT gate, not an LLM judge.
 
 TF-IDF cosine between a tool-call statement and the contract purpose. The idf
 comes from the benign statement corpus of the simulation (it is the world

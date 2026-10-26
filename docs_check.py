@@ -10,7 +10,7 @@ What is enforced
    to the block re-rendered from results.json (so quoted numbers cannot drift).
    `--fix` rewrites the block instead of failing.
 4. Every generated exhibit SVG and results/exhibits/INDEX.json is byte-identical
-   to a fresh render of results.json (so a judge-facing number cannot be edited
+   to a fresh render of results.json (so a generated number cannot be edited
    or go stale).
 5. openapi.json parses, documents exactly the routes the server exposes, serves
    only a local URL, and lists exactly the nine declared exhibit names.

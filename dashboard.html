@@ -3,287 +3,1861 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tether / D3COY 1.0 - identity drift detection</title>
+<title>TETHER // D3COY - identity drift detection console</title>
 <style>
   :root{
-    --bg:#0d0d12; --panel:#16161e; --panel-2:#1c1c26; --edge:#3a1f25;
-    --accent:#c41e3a; --accent-soft:#d46a6a; --text:#e0e0e0; --dim:#9a9aa6;
-    --num:#ff6b6b; --ok:#3fb96e; --warn:#e0a030;
-    --serif:Georgia,"Times New Roman",serif;
-    --sans:"Segoe UI",Arial,sans-serif;
-    --mono:Consolas,"Cascadia Mono","Courier New",monospace;
+    --canvas:#f8fafc; --panel:#ffffff; --wash:#f8fafc; --wash-2:#f1f5f9;
+    --line:#e2e8f0; --line-hi:#cbd5e1; --line-hot:#94a3b8;
+    --ink:#0f172a; --ink-2:#475569; --ink-3:#64748b; --ink-4:#94a3b8;
+    --ok:#059669; --ok-bg:#ecfdf5; --ok-line:#a7f3d0;
+    --warn:#d97706; --warn-ink:#b45309; --warn-bg:#fffbeb; --warn-line:#fde68a;
+    --bad:#dc2626; --bad-bg:#fef2f2; --bad-line:#fecaca;
+    --info:#2563eb; --info-bg:#eff6ff; --info-line:#bfdbfe;
+    --sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --lift:0 1px 3px 0 rgba(15,23,42,.08),0 1px 2px -1px rgba(15,23,42,.08);
+    --gutter:20px; --margin:32px;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 var(--sans);
-       -webkit-font-smoothing:antialiased}
-  a{color:var(--accent-soft);text-decoration:none}
-  a:hover{color:var(--text)}
-  .shell{max-width:1480px;margin:0 auto;padding:0 30px 56px}
-  .mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  body{margin:0;background:var(--canvas);color:var(--ink);
+       font:400 14px/1.5 var(--sans);font-variant-numeric:tabular-nums;
+       -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:var(--info);text-decoration:none}
+  a:hover{text-decoration:underline}
+  button,input,select{font-family:inherit;font-variant-numeric:tabular-nums}
+  .mono{font-family:var(--mono)}
+  .eyebrow{font:500 11px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;
+           color:var(--ink-3)}
+  section{scroll-margin-top:112px}
 
-  .masthead{display:flex;justify-content:space-between;gap:28px;align-items:flex-end;
-            padding:28px 30px 22px;border-bottom:1px solid var(--edge);max-width:1480px;
-            margin:0 auto}
-  .eyebrow{font:11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;
-           color:var(--accent-soft);margin-bottom:12px}
-  .brand h1{font-family:var(--serif);font-size:clamp(44px,7vw,92px);line-height:.86;
-            letter-spacing:.075em;margin:0;color:var(--text);font-weight:700;
-            text-shadow:-2px 0 0 #000,2px 0 0 var(--accent)}
-  .tagline{margin:14px 0 0;color:var(--dim);max-width:720px;font-size:14px}
-  .tagline b{color:var(--text);font-weight:600}
-  .run-stamp{min-width:310px;border:1px solid var(--edge);background:var(--panel);
-             padding:14px 16px}
-  .run-stamp .label{font:10px/1 var(--mono);letter-spacing:.2em;color:var(--accent-soft);
-                    text-transform:uppercase;margin-bottom:10px}
-  .run-stamp .line{font:12px/1.7 var(--mono);color:var(--text)}
-  .run-stamp .sub{font:11px/1.5 var(--mono);color:var(--dim);margin-top:6px}
-  .run-stamp.no-data{border-color:var(--warn)}
-  .run-stamp.no-data .label{color:var(--warn)}
+  /* ---------------------------------------------------------- top bar */
+  .topbar{position:sticky;top:0;z-index:50;background:var(--panel);
+          border-bottom:1px solid var(--line)}
+  .topbar-in{min-height:56px;display:flex;align-items:center;gap:16px;
+             padding:8px var(--margin);flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:8px;user-select:none}
+  .brand .mark{width:24px;height:24px;background:var(--ink);border-radius:4px;
+               display:flex;align-items:center;justify-content:center}
+  .brand .name{font:600 15px/1 var(--sans);letter-spacing:-.01em}
+  .brand .sep{color:var(--ink-4);font:500 11px/1 var(--mono)}
+  .brand .sub{font:500 15px/1 var(--sans);color:var(--ink-2)}
+  .vdiv{width:1px;height:16px;background:var(--line)}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:4px;
+        border:1px solid var(--line);background:var(--wash);color:var(--ink-2);
+        font:500 11px/1.4 var(--mono);white-space:nowrap}
+  .chip.ok{background:rgba(5,150,105,.08);border-color:var(--ok-line);color:var(--ok)}
+  .chip.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)}
+  .chip.bad{background:var(--bad-bg);border-color:var(--bad-line);color:var(--bad)}
+  .dot{width:6px;height:6px;border-radius:9999px;background:currentColor;flex:0 0 auto}
+  .dot.pulse{animation:blip 1.8s ease-in-out infinite}
+  @keyframes blip{0%,100%{opacity:1}50%{opacity:.35}}
+  .nav{display:flex;gap:4px;align-items:center;margin-left:auto}
+  .nav a{padding:7px 10px;border-radius:4px;color:var(--ink-2);text-decoration:none;
+         font:400 13px/1.2 var(--sans);transition:background .12s,color .12s;
+         border:1px solid transparent}
+  .nav a:hover{background:var(--wash-2);color:var(--ink);text-decoration:none}
+  .nav a.active{background:#e8edf6;color:var(--ink);font-weight:500}
+  .cli{display:none;align-items:center;gap:8px;padding:5px 8px;border-radius:4px;
+       background:var(--wash);border:1px solid var(--line);color:var(--ink-2);
+       font:500 11px/1.2 var(--mono)}
+  .cli b{color:var(--ink-3);font-weight:500}
+  .cli code{color:var(--ink);user-select:all}
+  .cli button{border:0;background:transparent;color:var(--ink-3);cursor:pointer;padding:0;
+              display:flex}
+  @media (min-width:1180px){.cli{display:inline-flex}}
 
-  .nav{position:sticky;top:0;z-index:5;background:var(--bg);
-       border-bottom:1px solid var(--edge);margin-bottom:22px}
-  .nav-in{max-width:1480px;margin:0 auto;padding:0 30px;display:flex;gap:2px;
-          overflow-x:auto;scrollbar-width:thin}
-  .nav a{flex:0 0 auto;padding:11px 12px 9px;border-bottom:2px solid transparent;
-         color:var(--dim);font:10px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase}
-  .nav a:hover{color:var(--text)}
-  .nav a.active{color:var(--text);border-bottom-color:var(--accent)}
+  /* ------------------------------------------------------ telemetry bar */
+  .telemetry{background:var(--wash-2);border-bottom:1px solid var(--line)}
+  .telemetry-in{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;
+                padding:8px var(--margin);font:500 12px/1.4 var(--mono);color:var(--ink-2)}
+  .tsep{color:var(--line-hi)}
+  .tk{display:inline-flex;align-items:center;gap:6px}
+  .tk .k{font:500 11px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;
+         color:var(--ink-3)}
+  .tk .v{color:var(--ink);font-weight:600}
+  .tk .v.ok{color:var(--ok)}
+  .tk .v.warn{color:var(--warn-ink)}
 
-  .top-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(330px,.75fr);
-            gap:18px;align-items:start;margin-bottom:24px}
-  .panel{background:var(--panel);border:1px solid var(--edge);padding:17px 18px}
-  .panel h2{font:10px/1.3 var(--mono);letter-spacing:.2em;text-transform:uppercase;
-            color:var(--accent-soft);margin:0 0 14px}
-  .panel h2 span{color:var(--dim);letter-spacing:.06em;text-transform:none}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  label{font:10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
-  select,button{font:12px/1.2 var(--mono);background:var(--panel-2);color:var(--text);
-                border:1px solid var(--edge);padding:7px 10px;border-radius:0}
-  button{cursor:pointer;color:var(--accent-soft);border-color:var(--accent-soft)}
-  button:hover:not(:disabled){color:var(--text);border-color:var(--text)}
-  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;
-                 font-weight:700}
-  button:disabled{opacity:.42;cursor:default}
-  .hint{font:10px/1.5 var(--mono);color:var(--dim);margin-top:9px}
-  .live-note{font:10px/1.5 var(--mono);color:var(--warn);margin:0 0 11px;
-             letter-spacing:.05em;text-transform:uppercase}
+  /* ----------------------------------------------------------- layout */
+  main{padding:24px 0 40px}
+  .stack{display:flex;flex-direction:column;gap:20px;padding:0 var(--margin)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px}
+  .card-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;
+             gap:12px;margin-bottom:16px}
+  .card-head h2,.card-head h3{margin:2px 0 0;font:600 18px/1.25 var(--sans);
+                              letter-spacing:-.01em;color:var(--ink)}
+  .card-head .right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .section-title{margin:0;font:600 24px/1.15 var(--sans);letter-spacing:-.02em}
+  .section-sub{margin:6px 0 0;color:var(--ink-2);font-size:13px;max-width:76ch}
+</style>
+<style>
+  /* ------------------------------------------------------ KPI tiles */
+  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--gutter)}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;
+       display:flex;flex-direction:column;gap:12px;transition:border-color .12s,background .12s}
+  .kpi:hover{border-color:var(--line-hi);background:var(--wash)}
+  .kpi-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .kpi-val{font:600 34px/1 var(--sans);letter-spacing:-.03em;color:var(--ink);margin-top:6px}
+  .kpi-val .unit{font:400 15px/1 var(--sans);color:var(--ink-3);margin-left:3px}
+  .kpi-val.ok{color:var(--ok)}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:9999px;
+         border:1px solid var(--line);background:var(--wash);color:var(--ink-2);
+         font:500 11px/1.3 var(--mono);letter-spacing:.03em;text-transform:uppercase;
+         white-space:nowrap}
+  .badge.ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)}
+  .badge.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)}
+  .badge.bad{background:var(--bad-bg);border-color:var(--bad-line);color:var(--bad)}
+  .badge.info{background:var(--info-bg);border-color:var(--info-line);color:var(--info)}
+  .spark{height:26px;width:100%;overflow:visible}
+  .kpi-rows{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;
+            gap:5px}
+  .kpi-row{display:flex;justify-content:space-between;gap:10px;font-size:12px;line-height:1.45}
+  .kpi-row .k{color:var(--ink-3);font-family:var(--mono);font-size:11px;
+              text-transform:uppercase;letter-spacing:.05em}
+  .kpi-row .v{color:var(--ink);font-family:var(--mono);font-size:11.5px;font-weight:600;
+              text-align:right}
+  .kpi-row .v.ok{color:var(--ok)}
+  .kpi-row .v.warn{color:var(--warn-ink)}
+  .kpi-row .v.bad{color:var(--bad)}
+  .kpi-row .v.dim{color:var(--ink-2);font-weight:500}
 
+  /* -------------------------------------------------------- pipeline */
+  .pipe-note{display:inline-flex;align-items:center;gap:6px;font:500 11px/1.4 var(--mono);
+             color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+  .stages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .stage{position:relative;background:var(--wash);border:1px solid var(--line);
+         border-radius:4px;padding:14px 14px 12px;overflow:hidden;display:flex;
+         flex-direction:column;gap:6px;transition:border-color .12s,background .12s}
+  .stage:hover{border-color:var(--line-hi);background:var(--panel)}
+  .stage::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:var(--ink)}
+  .stage.ok::before{background:var(--ok)}
+  .stage.warn::before{background:var(--warn)}
+  .stage.bad::before{background:var(--bad)}
+  .stage-top{display:flex;justify-content:space-between;gap:8px;align-items:center;
+             margin-top:4px}
+  .stage-id{font:700 11px/1.2 var(--mono);letter-spacing:.1em;color:var(--ink-2)}
+  .stage-metric{font:600 11px/1.2 var(--mono);color:var(--ok)}
+  .stage-metric.warn{color:var(--warn-ink)}
+  .stage-metric.dim{color:var(--ink-3)}
+  .stage h4{margin:0;font:600 15px/1.25 var(--sans);color:var(--ink);letter-spacing:-.01em}
+  .stage p{margin:0;font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+  .stage-foot{margin-top:auto;padding-top:8px;display:flex;justify-content:space-between;
+              gap:8px;font:500 11px/1.3 var(--mono);color:var(--ink-3);
+              border-top:1px dashed var(--line-hi)}
+  .stage-foot b{color:var(--ink);font-weight:600}
+  .stage-foot b.ok{color:var(--ok)}
+  .rungs{background:var(--wash-2);border:1px solid var(--line);border-radius:4px;padding:12px;
+         display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+  .rungs .label{display:inline-flex;align-items:center;gap:6px;font:500 11px/1.3 var(--mono);
+                text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
+  .rung{display:inline-flex;align-items:baseline;gap:6px;padding:5px 9px;border-radius:4px;
+        background:var(--panel);border:1px solid var(--line);color:var(--ink-2);
+        font:500 11.5px/1.3 var(--mono)}
+  .rung b{color:var(--ink);font-weight:600}
+  .rung.ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)}
+  .rung.ok b{color:var(--ok)}
+  .rung.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)}
+  .rung.warn b{color:var(--warn-ink)}
+  .rung.bad{background:var(--bad-bg);border-color:var(--bad-line);color:var(--bad)}
+  .rung.bad b{color:var(--bad)}
+
+  /* ---------------------------------------------------------- columns */
+  .cols{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(320px,1fr);gap:var(--gutter);
+        align-items:start}
+  .side{display:flex;flex-direction:column;gap:var(--gutter)}
+
+  /* ----------------------------------------------------------- table */
+  .ledger-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .seg{display:inline-flex;background:var(--wash-2);border:1px solid var(--line);
+       border-radius:4px;padding:2px;gap:2px}
+  .seg button{border:0;background:transparent;border-radius:3px;padding:4px 9px;cursor:pointer;
+              font:500 11px/1.3 var(--mono);letter-spacing:.05em;text-transform:uppercase;
+              color:var(--ink-3);transition:background .12s,color .12s}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:var(--panel);color:var(--ink);box-shadow:var(--lift)}
+  .search{position:relative;display:flex;align-items:center}
+  .search svg{position:absolute;left:9px;color:var(--ink-4);pointer-events:none}
+  .search input{height:32px;padding:0 10px 0 30px;border:1px solid var(--line);border-radius:4px;
+                background:var(--panel);color:var(--ink);font-size:13px;width:210px;
+                outline:none;transition:border-color .12s,box-shadow .12s}
+  .search input::placeholder{color:var(--ink-4)}
+  .search input:focus{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+  table{width:100%;border-collapse:collapse;text-align:left}
+  thead th{background:var(--wash-2);border-bottom:1px solid var(--line);color:var(--ink-3);
+           font:500 11px/1.3 var(--mono);letter-spacing:.07em;text-transform:uppercase;
+           padding:9px 12px;white-space:nowrap}
+  thead th.num{text-align:right}
+  tbody td{border-bottom:1px solid var(--wash-2);padding:10px 12px;font-size:13px;
+           vertical-align:top;color:var(--ink)}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr{transition:background .1s}
+  tbody tr:hover{background:var(--wash)}
+  td.id{font:700 13px/1.4 var(--mono);color:var(--ink);white-space:nowrap}
+  .vec{font-weight:600;color:var(--ink);font-size:13px}
+  .vec-desc{color:var(--ink-3);font-size:11.5px;line-height:1.45;margin-top:2px;max-width:44ch}
+  td.num{font:600 12.5px/1.4 var(--mono);text-align:right;white-space:nowrap}
+  td.num.dim{color:var(--ink-2);font-weight:500}
+  .ci{display:block;font:500 10.5px/1.4 var(--mono);color:var(--ink-4);text-align:right}
+  .status{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:9999px;
+          border:1px solid var(--line);background:var(--wash);color:var(--ink-2);
+          font:600 10.5px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;
+          white-space:nowrap}
+  .status.ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)}
+  .status.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)}
+  .status.bad{background:var(--bad-bg);border-color:var(--bad-line);color:var(--bad)}
+  .ledger-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;
+               padding-top:12px;font:500 11.5px/1.5 var(--mono);color:var(--ink-3)}
+  .ledger-foot b{color:var(--ink);font-weight:600}
+  .cellbar{position:relative;height:3px;border-radius:9999px;background:var(--wash-2);
+           margin-top:6px;overflow:hidden;min-width:34px}
+  .cellbar i{position:absolute;left:0;top:0;bottom:0;border-radius:9999px;
+             background:linear-gradient(90deg,#60a5fa,#2563eb)}
+  .cellbar.p2 i{background:linear-gradient(90deg,#fbbf24,#d97706)}
+
+  /* ----------------------------------------------------- chart cards */
+  .chart-box{background:var(--wash-2);border:1px solid var(--line);border-radius:4px;padding:14px}
+  .chart-legend{display:flex;justify-content:space-between;gap:10px;font:500 11px/1.4 var(--mono);
+                color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+  .chart-legend .hot{color:var(--warn-ink);font-weight:600}
+  .chart-svg{width:100%;height:190px;display:block;overflow:visible}
+  .chart-axis{display:flex;justify-content:space-between;padding-top:8px;
+              font:500 11px/1.4 var(--mono);color:var(--ink-3)}
+  .chart-axis b{color:var(--ink);font-weight:600}
+  .mini-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .mini{background:var(--wash-2);border:1px solid var(--line);border-radius:4px;padding:10px;
+        display:flex;flex-direction:column;gap:2px}
+  .mini .k{font:500 10.5px/1.3 var(--mono);text-transform:uppercase;letter-spacing:.06em;
+           color:var(--ink-3)}
+  .mini .v{font:600 17px/1.15 var(--sans);color:var(--ink);letter-spacing:-.01em}
+  .mini .v.warn{color:var(--warn-ink)}
+  .mini .v.ok{color:var(--ok)}
+  .mini .sub{font:500 11px/1.4 var(--mono);color:var(--ink-3)}
+
+  .bars{display:flex;flex-direction:column;gap:14px}
+  .bar-row{display:flex;flex-direction:column;gap:5px}
+  .bar-top{display:flex;justify-content:space-between;gap:10px;font-size:12.5px}
+  .bar-top .k{color:var(--ink);font-weight:500}
+  .bar-top .v{font:600 12px/1.4 var(--mono);color:var(--ink)}
+  .bar-top .v .ref{color:var(--ink-4);font-weight:500}
+  .track{height:8px;border-radius:9999px;background:var(--wash-2);border:1px solid var(--line);
+         overflow:hidden}
+  .fill{height:100%;background:var(--ink);border-radius:9999px}
+  .fill.ok{background:var(--ok)}
+  .fill.warn{background:var(--warn)}
+  .fill.bad{background:var(--bad)}
+  .kv-strip{margin-top:14px;background:var(--wash-2);border:1px solid var(--line);
+            border-radius:4px;padding:10px 12px;display:flex;justify-content:space-between;
+            gap:10px;flex-wrap:wrap;font:500 11.5px/1.5 var(--mono);color:var(--ink-2)}
+  .kv-strip b{color:var(--ink);font-weight:600}
+  .disclose{margin-top:10px;font-size:12px;line-height:1.5;color:var(--ink-3)}
+  .disclose b{color:var(--ink-2)}
+</style>
+<style>
+  /* ---------------------------------------------------------- replay */
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:14px}
+  .field{display:inline-flex;align-items:center;gap:7px}
+  .field label{font:500 11px/1.3 var(--mono);letter-spacing:.07em;text-transform:uppercase;
+               color:var(--ink-3)}
+  select{height:32px;border:1px solid var(--line);border-radius:4px;background:var(--panel);
+         color:var(--ink);font-size:13px;padding:0 8px;max-width:340px;outline:none;
+         transition:border-color .12s,box-shadow .12s}
+  select:focus{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+  .btn{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 13px;
+       border-radius:4px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+       font:500 13px/1 var(--sans);cursor:pointer;transition:background .12s,border-color .12s,
+       color .12s}
+  .btn:hover:not(:disabled){background:var(--wash);border-color:var(--line-hi)}
+  .btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .btn.primary{background:var(--ink);border-color:var(--ink);color:#ffffff;font-weight:600}
+  .btn.primary:hover:not(:disabled){background:#1e293b;border-color:#1e293b}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+  .btn.ghost:hover:not(:disabled){background:var(--wash-2);color:var(--ink)}
+  .btn.danger{background:var(--bad);border-color:#b91c1c;color:#ffffff;font-weight:600}
+  .btn:disabled{opacity:.45;cursor:default}
+  .live-note{display:flex;align-items:center;gap:8px;margin:0 0 14px;font:500 11px/1.5 var(--mono);
+             letter-spacing:.05em;text-transform:uppercase;color:var(--warn-ink)}
+  .hint{font:500 11.5px/1.55 var(--mono);color:var(--ink-3);margin-top:10px}
+  .hint b{color:var(--ink-2);font-weight:600}
   .replay-head{display:flex;justify-content:space-between;gap:12px;align-items:center;
-               border:1px solid var(--edge);padding:9px 11px;background:var(--panel-2);
-               margin-bottom:9px;flex-wrap:wrap}
-  .replay-head .sid{font:11px/1.4 var(--mono);color:var(--text)}
-  .replay-head .outcome{font:10px/1.4 var(--mono);color:var(--dim)}
-  .stepper{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-  .stepper .count{font:11px/1 var(--mono);color:var(--dim);min-width:92px;text-align:center}
-  .timeline{display:flex;flex-direction:column;gap:5px;max-height:360px;overflow:auto;
-            padding-right:3px}
-  .ev{display:grid;grid-template-columns:52px minmax(120px,1fr) minmax(80px,1fr) 70px 64px;
-      gap:9px;align-items:center;border:1px solid var(--edge);background:var(--bg);
-      padding:6px 8px;opacity:.38;transition:opacity .12s, border-color .12s}
-  .ev.past{opacity:.68}
-  .ev.current{opacity:1;border-color:var(--accent);background:var(--panel-2)}
-  .ev .step{font:10px/1.2 var(--mono);color:var(--dim)}
-  .ev .tool{font:11px/1.3 var(--mono);color:var(--text);overflow:hidden;
+               flex-wrap:wrap;border:1px solid var(--line);background:var(--wash-2);
+               border-radius:4px;padding:9px 12px;margin-bottom:10px}
+  .replay-head .sid{font:600 12px/1.4 var(--mono);color:var(--ink)}
+  .replay-head .outcome{font:500 11.5px/1.4 var(--mono);color:var(--ink-3)}
+  .timeline{display:flex;flex-direction:column;gap:6px;max-height:360px;overflow:auto;
+            padding-right:4px}
+  .ev{display:grid;grid-template-columns:56px minmax(120px,1.3fr) minmax(90px,1fr) 96px 92px;
+      gap:10px;align-items:center;border:1px solid var(--line);border-radius:4px;
+      background:var(--panel);padding:8px 10px;opacity:.5;transition:opacity .12s,
+      border-color .12s,background .12s}
+  .ev.past{opacity:.8}
+  .ev.current{opacity:1;border-color:var(--line-hot);background:var(--wash);box-shadow:var(--lift)}
+  .ev .step{font:500 11px/1.2 var(--mono);color:var(--ink-3)}
+  .ev .tool{font:500 12px/1.35 var(--mono);color:var(--ink);overflow:hidden;
             text-overflow:ellipsis;white-space:nowrap}
-  .ev .labels{font:10px/1.3 var(--mono);color:var(--dim);overflow:hidden;
+  .ev .labels{font:500 11px/1.35 var(--mono);color:var(--ink-3);overflow:hidden;
               text-overflow:ellipsis;white-space:nowrap}
-  .ev .score{font:10px/1.2 var(--mono);color:var(--num);text-align:right}
-  .pill{display:inline-block;font:9px/1 var(--mono);letter-spacing:.12em;
-        text-transform:uppercase;border:1px solid var(--edge);padding:3px 6px;
-        color:var(--dim);text-align:center}
-  .pill.allow{color:var(--ok);border-color:var(--ok)}
-  .pill.hold{color:var(--warn);border-color:var(--warn)}
-  .pill.narrow,.pill.quarantine,.pill.isolate,.pill.block{color:var(--num);
-        border-color:var(--num)}
-  .pill.skipped{color:var(--dim);border-color:var(--edge)}
-  .alert-card{border:1px solid var(--accent);background:var(--panel-2);padding:12px;
-              margin-top:11px}
-  .alert-card .head{font:11px/1.4 var(--mono);color:var(--num);font-weight:700;
-                    margin-bottom:6px}
-  .alert-card .meta{font:10px/1.5 var(--mono);color:var(--dim);margin-bottom:7px}
-  .alert-card ul{margin:0;padding-left:17px;color:var(--text);font-size:12px}
-  .alert-card li{margin:2px 0}
-  .alert-card .cf{font:10px/1.5 var(--mono);color:var(--dim);margin-top:8px}
+  .ev .score{font:600 11.5px/1.2 var(--mono);color:var(--ink);text-align:right}
+  .pill{display:inline-block;padding:3px 9px;border-radius:9999px;border:1px solid var(--line);
+        background:var(--wash);color:var(--ink-2);font:600 10.5px/1.3 var(--mono);
+        letter-spacing:.06em;text-transform:uppercase;text-align:center}
+  .pill.allow{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)}
+  .pill.hold,.pill.narrow{background:var(--warn-bg);border-color:var(--warn-line);
+                          color:var(--warn-ink)}
+  .pill.quarantine,.pill.isolate,.pill.block{background:var(--bad-bg);border-color:var(--bad-line);
+                                              color:var(--bad)}
+  .pill.skipped{background:var(--wash-2);border-color:var(--line);color:var(--ink-4)}
+  .alert-card{border:1px solid var(--bad-line);background:var(--bad-bg);border-radius:8px;
+              padding:14px;margin-top:12px}
+  .alert-card .head{font:700 12.5px/1.4 var(--mono);color:var(--bad);letter-spacing:.04em;
+                    text-transform:uppercase;margin-bottom:6px}
+  .alert-card .meta{font:500 11.5px/1.5 var(--mono);color:var(--warn-ink);margin-bottom:8px}
+  .alert-card ul{margin:0;padding-left:18px;color:var(--ink);font-size:13px}
+  .alert-card li{margin:3px 0}
+  .alert-card .cf{font:500 11.5px/1.55 var(--mono);color:var(--ink-2);margin-top:9px;
+                  border-top:1px dashed var(--bad-line);padding-top:8px}
+  .stepper{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .stepper .count{font:500 11.5px/1 var(--mono);color:var(--ink-3);min-width:96px;
+                  text-align:center}
 
-  .section-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;
-                border-top:1px solid var(--edge);padding-top:20px;margin:6px 0 16px}
-  .section-head h2{font-family:var(--serif);font-size:26px;line-height:1.1;margin:0;
-                   letter-spacing:.02em}
-  .section-head p{margin:5px 0 0;color:var(--dim);font-size:12px}
-  .section-head .count{font:10px/1.3 var(--mono);color:var(--accent-soft);
-                       letter-spacing:.15em;text-transform:uppercase;white-space:nowrap}
-
-  .exhibit-grid{display:grid;grid-template-columns:1fr;gap:18px}
-  .exhibit{background:var(--panel);border:1px solid var(--edge);padding:15px 16px;
-           scroll-margin-top:70px}
-  .exhibit.is-target{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  /* ------------------------------------------------------- exhibits */
+  .section-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px;
+                align-items:flex-end;border-top:1px solid var(--line);padding-top:24px}
+  .section-head .count{font:500 11px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+                       color:var(--ink-3);white-space:nowrap}
+  .exhibit-grid{display:grid;grid-template-columns:1fr;gap:var(--gutter)}
+  .exhibit{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px;
+           transition:border-color .12s;width:100%;max-width:960px;justify-self:center}
+  .exhibit:hover{border-color:var(--line-hi)}
+  .exhibit.is-target{border-color:var(--info);box-shadow:0 0 0 3px var(--info-bg)}
   .exhibit-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;
-                margin-bottom:10px}
-  .exhibit-head .id{font:10px/1 var(--mono);letter-spacing:.16em;color:var(--accent-soft)}
-  .exhibit-head h3{font-family:var(--serif);font-size:20px;line-height:1.15;margin:4px 0 0;
-                   font-weight:700;letter-spacing:.01em}
-  .exhibit-head .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
-                         justify-content:flex-end}
-  .exhibit-head .actions a{font:10px/1 var(--mono);border:1px solid var(--edge);
-                           padding:5px 7px;color:var(--dim)}
-  .exhibit-head .actions a:hover{color:var(--text);border-color:var(--accent-soft)}
-  .fig{border:1px solid var(--edge);background:var(--bg);line-height:0}
+                margin-bottom:14px;flex-wrap:wrap}
+  .exhibit-head .id{font:500 11px/1.3 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+                    color:var(--ink-3)}
+  .exhibit-head h3{margin:4px 0 0;font:600 20px/1.2 var(--sans);letter-spacing:-.015em;
+                   color:var(--ink)}
+  .exhibit-head .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .exlink{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:4px;
+          border:1px solid var(--line);background:var(--panel);color:var(--ink-2);
+          font:500 11px/1.3 var(--mono);letter-spacing:.05em;text-transform:uppercase;
+          cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+  .exlink:hover{background:var(--wash);border-color:var(--line-hi);color:var(--ink);
+                text-decoration:none}
+  .fig{border:1px solid var(--line);border-radius:8px;background:#ffffff;line-height:0;
+       overflow:hidden}
   .fig img{display:block;width:100%;height:auto}
-  .caption{margin:10px 0 8px;color:var(--text);font-size:12.5px;max-width:1180px}
-  .prov{display:flex;gap:14px;flex-wrap:wrap;border-top:1px solid var(--edge);
-        padding-top:8px;font:10px/1.5 var(--mono);color:var(--dim)}
-  .prov b{color:var(--dim);font-weight:400;letter-spacing:.1em;text-transform:uppercase}
-  .prov span{color:var(--accent-soft)}
+  .caption{margin:14px 0 10px;color:var(--ink-2);font-size:13px;line-height:1.55;max-width:110ch}
+  .prov{display:flex;gap:14px 22px;flex-wrap:wrap;border-top:1px solid var(--line);
+        padding-top:12px;font:500 11px/1.5 var(--mono)}
+  .prov b{color:var(--ink-3);font-weight:500;letter-spacing:.08em;text-transform:uppercase}
+  .prov span{color:var(--ink-2)}
 
-  .empty{border:1px dashed var(--edge);background:var(--panel);padding:30px;
-         margin-top:8px}
-  .empty h3{font-family:var(--serif);font-size:24px;margin:0 0 8px;color:var(--text)}
-  .empty p{color:var(--dim);margin:0 0 12px;max-width:820px}
-  .empty code{display:block;background:var(--panel-2);border:1px solid var(--edge);
-              padding:10px 12px;color:var(--num);font:12px/1.6 var(--mono);
+  /* --------------------------------------------------- empty / notes */
+  .empty{border:1px dashed var(--line-hot);background:var(--panel);border-radius:8px;
+         padding:28px;text-align:left}
+  .empty h3{margin:0 0 8px;font:600 22px/1.2 var(--sans);letter-spacing:-.02em;color:var(--ink)}
+  .empty p{margin:0 0 14px;color:var(--ink-2);max-width:86ch;font-size:13.5px}
+  .empty code{display:block;background:var(--wash-2);border:1px solid var(--line);
+              border-radius:4px;padding:12px 14px;color:var(--ink);font:500 12.5px/1.7 var(--mono);
               white-space:pre-wrap}
-  .footer{border-top:1px solid var(--edge);margin-top:30px;padding-top:14px;
-          display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
-          font:10px/1.6 var(--mono);color:var(--dim);letter-spacing:.08em;
-          text-transform:uppercase}
-  @media (max-width:980px){
-    .masthead{flex-direction:column;align-items:flex-start;padding:24px 20px 18px}
-    .run-stamp{width:100%}
-    .shell{padding:0 20px 42px}
-    .top-grid{grid-template-columns:1fr}
-    .nav-in{padding:0 20px}
-    .ev{grid-template-columns:46px minmax(100px,1fr) 70px 60px;grid-auto-rows:auto}
-    .ev .labels{display:none}
+  .notes-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gutter)}
+  .notes-grid h4{margin:0 0 10px;font:600 15px/1.25 var(--sans);color:var(--ink)}
+  .notes-grid ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:13px;line-height:1.6}
+  .notes-grid li{margin:4px 0}
+  .notes-grid li b{color:var(--ink);font-weight:600}
+  .kbd{display:inline-block;padding:1px 6px;border:1px solid var(--line-hi);border-bottom-width:2px;
+       border-radius:4px;background:var(--wash-2);color:var(--ink-2);
+       font:500 11px/1.4 var(--mono)}
+
+  /* ---------------------------------------------------------- footer */
+  footer{border-top:1px solid var(--line);background:var(--panel);margin-top:8px}
+  .foot-in{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;
+           padding:14px var(--margin);font:500 11px/1.6 var(--mono);letter-spacing:.06em;
+           text-transform:uppercase;color:var(--ink-3)}
+  .foot-in b{color:var(--ink);font-weight:600}
+  .foot-in .ok{color:var(--ok)}
+
+  /* ------------------------------------------------------ responsive */
+  @media (max-width:1279px){
+    :root{--margin:24px;--gutter:16px}
+    .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .stages{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .cols{grid-template-columns:1fr}
+  }
+  @media (max-width:767px){
+    :root{--margin:16px;--gutter:12px}
+    .nav{order:3;width:100%;margin-left:0;overflow-x:auto;padding-bottom:2px}
+    .kpis{grid-template-columns:1fr}
+    .stages{grid-template-columns:1fr}
+    .notes-grid{grid-template-columns:1fr}
+    .ev{grid-template-columns:48px minmax(0,1fr) 88px;gap:8px}
+    .ev .labels,.ev .score{display:none}
+    .kpi-val{font-size:30px}
+    .search,.search input{width:100%}
+    select{max-width:100%;width:100%}
+    .field{width:100%}
+  }
+</style>
+<style>
+  /* ------------------------------------------- sweep + ablation */
+  #sweep td,#sweep th{font-family:var(--mono);font-size:11.5px;text-align:right;
+                      white-space:nowrap}
+  #sweep th:first-child,#sweep td:first-child{text-align:left}
+  #sweep tbody tr{cursor:pointer}
+  #sweep td.c-ok{color:var(--ok);font-weight:600}
+  #sweep td.c-warn{color:var(--warn-ink);font-weight:600}
+  #sweep td.c-dim{color:var(--ink-4);font-weight:500}
+  #sweep td.c-bad{color:var(--bad);font-weight:600}
+  #sweep tbody tr.sel{background:var(--info-bg)}
+  #sweep tbody tr.sel td{border-bottom-color:var(--info-line)}
+  .band{display:inline-block;width:6px;height:6px;border-radius:9999px;
+        background:var(--info);margin-left:6px;vertical-align:middle}
+  .ab-row{display:grid;grid-template-columns:92px minmax(0,1fr) 66px;gap:10px;
+          align-items:center}
+  .ab-name{font:600 12px/1.3 var(--mono);color:var(--ink)}
+  .ab-val{font:600 12px/1.3 var(--mono);text-align:right;color:var(--bad)}
+  .ab-val.ok{color:var(--ok)}
+  .lc-row{display:grid;grid-template-columns:150px minmax(0,1fr) 92px;gap:12px;
+          align-items:center;padding:5px 0}
+  .lc-row + .lc-row{border-top:1px dashed var(--wash-2)}
+  .lc-name{font:600 12px/1.3 var(--mono);color:var(--ink);overflow:hidden;
+           text-overflow:ellipsis;white-space:nowrap}
+  .lc-name span{color:var(--ink-4);font-weight:500}
+  .lc-total{font:600 12px/1.3 var(--mono);text-align:right;color:var(--ink-2)}
+  .lc-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  @media (max-width:767px){.lc-row{grid-template-columns:96px minmax(0,1fr) 72px;gap:8px}}
+</style>
+<style>
+  /* --------------------------------------------- motion + page chrome */
+  .progress{position:fixed;top:0;left:0;height:2px;width:0;background:var(--info);
+            z-index:60;transition:width .12s linear;pointer-events:none}
+  .js-motion .reveal{opacity:0;transform:translateY(16px);
+    transition:opacity .5s ease,transform .5s cubic-bezier(.22,.61,.36,1)}
+  .js-motion .reveal.in{opacity:1;transform:none}
+  .totop{position:fixed;right:18px;bottom:18px;width:38px;height:38px;border-radius:9999px;
+    border:1px solid var(--line-hi);background:var(--panel);color:var(--ink-2);
+    box-shadow:var(--lift);cursor:pointer;display:flex;align-items:center;justify-content:center;
+    opacity:0;visibility:hidden;transform:translateY(8px);z-index:55;
+    transition:opacity .2s ease,transform .2s ease,visibility .2s,border-color .12s,color .12s}
+  .totop.show{opacity:1;visibility:visible;transform:none}
+  .totop:hover{border-color:var(--ink);color:var(--ink)}
+  .totop:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .js-motion .reveal{opacity:1!important;transform:none!important;transition:none!important}
+    .dot.pulse{animation:none}
+    .progress{transition:none}
+    .totop{transition:none}
+  }
+</style>
+<style>
+  /* ------------------------------------------------ corpus scorecard bars */
+  .score{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;max-width:840px}
+  .score-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+  .score-title{display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+               font:500 11px/1.3 var(--mono);letter-spacing:.07em;text-transform:uppercase;
+               color:var(--ink-3);border-bottom:1px solid var(--line);padding-bottom:8px}
+  .score-key{display:flex;flex-wrap:wrap;gap:6px 16px;font:500 11px/1.4 var(--mono);
+             color:var(--ink-3)}
+  .score-key i{display:inline-block;width:14px;height:7px;border-radius:2px;
+               margin-right:6px;vertical-align:middle}
+  .score-key .ci-key{width:14px;height:1.5px;background:var(--ink-3);position:relative}
+  .score-key .ci-key::before,.score-key .ci-key::after{content:"";position:absolute;top:-3px;
+               width:1px;height:7.5px;background:var(--ink-3)}
+  .score-key .ci-key::before{left:0}
+  .score-key .ci-key::after{right:0}
+  .srow{display:grid;grid-template-columns:40px minmax(0,1fr) 94px;gap:10px;align-items:center}
+  .srow + .srow{margin-top:7px}
+  .srow-id{font:700 11.5px/1 var(--mono);color:var(--ink-2);letter-spacing:.04em}
+  .splot{position:relative;height:26px}
+  .strack{position:absolute;left:0;right:0;height:10px;border-radius:3px;
+          background:var(--wash-2);border:1px solid var(--line)}
+  .strack.a{top:1px}
+  .strack.b{top:15px}
+  .sbar{position:absolute;left:0;height:10px;border-radius:3px;min-width:2px}
+  .sbar.a{top:1px}
+  .sbar.b{top:15px}
+  .sbar.p1{background:var(--info)}
+  .sbar.p2{background:var(--warn)}
+  .sbar.none{background:var(--bad)}
+  .sbar.teth{background:var(--ok)}
+  .swhisk{position:absolute;height:1.5px;min-width:3px;background:currentColor;
+          color:var(--ink-2);opacity:.9}
+  .swhisk::before,.swhisk::after{content:"";position:absolute;top:-3px;width:1px;
+          height:7.5px;background:currentColor}
+  .swhisk::before{left:0}
+  .swhisk::after{right:0}
+  .sval{display:flex;flex-direction:column;gap:6px;text-align:right;
+        font:600 11px/10px var(--mono)}
+  .sval .a{color:var(--info)}
+  .sval .b{color:var(--warn-ink)}
+  .sval .a.red{color:var(--bad)}
+  .sval .b.grn{color:var(--ok)}
+  @media (max-width:900px){.score{grid-template-columns:minmax(0,1fr)}}
+  .score.two{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none;gap:28px}
+  @media (max-width:900px){.score.two{grid-template-columns:minmax(0,1fr)}}
+  .splot.one .strack.b{display:none}
+  .sval .a.warn{color:var(--warn-ink)}
+  /* -------------------------------------------------------- sweep chart */
+  .sweep-svg{width:100%;height:auto;display:block}
+  details.more{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+  details.more > summary{cursor:pointer;list-style:none;color:var(--ink-3);
+    font:500 11.5px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase}
+  details.more > summary::-webkit-details-marker{display:none}
+  details.more > summary::before{content:"+ ";color:var(--info);font-weight:700}
+  details.more[open] > summary::before{content:"- "}
+  details.more > summary:hover{color:var(--ink)}
+</style>
+<style>
+  /* --------------------------------------------- modern accents: light + funky */
+  body{background-color:var(--canvas);
+       background-image:
+         radial-gradient(880px 420px at 6% -12%, rgba(37,99,235,.12), transparent 62%),
+         radial-gradient(760px 400px at 99% 0%, rgba(5,150,105,.10), transparent 60%),
+         radial-gradient(1100px 620px at 50% 120%, rgba(124,58,237,.07), transparent 62%);
+       background-attachment:fixed}
+  .topbar{background:rgba(255,255,255,.82);
+          -webkit-backdrop-filter:saturate(160%) blur(12px);
+          backdrop-filter:saturate(160%) blur(12px)}
+  .brand .mark{background:linear-gradient(135deg,#2563eb,#7c3aed 55%,#059669);
+               box-shadow:0 5px 16px -8px rgba(37,99,235,.95)}
+  .progress{background:linear-gradient(90deg,#2563eb,#7c3aed 45%,#059669 80%,#d97706);
+            box-shadow:0 0 12px rgba(37,99,235,.5)}
+  .telemetry{background:linear-gradient(90deg,rgba(37,99,235,.07),
+             rgba(5,150,105,.06) 55%,rgba(124,58,237,.06))}
+  .card,.kpi,.exhibit{border-radius:12px}
+  .card{box-shadow:0 1px 2px rgba(15,23,42,.04),0 18px 36px -30px rgba(15,23,42,.55);
+        transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+  .kpi{position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;
+        background:linear-gradient(90deg,#2563eb,rgba(37,99,235,0) 92%)}
+  .kpi:nth-child(2)::before{background:linear-gradient(90deg,#7c3aed,rgba(124,58,237,0) 92%)}
+  .kpi:nth-child(3)::before{background:linear-gradient(90deg,#059669,rgba(5,150,105,0) 92%)}
+  .kpi:nth-child(4)::before{background:linear-gradient(90deg,#d97706,rgba(217,119,6,0) 92%)}
+  .stage,.exhibit{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+  .js-motion .reveal.in.card,.js-motion .reveal.in.kpi,.js-motion .reveal.in.stage,
+  .js-motion .reveal.in.exhibit{transition:opacity .5s ease,transform .34s cubic-bezier(.22,.61,.36,1),
+        border-color .18s ease,box-shadow .18s ease}
+  .card:hover,.kpi:hover,.stage:hover,.exhibit:hover{transform:translateY(-2px);
+        border-color:var(--line-hi);
+        box-shadow:0 2px 6px rgba(15,23,42,.06),0 26px 48px -30px rgba(15,23,42,.6)}
+  .js-motion .reveal.in.card:hover,.js-motion .reveal.in.kpi:hover,
+  .js-motion .reveal.in.stage:hover,.js-motion .reveal.in.exhibit:hover{
+        transform:translateY(-2px)}
+  @supports ((-webkit-background-clip:text) or (background-clip:text)){
+    #command-h,.section-title{background-image:linear-gradient(95deg,#0f172a 10%,#1d4ed8 58%,#7c3aed 100%);
+      -webkit-background-clip:text;background-clip:text;color:transparent}
+  }
+  .btn{transition:transform .15s ease,box-shadow .15s ease,background .12s,border-color .12s}
+  .btn:hover:not(:disabled){transform:translateY(-1px)}
+  .btn.primary{background:linear-gradient(135deg,#0f172a,#1d4ed8);border-color:#1d4ed8;
+        border-radius:9999px;box-shadow:0 10px 22px -14px rgba(29,78,216,.95)}
+  .btn.primary:hover:not(:disabled){background:linear-gradient(135deg,#0f172a,#1d4ed8);
+        border-color:#1d4ed8;filter:brightness(1.16);
+        box-shadow:0 14px 28px -14px rgba(29,78,216,.9)}
+  .btn.danger{border-radius:9999px;box-shadow:0 10px 22px -16px rgba(220,38,38,.9)}
+  .nav a.active{background:linear-gradient(135deg,#e8edf6,#eef2ff);border-color:var(--info-line);
+        color:var(--info);font-weight:600}
+  .chip .dot,.status .dot{box-shadow:0 0 7px currentColor}
+  .fill.ok{background:linear-gradient(90deg,#34d399,#059669)}
+  .fill.warn{background:linear-gradient(90deg,#fbbf24,#d97706)}
+  .fill.bad{background:linear-gradient(90deg,#f87171,#dc2626)}
+  .sbar.p1{background:linear-gradient(90deg,#60a5fa,#2563eb)}
+  .sbar.p2{background:linear-gradient(90deg,#fbbf24,#d97706)}
+  #command{position:relative}
+  #command::before{content:"";position:absolute;top:-64px;left:50%;width:560px;height:220px;
+        transform:translateX(-50%);border-radius:9999px;filter:blur(74px);opacity:.42;z-index:-1;
+        background:radial-gradient(closest-side,rgba(37,99,235,.6),rgba(37,99,235,0));
+        animation:drift 16s ease-in-out infinite;pointer-events:none}
+  @keyframes drift{0%,100%{transform:translateX(-50%) translateY(0)}
+                   50%{transform:translateX(-50%) translateY(-16px)}}
+  @media (prefers-reduced-motion:reduce){#command::before{animation:none}}
+  @media (max-width:767px){.card:hover,.kpi:hover,.stage:hover,.exhibit:hover{transform:none}}
+  /* --------------------------------------------- narrow-screen containment */
+  .card,.cols > *,.kpi{min-width:0}
+  .tablewrap{max-width:100%}
+  @media (min-width:1280px){
+    .cols.wide-left{grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr)}
+  }
+  @media (max-width:767px){
+    .srow{grid-template-columns:30px minmax(0,1fr) 74px;gap:8px}
+    .ab-row{grid-template-columns:76px minmax(0,1fr) 60px;gap:8px}
+    .bar-top{flex-wrap:wrap}
+    .topbar-in{padding:8px 16px}
+    .telemetry-in{padding:8px 16px}
+  }
+</style>
+<style>
+  /* ------------------------------------------------- hero contrast strip */
+  .hero-contrast{margin:0 0 var(--gutter);background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:16px 18px;box-shadow:0 1px 2px rgba(15,23,42,.04),
+    0 18px 36px -30px rgba(15,23,42,.55)}
+  .hero-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 18px;
+    align-items:baseline;margin-bottom:12px}
+  .hero-sub{margin:12px 0 0;color:var(--ink-2);font-size:13px;line-height:1.5}
+  .hero-sub b{color:var(--ink);font-weight:600}
+  .hero-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .hero-panel{position:relative;overflow:hidden;background:var(--wash);border:1px solid var(--line);
+    border-radius:8px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:5px}
+  .hero-panel::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:var(--ink-4)}
+  .hero-panel.bad::before{background:var(--bad)}
+  .hero-panel.ok::before{background:var(--ok)}
+  .hero-panel.warn::before{background:var(--warn)}
+  .hero-panel .hl{font:600 11px/1.3 var(--sans);letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-3)}
+  .hero-panel .big{font:600 38px/1 var(--sans);letter-spacing:-.04em;color:var(--ink);
+    font-variant-numeric:tabular-nums;margin-top:2px}
+  .hero-panel .big.ok{color:var(--ok)}
+  .hero-panel .big.warn{color:var(--warn-ink)}
+  .hero-panel .big.bad{color:var(--bad)}
+  .hero-panel .big .unit{font:400 13px/1 var(--sans);letter-spacing:0;color:var(--ink-3);
+    margin-left:4px}
+  .hero-panel .meta{font:500 11px/1.45 var(--mono);color:var(--ink-3)}
+  .hero-panel .tagline{font:600 11px/1.4 var(--mono);color:var(--ink-2);margin-top:auto;
+    padding-top:4px}
+  .hero-panel .tagline.ok{color:var(--ok)}
+  .hero-panel .tagline.bad{color:var(--bad)}
+  .hero-panel .tagline.warn{color:var(--warn-ink)}
+  .hero-empty{grid-column:1/-1;color:var(--ink-2);font-size:13px;padding:4px 0}
+  .hero-empty b{color:var(--ink)}
+
+  /* ------------------------------------------------------ stakes banner */
+  .stakes{border-bottom:1px solid var(--line);background:rgba(255,255,255,.72)}
+  .stakes-in{padding:7px var(--margin);font:500 11.5px/1.55 var(--mono);color:var(--ink-3);
+    letter-spacing:.015em}
+  .stakes-in b{color:var(--ink-2);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+
+  /* ----------------------------------------------------- replay narrative */
+  .ev-note{grid-column:1/-1;border-top:1px dashed var(--line);margin-top:2px;padding-top:5px;
+    color:var(--ink-2);font:400 11.5px/1.45 var(--sans);white-space:normal}
+  .ev-note::before{content:"\21B3  ";color:var(--ink-4);font-family:var(--mono)}
+  .ev.current .ev-note{color:var(--ink)}
+
+  /* ------------------------------------------------------ exhibit verdict */
+  .takeaway{display:flex;align-items:baseline;gap:9px;margin:0 0 12px;padding:9px 11px;
+    border:1px solid var(--info-line);border-left:3px solid var(--info);border-radius:6px;
+    background:linear-gradient(90deg,var(--info-bg),var(--panel) 78%);
+    color:var(--ink);font:600 13.5px/1.5 var(--sans)}
+  .takeaway .tag{flex:0 0 auto;font:700 10px/1.3 var(--mono);letter-spacing:.09em;
+    text-transform:uppercase;color:var(--info)}
+  .takeaway .why{min-width:0}
+
+  /* ----------------------------------------------------- reproducibility */
+  .repro{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 0;
+    padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:var(--wash-2);
+    font:500 11.5px/1.55 var(--mono);color:var(--ink-2)}
+  .repro .dot{color:var(--ok);box-shadow:0 0 7px currentColor}
+  .repro b{color:var(--ink);font-weight:600}
+  .repro .digest{color:var(--info);font-weight:600}
+
+  @media (max-width:767px){
+    .hero-grid{grid-template-columns:1fr}
+    .hero-panel .big{font-size:34px}
+    .takeaway{display:block}
+    .takeaway .tag{display:block;margin-bottom:3px}
   }
 </style>
 </head>
 <body>
-<header class="masthead">
-  <div class="brand">
-    <div class="eyebrow">D3COY 1.0 / Round 0 / Team Unethically</div>
-    <h1>TETHER</h1>
-    <p class="tagline"><b>Bounded blast radius. Fast detection. Not prevention.</b>
-      Identity drift detection for autonomous AI agents. Every aggregate number
-      below is generated from <span class="mono">results/</span>; the replay is a
-      live simulation and is labelled as such.</p>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff"
+             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z"/>
+        </svg>
+      </span>
+      <span class="name">TETHER</span>
+      <span class="sep">/</span>
+      <span class="sub">D3COY</span>
+    </div>
+    <span class="vdiv" aria-hidden="true"></span>
+    <span class="chip" id="chip-node"><span class="dot"></span><span id="chip-node-text">local sim</span></span>
+    <span class="chip" id="chip-gw">GW p95: <span id="chip-gw-text">--</span></span>
+
+    <nav class="nav" aria-label="Sections">
+      <a href="#command" class="active">Executive Command</a>
+      <a href="#replay">Trace Replay &amp; Sim</a>
+      <a href="#exhibits">Empirical Benchmark</a>
+      <a href="#notes">Audit Log</a>
+    </nav>
+
+    <span class="cli" title="Start the console">
+      <b>$</b><code>python -m tether.api</code>
+      <button type="button" id="copy-cli" title="Copy command" aria-label="Copy command">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="11" height="11" rx="2"/>
+          <path d="M5 15V5a2 2 0 0 1 2-2h10"/>
+        </svg>
+      </button>
+    </span>
+
+    <span class="chip ok" id="chip-status"><span class="dot pulse"></span>
+      <span id="chip-status-text">loading results</span></span>
   </div>
-  <aside class="run-stamp" id="run-stamp" aria-live="polite">
-    <div class="label">Measured run</div>
-    <div class="line" id="stamp-line">loading exhibits...</div>
-    <div class="sub" id="stamp-sub"></div>
-  </aside>
 </header>
 
-<nav class="nav" aria-label="Exhibits">
-  <div class="nav-in" id="exhibit-nav"></div>
-</nav>
+<div class="telemetry">
+  <div class="telemetry-in" id="telemetry">
+    <span class="tk"><span class="k">run</span><span class="v">reading results&hellip;</span></span>
+  </div>
+</div>
 
-<main class="shell">
-  <div class="top-grid">
-    <section class="panel" aria-labelledby="live-h">
-      <h2 id="live-h">Live replay <span>/ session stepper, not a measured aggregate</span></h2>
-      <p class="live-note">Live simulation output - the aggregate claims are in E1-E9 below.</p>
-      <div class="row" style="margin-bottom:12px">
-        <label for="scenario">scenario</label>
-        <select id="scenario"></select>
-        <label for="mode">mode</label>
-        <select id="mode">
-          <option value="none">none / baseline</option>
-          <option value="textgate">textgate / stand-in</option>
-          <option value="tether" selected>tether / full</option>
-        </select>
-        <button class="primary" id="run">Run</button>
+<div class="stakes">
+  <div class="stakes-in"><b>Real stakes:</b> EchoLeak (CVE-2025-32711, zero-click data theft) &middot;
+    Salesloft Drift (stolen OAuth tokens, 700+ orgs) &middot; MCPTox (36.5% attack success)</div>
+</div>
+
+<main>
+  <div class="stack">
+
+    <!-- Executive Command: measured KPI tiles -->
+    <section id="command" aria-labelledby="command-h">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">Executive Command / measured invariants</div>
+          <h2 id="command-h">What the seed-7 run actually proves</h2>
+          <p class="section-sub">Every figure below is read from
+            <span class="mono">results/results.json</span> when the page loads. Nothing here is
+            typed by hand; a missing run shows an explicit empty state instead of zeros.</p>
+        </div>
+        <div class="right">
+          <span class="badge" id="run-badge">run: --</span>
+        </div>
       </div>
-      <div id="replay" class="timeline" aria-live="polite">
-        <div class="hint">Choose a scenario and run. Values here are live decisions, not
-          the measured aggregate.</div>
+      <div class="hero-contrast" id="hero-contrast" aria-label="Contrast strip">
+        <div class="hero-head">
+          <div class="eyebrow">The contrast / one poisoned supplier PDF</div>
+          <span class="badge" id="hero-badge">reading results</span>
+        </div>
+        <div class="hero-grid" id="hero-grid"></div>
+        <p class="hero-sub"><b>Every step below passed IAM.</b>
+          Tether stopped the data anyway.</p>
       </div>
-      <div class="stepper" id="stepper" style="margin-top:11px">
-        <button id="prev" disabled>&lt; prev</button>
+      <div class="kpis" id="kpis"></div>
+      <div class="repro" id="repro" aria-label="Reproducibility">
+        <span class="dot"></span>
+        <span>Deterministic: seed <b id="repro-seed">--</b> &rarr; digest
+          <span class="digest" id="repro-digest">--</span><span id="repro-tail">; seed 11 &rarr; same.
+          Two runs, identical output.</span></span>
+      </div>
+    </section>
+
+    <!-- Live replay -->
+    <section class="card" id="replay" aria-labelledby="replay-h">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">Trace replay &amp; simulation</div>
+          <h2 id="replay-h">Live session replay</h2>
+        </div>
+        <div class="right">
+          <span class="badge warn">live output &middot; not a measured aggregate</span>
+        </div>
+      </div>
+      <p class="live-note"><span class="dot"></span>
+        This pane runs the simulator once, right now. The aggregate claims are E1&ndash;E9 below.</p>
+
+      <div class="toolbar">
+        <span class="field"><label for="scenario">scenario</label>
+          <select id="scenario"></select></span>
+        <span class="field"><label for="mode">mode</label>
+          <select id="mode">
+            <option value="none">none / baseline</option>
+            <option value="textgate">textgate / stand-in</option>
+            <option value="tether" selected>tether / full</option>
+          </select></span>
+        <button class="btn primary" id="run" type="button">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7 4l13 8-13 8z"/>
+          </svg>Run session</button>
+      </div>
+
+      <div id="replay-box" class="timeline" aria-live="polite">
+        <div class="hint">Choose a scenario and run. Values here are live decisions, not the
+          measured aggregate.</div>
+      </div>
+
+      <div class="stepper" id="stepper">
+        <button class="btn ghost" id="prev" type="button" disabled>&larr; prev</button>
         <span class="count" id="step-count">step 0 / 0</span>
-        <button id="next" disabled>next &gt;</button>
-        <button id="play" disabled>play</button>
-        <button id="export" disabled>export alert JSON</button>
+        <button class="btn ghost" id="next" type="button" disabled>next &rarr;</button>
+        <button class="btn" id="play" type="button" disabled>play</button>
+        <button class="btn danger" id="export" type="button" disabled>export alert JSON</button>
       </div>
-      <div class="hint" id="run-hint">No session loaded.</div>
+      <div class="hint" id="run-hint">No session loaded. <b>Arrow keys</b> step the timeline.</div>
     </section>
 
-    <section class="panel" aria-labelledby="read-h">
-      <h2 id="read-h">Reading this page</h2>
-      <div class="hint" style="margin-top:0">
-        <b style="color:var(--text)">E1-E9</b> are generated SVG exhibits. Their captions,
-        sources, n and units come from <span class="mono">results/exhibits/INDEX.json</span>.
-        If <span class="mono">results/</span> is missing, the page shows an explicit
-        empty state instead of placeholder numbers.
+    <!-- Gateway pipeline -->
+    <section class="card" id="pipeline" aria-labelledby="pipeline-h">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">Deterministic interception</div>
+          <h2 id="pipeline-h">Linear gateway pipeline architecture</h2>
+        </div>
+        <div class="right">
+          <span class="pipe-note"><span class="dot pulse" style="color:var(--ok)"></span>
+            stdlib only &middot; in-memory hash-chain ledger &middot; no network</span>
+        </div>
       </div>
-      <div class="hint">
-        <b style="color:var(--text)">Colour</b>: red is measured data or a hard rung,
-        green is allow/clean, amber is hold/quarantine. Hairlines are the D3COY theme
-        tokens; no external fonts or libraries are loaded.
-      </div>
-      <div class="hint">
-        <b style="color:var(--text)">Deep link</b>: append
-        <span class="mono">?exhibit=latency</span> to open one exhibit directly.
-      </div>
+      <div class="stages" id="stages"></div>
+      <div class="rungs" id="rungs" style="margin-top:14px"></div>
     </section>
-  </div>
 
-  <div class="section-head">
-    <div>
-      <h2>Measured exhibits</h2>
-      <p>Each figure is regenerated by <span class="mono">python -m tether.exhibits --write</span>;
-         <span class="mono">--check</span> fails on a stale or hand-edited number.</p>
+    <!-- Corpus scorecard: detection + containment, charted -->
+    <section class="card" id="scorecard" aria-labelledby="score-h">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">Corpus scorecard</div>
+          <h3 id="score-h">Detection and data-loss containment, corpus by corpus</h3>
+        </div>
+        <div class="right"><span class="badge" id="score-badge">--</span></div>
+      </div>
+      <div class="score">
+        <div class="score-col">
+          <div class="score-title"><span>sessions detected</span><span>phase 1 / phase 2</span></div>
+          <div class="score-key">
+            <span><i style="background:var(--info)"></i>phase 1</span>
+            <span><i style="background:var(--warn)"></i>phase 2 (+ drift budget)</span>
+            <span><i class="ci-key"></i>Wilson 95% CI</span>
+          </div>
+          <div id="score-detect"></div>
+        </div>
+      </div>
+      <div class="ledger-foot" id="score-foot"></div>
+    </section>
+
+    <!-- Ledger + analytics -->
+    <div class="cols">
+      <section class="card" id="ledger" aria-labelledby="ledger-h">
+        <div class="card-head">
+          <div>
+            <div class="eyebrow">Attack vector containment ledger</div>
+            <h3 id="ledger-h">Nine attack corpora, phase 1 and phase 2</h3>
+          </div>
+          <div class="ledger-tools">
+            <div class="seg" id="ledger-seg" role="group" aria-label="Filter">
+              <button type="button" data-filter="all" class="on">All</button>
+              <button type="button" data-filter="caught">Phase 1</button>
+              <button type="button" data-filter="p2">Phase 2</button>
+              <button type="button" data-filter="miss">Misses</button>
+            </div>
+            <div class="search">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round">
+                <circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>
+              </svg>
+              <input id="vector-search" type="search" placeholder="Filter vector or id..."
+                     aria-label="Filter attack vector">
+            </div>
+            <button class="btn" id="export-csv" type="button" title="Download the measured ledger as CSV">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/>
+              </svg>Export CSV</button>
+          </div>
+        </div>
+        <div class="tablewrap">
+          <table id="ledger-table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Attack vector</th><th class="num">Phase 1</th>
+                <th class="num">Phase 2</th><th class="num">Leak med.</th>
+                <th class="num">Identity</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="ledger-body">
+              <tr><td colspan="7" style="color:var(--ink-3)">loading measured rows&hellip;</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ledger-foot" id="ledger-foot"></div>
+      </section>
+
+      <div class="side">
+        <section class="card" id="drift" aria-labelledby="drift-h">
+          <div class="card-head">
+            <div>
+              <div class="eyebrow">Sequential probability / CUSUM drift budget</div>
+              <h3 id="drift-h">Phase-2 latch trajectory</h3>
+            </div>
+            <div class="right">
+              <div class="seg" id="drift-seg" role="group" aria-label="Corpus">
+                <button type="button" data-aid="a3_mimicry" class="on">a3</button>
+                <button type="button" data-aid="a4_low_and_slow">a4</button>
+                <button type="button" data-aid="a7_persistent">a7</button>
+              </div>
+            </div>
+          </div>
+          <div class="chart-box">
+            <div class="chart-legend">
+              <span>max per-session CUSUM</span>
+              <span class="hot" id="drift-threshold">drift budget</span>
+            </div>
+            <svg class="chart-svg" id="drift-svg" viewBox="0 0 360 150"
+                 preserveAspectRatio="none" aria-label="CUSUM trajectory"></svg>
+            <div class="chart-axis" id="drift-axis"></div>
+          </div>
+          <div class="mini-2" id="drift-mini"></div>
+        </section>
+
+        <section class="card" id="latency" aria-labelledby="latency-h">
+          <div class="card-head">
+            <div>
+              <div class="eyebrow">Deterministic budgeting</div>
+              <h3 id="latency-h">Gate latency against the preregistered ceiling</h3>
+            </div>
+            <div class="right"><span class="badge" id="latency-badge">--</span></div>
+          </div>
+          <div class="bars" id="latency-bars"></div>
+          <div class="chart-box" style="margin-top:14px">
+            <div class="chart-legend"><span>decision latency, empirical CDF</span>
+              <span class="hot" id="cdf-hot">--</span></div>
+            <svg class="sweep-svg" id="cdf-svg" viewBox="0 0 420 172" role="img"
+                 aria-label="Latency cumulative distribution"></svg>
+          </div>
+          <div class="kv-strip" id="latency-strip"></div>
+          <p class="disclose" id="latency-disclose"></p>
+        </section>
+      </div>
     </div>
-    <div class="count" id="exhibit-count"></div>
+
+    <!-- Sensitivity + ablation -->
+    <div class="cols wide-left">
+      <section class="card" id="sweep" aria-labelledby="sweep-h">
+        <div class="card-head">
+          <div>
+            <div class="eyebrow">Report-only sensitivity</div>
+            <h3 id="sweep-h">Score-threshold sweep</h3>
+          </div>
+          <div class="right"><span class="badge" id="sweep-badge">shipped band marked</span></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-legend">
+            <span>% of sessions detected vs score threshold</span>
+            <span class="hot" id="sweep-hot">report-only sensitivity</span>
+          </div>
+          <svg class="sweep-svg" id="sweep-svg" viewBox="0 0 660 320" role="img"
+               aria-label="Detection rate and false alerts by score threshold"></svg>
+        </div>
+        <div class="score-key" id="sweep-keys" style="margin-top:12px"></div>
+        <details class="more">
+          <summary>full matrix: 10 thresholds &times; 9 corpora</summary>
+          <div class="tablewrap" style="margin-top:10px"><table id="sweep-table"></table></div>
+        </details>
+        <div class="ledger-foot" id="sweep-foot"></div>
+      </section>
+
+      <section class="card" id="ablation" aria-labelledby="ab-h">
+        <div class="card-head">
+          <div>
+            <div class="eyebrow">Leave-one-out ablation</div>
+            <h3 id="ab-h">What breaks when a detector is removed</h3>
+          </div>
+          <div class="right"><span class="badge warn" id="ab-badge">--</span></div>
+        </div>
+        <div id="ab-rows" class="bars"></div>
+        <div class="kv-strip" id="ab-strip"></div>
+      </section>
+    </div>
+
+    <!-- Ladder usage by corpus -->
+    <section class="card" id="ladder" aria-labelledby="lc-h">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">Enforcement distribution</div>
+          <h3 id="lc-h">Ladder usage by corpus</h3>
+        </div>
+        <div class="right"><span class="badge" id="lc-badge">--</span></div>
+      </div>
+      <div id="lc-rows"></div>
+      <div class="lc-legend" id="lc-legend"></div>
+    </section>
+
+    <!-- Own analytics: containment + speed -->
+    <section class="card" id="containment" aria-labelledby="ct-h">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">Containment economics</div>
+          <h3 id="ct-h">What the tether stopped, and how fast it fired</h3>
+        </div>
+        <div class="right"><span class="badge" id="ct-badge">--</span></div>
+      </div>
+      <div class="score two">
+        <div class="score-col">
+          <div class="score-title"><span>median records out per session</span>
+            <span>shared scale, max <b id="ct-leak-max">--</b></span></div>
+          <div class="score-key">
+            <span><i style="background:var(--bad)"></i>no defense</span>
+            <span><i style="background:var(--ok)"></i>tether</span>
+          </div>
+          <div id="ct-leak"></div>
+        </div>
+        <div class="score-col">
+          <div class="score-title"><span>median steps before the gate fires</span>
+            <span>phase 1</span></div>
+          <div class="score-key">
+            <span><i style="background:var(--info)"></i>steps taken</span>
+            <span><i style="background:var(--line-hi)"></i>never fired in phase 1</span>
+          </div>
+          <div id="ct-steps"></div>
+        </div>
+      </div>
+      <div class="ledger-foot" id="ct-foot"></div>
+    </section>
+
+    <!-- Measured exhibits -->
+    <section aria-labelledby="exhibits-h">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Empirical benchmark</div>
+          <h2 class="section-title" id="exhibits-h">Measured exhibits</h2>
+          <p class="section-sub">Each figure is regenerated by
+            <span class="mono">python -m tether.exhibits --write</span>;
+            <span class="mono">--check</span> fails on a stale or hand-edited number. Captions,
+            sources, n and units come from <span class="mono">results/exhibits/INDEX.json</span>.</p>
+        </div>
+        <div class="count" id="exhibit-count"></div>
+      </div>
+      <nav class="seg" id="exhibit-nav" aria-label="Exhibits"
+           style="margin:16px 0;display:flex;flex-wrap:wrap;gap:6px"></nav>
+      <div class="exhibit-grid" id="exhibits" aria-live="polite"></div>
+    </section>
+
+    <!-- Notes / caveats -->
+    <section class="card" id="notes" aria-labelledby="notes-h">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">Audit log / how to read this page</div>
+          <h2 id="notes-h">Caveats, in the open</h2>
+        </div>
+      </div>
+      <div class="notes-grid">
+        <div>
+          <h4>Reading this console</h4>
+          <ul>
+            <li><b>E1&ndash;E9</b> are generated SVG exhibits; the page computes no aggregate.</li>
+            <li><b>Colour</b>: green = nominal, amber = armed/degraded, red = hard rung,
+              blue = navigation. No external fonts, icons or libraries are loaded.</li>
+            <li><b>Deep link</b>: append <span class="mono">?exhibit=latency</span> to open one
+              exhibit directly.</li>
+            <li><b>Replay</b> is live simulation, labelled as such; step it with
+              <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span>.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Declared caveats from the run</h4>
+          <ul id="caveats"></ul>
+        </div>
+      </div>
+    </section>
+
   </div>
-
-  <section class="exhibit-grid" id="exhibits" aria-live="polite"></section>
-
-  <footer class="footer">
-    <span>TETHER / D3COY 1.0 / 2026</span>
-    <span>simulation only / stdlib / no network / no LLM in the core</span>
-  </footer>
 </main>
 
+<footer>
+  <div class="foot-in">
+    <span><b>TETHER / D3COY</b> &middot; identity drift detection &middot; D3COY 1.0</span>
+    <span><span class="dot ok" style="display:inline-block"></span>
+      simulation only &middot; stdlib &middot; no network &middot; no LLM in the gate</span>
+    <span>seed <b id="foot-seed">--</b> &middot; results digest <b id="foot-digest">--</b></span>
+  </div>
+</footer>
+
+<button class="totop" id="totop" type="button" aria-label="Back to top" title="Back to top">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 19V6"/><path d="M6 12l6-6 6 6"/>
+  </svg>
+</button>
 <script>
 "use strict";
 
+/* --------------------------------------------------------------- state */
 const state = {
-  index: null,
-  session: null,
-  events: [],
-  alert: null,
-  idx: 0,
-  timer: null,
+  index: null,     // results/exhibits/INDEX.json
+  results: null,   // results/results.json
+  contract: null,  // /contract
+  session: null, events: [], alert: null, idx: 0, timer: null,
+  ledgerFilter: "all", ledgerQuery: "", driftAid: "a3_mimicry",
+};
+
+/* PREREG claim ceiling for gate latency, in ms (a declared threshold,
+   not a measured value). */
+const CEILING_MS = 5;
+const LADDER = ["allow", "hold", "narrow", "quarantine", "isolate", "block"];
+const LADDER_CLASS = {allow: "ok", hold: "warn", narrow: "warn", quarantine: "warn",
+                      isolate: "bad", block: "bad"};
+const LADDER_RUNG = {allow: "log", hold: "annotate", narrow: "narrow",
+                     quarantine: "quarantine", isolate: "isolate", block: "enforcement"};
+
+const VECTOR_DESC = {
+  a1_pdf_injection: "Poisoned supplier PDF drives an HR read and an off-allowlist POST",
+  a2_tool_poisoning: "Modified tool description steers the same call chain",
+  a3_mimicry: "Every step stays inside contract, classes and ceilings",
+  a4_low_and_slow: "Small drip leaks kept under the per-step threshold",
+  a5_stolen_token: "Captured signed envelope replayed from a foreign host",
+  a6_delegation: "Procurement agent signs an HR grant its own contract denies",
+  a7_persistent: "Returns after containment: retry, drip, then a hard return",
+  a8_composition: "Each step contract-legal; only the sequence is illegal",
+  a9_impersonation: "Valid procurement key claims the HR role and blueprint",
 };
 
 const $ = (id) => document.getElementById(id);
 
 function el(tag, cls, text) {
-  const node = document.createElement(tag);
-  if (cls) node.className = cls;
-  if (text !== undefined && text !== null) node.textContent = String(text);
-  return node;
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined && text !== null) n.textContent = String(text);
+  return n;
+}
+function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+function num(v, digits) {
+  const x = Number(v);
+  return Number.isFinite(x) ? x.toFixed(digits === undefined ? 1 : digits) : "--";
+}
+function ciText(arr, digits) {
+  if (!Array.isArray(arr) || arr.length !== 2) return "--";
+  return "[" + num(arr[0], digits === undefined ? 2 : digits) + ", " +
+         num(arr[1], digits === undefined ? 2 : digits) + "]";
+}
+function intFmt(v) { const x = Number(v); return Number.isFinite(x) ? x.toLocaleString() : "--"; }
+function shortId(id) { return String(id || "").split("_")[0]; }
+function phase2(row) { return (row && row.phase2) || null; }
+
+/* --------------------------------------------------------- data loading */
+async function fetchJson(path) {
+  const r = await fetch(path, {cache: "no-store"});
+  if (!r.ok) throw new Error(path + " -> " + r.status);
+  return r.json();
+}
+async function loadContract() {
+  try { state.contract = await fetchJson("/contract"); } catch (_) { state.contract = null; }
+}
+async function loadResults() {
+  try { state.results = await fetchJson("/results"); }
+  catch (_) { state.results = null; }
+}
+async function loadExhibits() {
+  try {
+    const data = await fetchJson("/exhibits");
+    if (!data || !Array.isArray(data.exhibits) || !data.exhibits.length) throw new Error("empty");
+    state.index = data;
+    return true;
+  } catch (_) {
+    state.index = null;
+    return false;
+  }
 }
 
-function clear(node) {
-  while (node.firstChild) node.removeChild(node.firstChild);
+/* ---------------------------------------------------------- top chrome */
+function renderStatus() {
+  const chip = $("chip-status"), txt = $("chip-status-text");
+  const have = !!(state.results && state.index);
+  chip.classList.remove("ok", "warn", "bad");
+  if (have) { chip.classList.add("ok"); txt.textContent = "results nominal"; }
+  else if (state.results || state.index) {
+    chip.classList.add("warn"); txt.textContent = "partial results";
+  } else { chip.classList.add("bad"); txt.textContent = "no measured results"; }
 }
 
+function renderTelemetry() {
+  const box = $("telemetry");
+  clear(box);
+  const R = state.results;
+  const items = [];
+  if (R) {
+    const meta = R.meta || {};
+    const lat = R.latency_ms || {};
+    const counts = meta.counts || {};
+    const attacks = R.attacks || [];
+    const perAttack = attacks.length ? counts[attacks[0].id] : null;
+    items.push({k: "node", v: "local-sim seed-" + (meta.seed !== undefined ? meta.seed : "?"),
+                cls: ""});
+    items.push({k: "corpus", v: attacks.length + " attack corpora x " +
+        (perAttack !== undefined ? perAttack : "--") + " sessions", cls: ""});
+    items.push({k: "benign", v: intFmt(meta.benign_sessions) + " + " +
+        intFmt(meta.legit_change_sessions) + " approved change", cls: ""});
+    items.push({k: "decisions", v: intFmt(lat.n) + " gateway decisions", cls: ""});
+    items.push({k: "phase 2 drift budget", v: meta.phase2 ? "enabled" : "off",
+                cls: meta.phase2 ? "ok" : "warn"});
+  } else {
+    items.push({k: "run", v: "results unavailable", cls: "warn"});
+  }
+  if (state.index) {
+    items.push({k: "exhibits", v: state.index.exhibits.length + " / 9 regenerated", cls: "ok"});
+  }
+  items.forEach((it, i) => {
+    if (i) box.appendChild(el("span", "tsep", "|"));
+    const span = el("span", "tk");
+    span.appendChild(el("span", "k", it.k));
+    span.appendChild(el("span", "v " + (it.cls || ""), it.v));
+    box.appendChild(span);
+  });
+  if (R) {
+    $("chip-node-text").textContent = "seed-" + ((R.meta || {}).seed) + " local";
+    $("chip-gw-text").textContent = num((R.latency_ms || {}).p95, 3) + " ms";
+    $("foot-seed").textContent = (R.meta || {}).seed !== undefined ? R.meta.seed : "--";
+    const digest = state.index && state.index.results_sha256;
+    $("foot-digest").textContent = digest ? String(digest).slice(0, 12) + "..." : "--";
+  }
+}
+
+/* ---------------------------------------------------------- KPI tiles */
+function badge(text, cls) { return el("span", "badge " + (cls || ""), text); }
+function kpiRow(k, v, cls) {
+  const row = el("div", "kpi-row");
+  row.appendChild(el("span", "k", k));
+  row.appendChild(el("span", "v " + (cls || ""), v));
+  return row;
+}
+function stackBar(parts) {
+  const wrap = el("div");
+  wrap.style.cssText = "display:flex;height:8px;border-radius:9999px;overflow:hidden;" +
+                       "background:var(--wash-2);border:1px solid var(--line)";
+  parts.forEach((p) => {
+    const seg = el("span");
+    seg.style.cssText = "display:block;height:100%;width:" + p.w + "%;background:" + p.c;
+    seg.title = p.title;
+    wrap.appendChild(seg);
+  });
+  return wrap;
+}
+function trackBar(pct, cls) {
+  const wrap = el("div", "track");
+  const fill = el("div", "fill " + (cls || ""));
+  fill.style.width = Math.max(0, Math.min(100, pct)) + "%";
+  wrap.appendChild(fill);
+  return wrap;
+}
+function cdfSpark(lat) {
+  const pts = (lat.cdf || []).map((p) => [Number(p[0]), Number(p[1])]);
+  if (!pts.length) return el("div");
+  const xmax = Math.max.apply(null, pts.map((p) => p[0])) || 1;
+  const inner = pts.map((p) =>
+    (p[0] / xmax * 100).toFixed(2) + "," + (100 - p[1]).toFixed(2)).join(" ");
+  const box = el("div");
+  box.innerHTML = '<svg class="spark" viewBox="0 0 100 100" preserveAspectRatio="none">' +
+    '<polyline points="' + inner + '" fill="none" stroke="#059669" stroke-width="2.5" ' +
+    'vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>';
+  return box;
+}
+function barsSpark(values) {
+  const box = el("div");
+  box.style.cssText = "display:flex;align-items:flex-end;gap:3px;height:26px";
+  values.forEach((v) => {
+    const b = el("span");
+    const h = Math.max(4, Math.min(100, v));
+    b.style.cssText = "flex:1;border-radius:2px;height:" + h +
+      "%;background:" + (v >= 95 ? "#059669" : "#d97706");
+    b.title = num(v, 1) + "% of sessions detected";
+    box.appendChild(b);
+  });
+  return box;
+}
+
+function renderKpis() {
+  const box = $("kpis");
+  clear(box);
+  const badgeEl = $("run-badge");
+  const R = state.results;
+
+  if (!R) {
+    badgeEl.className = "badge warn";
+    badgeEl.textContent = "run: unavailable";
+    const empty = el("div", "empty");
+    empty.style.gridColumn = "1 / -1";
+    empty.appendChild(el("h3", "", "NO MEASURED RESULTS"));
+    empty.appendChild(el("p", "",
+      "The dashboard is live; only the measured aggregates are unavailable. " +
+      "No placeholder numbers are shown. Generate the canonical run once, then " +
+      "regenerate the exhibits:"));
+    empty.appendChild(el("code", "",
+      "python -m tether.evaluate --seed 7 --ablation\npython -m tether.exhibits --write"));
+    empty.appendChild(el("p", "",
+      "The live replay below still works because it runs the simulator directly."));
+    box.appendChild(empty);
+    return;
+  }
+
+  const meta = R.meta || {};
+  const b = R.benign || {};
+  const lat = R.latency_ms || {};
+  const attacks = R.attacks || [];
+  const ladder = (R.ladder_usage_total || {}).actions || {};
+
+  badgeEl.className = "badge info";
+  badgeEl.textContent = "seed " + (meta.seed !== undefined ? meta.seed : "--") + " / " +
+    ((attacks[0] || {}).n !== undefined ? attacks[0].n : "--") +
+    " sessions per corpus / phase 2 " + (meta.phase2 ? "on" : "off");
+
+  /* 1 - benign utility */
+  const fp = b.false_alerts_per_1000_incl_legit_change;
+  const t1 = el("div", "kpi");
+  const top1 = el("div", "kpi-top");
+  const left1 = el("div");
+  left1.appendChild(el("div", "eyebrow", "Benign utility preserved"));
+  const v1 = el("div", "kpi-val " + (Number(b.utility_preserved_pct) >= 99 ? "ok" : ""),
+                num(b.utility_preserved_pct, 1));
+  v1.appendChild(el("span", "unit", "%"));
+  left1.appendChild(v1);
+  top1.appendChild(left1);
+  top1.appendChild(badge(num(fp, 1) + " FP / 1000", Number(fp) === 0 ? "ok" : "bad"));
+  t1.appendChild(top1);
+  t1.appendChild(trackBar(Number(b.utility_preserved_pct) || 0, "ok"));
+  const rows1 = el("div", "kpi-rows");
+  rows1.appendChild(kpiRow("Legit steps executed",
+    intFmt(b.legit_steps_executed) + " / " + intFmt(b.legit_steps_planned)));
+  rows1.appendChild(kpiRow("Wilson 95% CI", ciText(b.utility_ci95_pct) + "%", "dim"));
+  rows1.appendChild(kpiRow("False alerts / 1000",
+    num(fp, 1) + " " + ciText(b.false_alert_ci95_pct), Number(fp) === 0 ? "ok" : "bad"));
+  t1.appendChild(rows1);
+  box.appendChild(t1);
+
+  /* 2 - containment cost */
+  const totalDecisions = LADDER.reduce((s, k) => s + (Number(ladder[k]) || 0), 0);
+  const t2 = el("div", "kpi");
+  const top2 = el("div", "kpi-top");
+  const left2 = el("div");
+  left2.appendChild(el("div", "eyebrow", "Attack-session utility"));
+  const v2 = el("div", "kpi-val", num(R.attack_session_utility_pct, 1));
+  v2.appendChild(el("span", "unit", "%"));
+  left2.appendChild(v2);
+  top2.appendChild(left2);
+  top2.appendChild(badge("containment cost D55", "warn"));
+  t2.appendChild(top2);
+  t2.appendChild(stackBar(LADDER.map((k) => ({
+    w: totalDecisions ? (Number(ladder[k]) || 0) / totalDecisions * 100 : 0,
+    c: k === "allow" ? "#059669" : (k === "block" || k === "isolate") ? "#dc2626" : "#d97706",
+    title: k + " " + (ladder[k] || 0),
+  }))));
+  const rows2 = el("div", "kpi-rows");
+  rows2.appendChild(kpiRow("Benign utility, same policy",
+    num(b.utility_preserved_pct, 1) + "%", "ok"));
+  rows2.appendChild(kpiRow("Rungs reached",
+    LADDER.filter((k) => Number(ladder[k]) > 0).length + " / " + LADDER.length, "dim"));
+  rows2.appendChild(kpiRow("Isolate decisions", intFmt(ladder.isolate), "bad"));
+  t2.appendChild(rows2);
+  box.appendChild(t2);
+
+  /* 3 - phase-1 detection coverage */
+  const caught = attacks.filter((a) => Number(a.detected_pct) >= 95).length;
+  const misses = attacks.filter((a) => Number(a.detected_pct) < 50);
+  const t3 = el("div", "kpi");
+  const top3 = el("div", "kpi-top");
+  const left3 = el("div");
+  left3.appendChild(el("div", "eyebrow", "Phase-1 detection"));
+  left3.appendChild(el("div", "kpi-val", caught + " / " + attacks.length));
+  top3.appendChild(left3);
+  top3.appendChild(badge(misses.length
+    ? misses.map((m) => shortId(m.id)).join(" / ") + " -> phase 2"
+    : "no phase-1 misses", misses.length ? "warn" : "ok"));
+  t3.appendChild(top3);
+  t3.appendChild(barsSpark(attacks.map((a) => Number(a.detected_pct) || 0)));
+  const rows3 = el("div", "kpi-rows");
+  const weakest = attacks.reduce((w, a) =>
+    (Number(a.detected_pct) < Number(w.detected_pct) ? a : w), attacks[0] || {});
+  rows3.appendChild(kpiRow("Weakest corpus (phase 1)",
+    (weakest.id ? shortId(weakest.id) : "--") + " " + num(weakest.detected_pct, 1) + "% " +
+    ciText(weakest.detected_ci95), "warn"));
+  rows3.appendChild(kpiRow("Phase-2 on those misses",
+    misses.map((m) => shortId(m.id) + " " +
+      num((phase2(m) || {}).detected_pct, 1) + "%").join("  ") || "--", "warn"));
+  const minCaught = attacks.reduce((m, a) =>
+    Math.min(m, Number(a.caught_before_harmful_send_pct)), 100);
+  rows3.appendChild(kpiRow("Caught before harmful send",
+    num(minCaught, 1) + "% (min)", minCaught >= 95 ? "ok" : "warn"));
+  t3.appendChild(rows3);
+  box.appendChild(t3);
+
+  /* 4 - latency */
+  const t4 = el("div", "kpi");
+  const top4 = el("div", "kpi-top");
+  const left4 = el("div");
+  left4.appendChild(el("div", "eyebrow", "Gate latency (p95)"));
+  const v4 = el("div", "kpi-val " + (Number(lat.p95) < CEILING_MS ? "ok" : "bad"),
+                num(lat.p95, 3));
+  v4.appendChild(el("span", "unit", "ms"));
+  left4.appendChild(v4);
+  top4.appendChild(left4);
+  top4.appendChild(badge("prereg ceiling " + CEILING_MS + " ms",
+    Number(lat.p95) < CEILING_MS ? "ok" : "bad"));
+  t4.appendChild(top4);
+  t4.appendChild(cdfSpark(lat));
+  const rows4 = el("div", "kpi-rows");
+  rows4.appendChild(kpiRow("p50 / p99", num(lat.p50, 3) + " / " + num(lat.p99, 3) + " ms"));
+  rows4.appendChild(kpiRow("max (first-decision warm-up)", num(lat.max, 3) + " ms", "warn"));
+  rows4.appendChild(kpiRow("decisions measured", intFmt(lat.n), "dim"));
+  t4.appendChild(rows4);
+  box.appendChild(t4);
+}
+</script>
+<script>
+/* ---------------------------------------------------------- pipeline */
+function renderPipeline() {
+  const R = state.results;
+  const stagesBox = $("stages"), rungsBox = $("rungs");
+  clear(stagesBox); clear(rungsBox);
+
+  const meta = (R && R.meta) || {};
+  const lat = (R && R.latency_ms) || {};
+  const attacks = (R && R.attacks) || [];
+  const b = (R && R.benign) || {};
+  const ladder = ((R && R.ladder_usage_total) || {}).actions || {};
+  const identity = ((R && R.identity_arm) || {}).attacks || [];
+  const contract = state.contract;
+  const caught = attacks.filter((a) => Number(a.detected_pct) >= 95).length;
+  const idHits = identity.filter((a) => Number(a.detected_pct) >= 95).length;
+
+  const stages = [
+    {id: "STAGE L0", tone: "", title: "Declared role contract",
+     desc: "The only trusted anchor: permitted tools, data classes, egress allowlist " +
+           "and per-session ceilings, signed when the contract loads.",
+     metric: contract ? (contract.permitted_tools || []).length + " tools" : "contract",
+     metricTone: "dim",
+     footK: "records ceiling",
+     footV: contract ? intFmt((contract.ceilings || {}).records_per_session) : "--",
+     footTone: ""},
+    {id: "STAGE L1", tone: "", title: "Event gateway",
+     desc: "Every tool call becomes a signed event with nonce freshness. The gateway " +
+           "decides before bytes move; the ledger records the decision.",
+     metric: lat.n ? intFmt(lat.n) + " decisions" : "in path",
+     metricTone: "dim",
+     footK: "p95 decision cost",
+     footV: lat.p95 !== undefined ? num(lat.p95, 3) + " ms" : "--",
+     footTone: Number(lat.p95) < CEILING_MS ? "ok" : ""},
+    {id: "STAGE L2", tone: "", title: "Detector array",
+     desc: "Contract, provenance, baseline, intent, context and delegation detectors " +
+           "vote in parallel; no single detector is the gate.",
+     metric: "6 detectors",
+     metricTone: "dim",
+     footK: "corpora caught in phase 1",
+     footV: caught + " / " + attacks.length,
+     footTone: "ok"},
+    {id: "STAGE L3", tone: "ok", title: "Change channel",
+     desc: "Approved change traffic retrains the baseline without raising an alert - " +
+           "the false-alarm control is measured, not asserted.",
+     metric: (meta.legit_change_sessions !== undefined ? meta.legit_change_sessions : "--") +
+             " sessions",
+     metricTone: "",
+     footK: "false alerts / 1000",
+     footV: num(b.false_alerts_per_1000_incl_legit_change, 1),
+     footTone: Number(b.false_alerts_per_1000_incl_legit_change) === 0 ? "ok" : ""},
+    {id: "STAGE L4", tone: "", title: "Fusion and impact",
+     desc: "noisy-OR fusion plus impact weighting and detector floors collapse every " +
+           "signal into one score with reasons attached.",
+     metric: "one explained score",
+     metricTone: "dim",
+     footK: "identity arm catches",
+     footV: identity.length ? idHits + " / " + identity.length + " corpora" : "--",
+     footTone: "ok"},
+    {id: "STAGE L5", tone: "warn", title: "Graduated response",
+     desc: "Containment instead of termination: annotate, narrow, quarantine, isolate " +
+           "and block, escalated by identity scope when a return is detected.",
+     metric: LADDER.filter((k) => Number(ladder[k]) > 0).length + " rungs reached",
+     metricTone: "warn",
+     footK: "isolate decisions",
+     footV: intFmt(ladder.isolate),
+     footTone: ""},
+  ];
+
+  stages.forEach((s) => {
+    const box = el("div", "stage " + s.tone);
+    const top = el("div", "stage-top");
+    top.appendChild(el("span", "stage-id", s.id));
+    top.appendChild(el("span", "stage-metric " + (s.metricTone || ""), s.metric));
+    box.appendChild(top);
+    box.appendChild(el("h4", "", s.title));
+    box.appendChild(el("p", "", s.desc));
+    const foot = el("div", "stage-foot");
+    foot.appendChild(el("span", "", s.footK));
+    foot.appendChild(el("b", " " + (s.footTone || ""), s.footV));
+    box.appendChild(foot);
+    stagesBox.appendChild(box);
+  });
+
+  const label = el("span", "label");
+  label.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" ' +
+    'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z"/></svg>' +
+    "<span>Escalation ladder</span>";
+  rungsBox.appendChild(label);
+
+  if (!R) {
+    rungsBox.appendChild(el("span", "rung", "counts unavailable without a run"));
+  } else {
+    LADDER.forEach((k) => {
+      const chip = el("span", "rung " + LADDER_CLASS[k]);
+      chip.appendChild(el("b", "", intFmt(ladder[k] || 0)));
+      chip.appendChild(document.createTextNode(k + " // " + LADDER_RUNG[k]));
+      rungsBox.appendChild(chip);
+    });
+    const total = LADDER.reduce((s, k) => s + (Number(ladder[k]) || 0), 0);
+    const tot = el("span", "rung");
+    tot.appendChild(el("b", "", intFmt(total)));
+    tot.appendChild(document.createTextNode(" decisions"));
+    rungsBox.appendChild(tot);
+  }
+}
+
+/* ------------------------------------------------------------ ledger */
+function ledgerStatus(a) {
+  const p1 = Number(a.detected_pct);
+  const p2 = phase2(a);
+  if (p1 >= 95) return {cls: "ok", text: "suppressed"};
+  if (p2 && Number(p2.detected_pct) >= 90) return {cls: "warn", text: "phase-2 latch"};
+  if (p1 > 0) return {cls: "warn", text: "partial"};
+  return {cls: "bad", text: "phase-1 miss"};
+}
+
+function cellBar(pct, cls) {
+  const w = el("div", "cellbar " + (cls || ""));
+  const fill = el("i");
+  fill.style.width = Math.max(0, Math.min(100, Number(pct) || 0)) + "%";
+  w.appendChild(fill);
+  return w;
+}
+
+function renderLedger() {
+  const body = $("ledger-body"), foot = $("ledger-foot");
+  clear(body); clear(foot);
+  const R = state.results;
+  if (!R) {
+    const tr = el("tr");
+    const td = el("td", "", "NO MEASURED RESULTS - run the evaluation to populate this ledger.");
+    td.colSpan = 7;
+    td.style.color = "var(--ink-3)";
+    tr.appendChild(td);
+    body.appendChild(tr);
+    return;
+  }
+
+  const attacks = R.attacks || [];
+  const identity = {};
+  (((R.identity_arm) || {}).attacks || []).forEach((a) => { identity[a.id] = a; });
+
+  const q = state.ledgerQuery.toLowerCase().trim();
+  const rows = attacks.filter((a) => {
+    if (state.ledgerFilter === "caught" && Number(a.detected_pct) < 95) return false;
+    if (state.ledgerFilter === "p2" && !phase2(a)) return false;
+    if (state.ledgerFilter === "miss" && Number(a.detected_pct) >= 95) return false;
+    if (!q) return true;
+    const hay = (a.id + " " + (a.name || "") + " " + (VECTOR_DESC[a.id] || "")).toLowerCase();
+    return hay.includes(q);
+  });
+
+  rows.forEach((a) => {
+    const p2 = phase2(a);
+    const st = ledgerStatus(a);
+    const tr = el("tr");
+    tr.dataset.id = a.id;
+    tr.appendChild(el("td", "id", shortId(a.id)));
+
+    const tdVec = el("td");
+    tdVec.appendChild(el("div", "vec", a.name || a.id));
+    tdVec.appendChild(el("div", "vec-desc", VECTOR_DESC[a.id] || ""));
+    tr.appendChild(tdVec);
+
+    const tdP1 = el("td", "num");
+    tdP1.appendChild(document.createTextNode(num(a.detected_pct, 1) + "%"));
+    tdP1.appendChild(cellBar(a.detected_pct, "p1"));
+    tdP1.appendChild(el("span", "ci", ciText(a.detected_ci95)));
+    tr.appendChild(tdP1);
+
+    const tdP2 = el("td", "num dim");
+    tdP2.textContent = p2 ? num(p2.detected_pct, 1) + "%" : "-";
+    if (p2) tdP2.appendChild(cellBar(p2.detected_pct, "p2"));
+    tr.appendChild(tdP2);
+
+    const tdLeak = el("td", "num " +
+      (Number(a.records_out_tether_median) === 0 ? "" : "dim"));
+    tdLeak.textContent = num(a.records_out_none, 1) + " -> " +
+      num(a.records_out_tether_median, 1);
+    tdLeak.title = "median records per session, no defense -> tether (unit: " +
+      ((R.meta || {}).unit_leak || "records") + ")";
+    tr.appendChild(tdLeak);
+
+    const idn = identity[a.id];
+    const tdIdent = el("td", "num dim", idn ? num(idn.detected_pct, 1) + "%" : "-");
+    tdIdent.title = "identity arm (signed envelope / delegation / key-role binding)";
+    tr.appendChild(tdIdent);
+
+    const tdSt = el("td");
+    const pill = el("span", "status " + st.cls);
+    pill.appendChild(el("span", "dot"));
+    pill.appendChild(document.createTextNode(st.text));
+    tdSt.appendChild(pill);
+    tr.appendChild(tdSt);
+
+    body.appendChild(tr);
+  });
+
+  if (!rows.length) {
+    const tr = el("tr");
+    const td = el("td", "", "No vector matches this filter.");
+    td.colSpan = 7;
+    td.style.color = "var(--ink-3)";
+    tr.appendChild(td);
+    body.appendChild(tr);
+  }
+
+  const phase1 = attacks.filter((a) => Number(a.detected_pct) >= 95).length;
+  const p2only = attacks.filter((a) => phase2(a) && Number(a.detected_pct) < 95).length;
+  const s1 = el("span");
+  s1.appendChild(document.createTextNode("Showing "));
+  s1.appendChild(el("b", "", rows.length + " of " + attacks.length));
+  s1.appendChild(document.createTextNode(" corpora"));
+  foot.appendChild(s1);
+  const s2 = el("span");
+  s2.appendChild(el("b", "", phase1 + " / " + attacks.length));
+  s2.appendChild(document.createTextNode(" caught in phase 1 - "));
+  s2.appendChild(el("b", "", String(p2only)));
+  s2.appendChild(document.createTextNode(" only by the phase-2 drift budget"));
+  foot.appendChild(s2);
+}
+</script>
+<script>
+/* ------------------------------------------------- drift (phase-2) chart */
+function trajCurve(rows) {
+  const by = new Map();
+  (rows || []).forEach((r) => {
+    const sess = String(r[0]);
+    const cusum = Number(r[3]) || 0;
+    const latched = Number(r[4]) || 0;
+    const cur = by.get(sess) || [0, 0];
+    cur[0] = Math.max(cur[0], cusum);
+    cur[1] = Math.max(cur[1], latched);
+    by.set(sess, cur);
+  });
+  return Array.from(by.values());
+}
+
+function renderDrift() {
+  const R = state.results;
+  const aid = state.driftAid;
+  const svg = $("drift-svg"), axis = $("drift-axis"), mini = $("drift-mini"),
+        hot = $("drift-threshold");
+  clear(axis); clear(mini);
+
+  const curve = R ? trajCurve(((R.drift_trajectory) || {})[aid]) : [];
+  const peak = curve.reduce((m, c) => Math.max(m, c[0]), 0);
+  const latched = curve.filter((c) => c[1] > 0).length;
+  const ymax = peak > 0 ? peak * 1.12 : 1;
+  const x0 = 6, y0 = 6, x1 = 354, y1 = 140;
+  const n = Math.max(1, curve.length - 1);
+  const px = (i) => x0 + (i / n) * (x1 - x0);
+  const py = (v) => y1 - (v / ymax) * (y1 - y0);
+
+  hot.textContent = R ? ("latched sessions: " + latched + " / " + curve.length)
+                      : "drift budget";
+
+  if (!curve.length) {
+    svg.innerHTML =
+      '<line x1="6" y1="140" x2="354" y2="140" stroke="#cbd5e1" stroke-width="1" ' +
+      'vector-effect="non-scaling-stroke"/>' +
+      '<text x="180" y="78" text-anchor="middle" ' +
+      'font-family="ui-monospace, monospace" font-size="11" fill="#94a3b8">' +
+      'NO MEASURED RESULTS</text>';
+    axis.appendChild(el("span", "", "run the evaluation to plot"));
+    axis.appendChild(el("b", "", "--"));
+    mini.appendChild(miniBox("peak per-session CUSUM", "--", "", ""));
+    mini.appendChild(miniBox("sessions latched", "--", "", ""));
+    return;
+  }
+
+  let grid = "";
+  [0.25, 0.5, 0.75].forEach((t) => {
+    const y = py(ymax * t).toFixed(1);
+    grid += '<line x1="' + x0 + '" y1="' + y + '" x2="' + x1 + '" y2="' + y +
+            '" stroke="#e2e8f0" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+  });
+  const baseline = '<line x1="' + x0 + '" y1="' + y1 + '" x2="' + x1 + '" y2="' + y1 +
+                   '" stroke="#cbd5e1" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+
+  const pts = curve.map((c, i) => px(i).toFixed(1) + "," + py(c[0]).toFixed(1));
+  const line = pts.join(" ");
+  const area = x0 + "," + y1 + " " + line + " " + x1 + "," + y1;
+  const latchIdx = curve.findIndex((c) => c[1] > 0);
+  const lastX = px(curve.length - 1), lastY = py(curve[curve.length - 1][0]);
+  let latchMark = "";
+  if (latchIdx >= 0) {
+    const lx = px(latchIdx).toFixed(1), ly = py(curve[latchIdx][0]).toFixed(1);
+    latchMark =
+      '<circle cx="' + lx + '" cy="' + ly + '" r="7" fill="#fffbeb" ' +
+      'stroke="#fde68a" stroke-width="1"/>' +
+      '<circle cx="' + lx + '" cy="' + ly + '" r="3.4" fill="#d97706"/>' +
+      '<text x="' + (px(latchIdx) + 8).toFixed(1) + '" y="' +
+      Math.max(14, py(curve[latchIdx][0]) - 8).toFixed(1) +
+      '" font-family="ui-monospace, monospace" font-size="9" font-weight="600" ' +
+      'fill="#b45309">LATCH</text>';
+  }
+
+  svg.innerHTML =
+    '<defs><linearGradient id="driftGrad" x1="0" x2="0" y1="0" y2="1">' +
+    '<stop offset="0%" stop-color="#fde68a" stop-opacity="0.75"/>' +
+    '<stop offset="100%" stop-color="#fde68a" stop-opacity="0.05"/>' +
+    '</linearGradient></defs>' +
+    grid + baseline +
+    '<polygon points="' + area + '" fill="url(#driftGrad)"/>' +
+    '<polyline points="' + line + '" fill="none" stroke="#213145" stroke-width="2" ' +
+    'stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>' +
+    latchMark +
+    '<circle cx="' + lastX.toFixed(1) + '" cy="' + lastY.toFixed(1) +
+    '" r="3.6" fill="#0f172a"/>';
+
+  axis.appendChild(el("span", "", "session 0"));
+  axis.appendChild(el("span", "", curve.length + " sessions, first-seen order"));
+  axis.appendChild(el("b", "", "peak " + num(peak, 2)));
+
+  mini.appendChild(miniBox("peak per-session CUSUM", num(peak, 2),
+    "max of the two destinations per session", "warn"));
+  mini.appendChild(miniBox("sessions latched", latched + " / " + curve.length,
+    latched ? "escalation state reached" : "no escalation", latched ? "warn" : "ok"));
+}
+
+function miniBox(k, v, sub, tone) {
+  const box = el("div", "mini");
+  box.appendChild(el("span", "k", k));
+  box.appendChild(el("span", "v " + (tone || ""), v));
+  if (sub) box.appendChild(el("span", "sub", sub));
+  return box;
+}
+
+/* --------------------------------------------------------- latency panel */
+function renderLatency() {
+  const R = state.results;
+  const bars = $("latency-bars"), strip = $("latency-strip"),
+        disc = $("latency-disclose"), badgeEl = $("latency-badge");
+  clear(bars); clear(strip); clear(disc);
+
+  if (!R) {
+    badgeEl.className = "badge warn";
+    badgeEl.textContent = "no run";
+    bars.appendChild(el("div", "disclose",
+      "NO MEASURED RESULTS - latency is only shown from a generated run."));
+    return;
+  }
+  const lat = R.latency_ms || {};
+  const under = Number(lat.p95) < CEILING_MS;
+  badgeEl.className = "badge " + (under ? "ok" : "bad");
+  badgeEl.textContent = under ? "p95 under ceiling" : "p95 over ceiling";
+
+  const rows = [
+    {k: "p50 median overhead", v: lat.p50, cls: ""},
+    {k: "p95 enforcement margin", v: lat.p95, cls: under ? "ok" : "bad"},
+    {k: "p99 tail", v: lat.p99, cls: Number(lat.p99) < CEILING_MS ? "ok" : "bad"},
+    {k: "max (first-decision warm-up)", v: lat.max, cls: "warn"},
+  ];
+  rows.forEach((r) => {
+    const row = el("div", "bar-row");
+    const top = el("div", "bar-top");
+    top.appendChild(el("span", "k", r.k));
+    const v = el("span", "v");
+    v.textContent = num(r.v, 3) + " ms ";
+    v.appendChild(el("span", "ref", "/ " + CEILING_MS + " ms"));
+    top.appendChild(v);
+    row.appendChild(top);
+    const track = el("div", "track");
+    const fill = el("div", "fill " + r.cls);
+    const pct = Math.min(100, (Number(r.v) / CEILING_MS) * 100);
+    fill.style.width = Math.max(1.5, pct) + "%";
+    track.appendChild(fill);
+    row.appendChild(track);
+    bars.appendChild(row);
+  });
+
+  const k1 = el("span");
+  k1.appendChild(document.createTextNode("n = "));
+  k1.appendChild(el("b", "", intFmt(lat.n)));
+  k1.appendChild(document.createTextNode(" decisions - " + (lat.unit || "ms per decision")));
+  strip.appendChild(k1);
+  const k2 = el("span");
+  k2.appendChild(document.createTextNode("wall clock "));
+  k2.appendChild(el("b", "", num(R.wall_seconds, 2) + " s"));
+  k2.appendChild(document.createTextNode(" (excluded from the results digest)"));
+  strip.appendChild(k2);
+
+  disc.appendChild(el("b", null, "Disclosure: "));
+  disc.appendChild(document.createTextNode(
+    "the maximum is first-decision warm-up, not steady-state overhead. Quote p50/p95/p99 " +
+    "for the operational claim; the maximum is plotted rather than trimmed."));
+}
+
+/* --------------------------------------------------------- live replay */
 function pill(action) {
   const a = action || "allow";
   return el("span", "pill " + a, a);
 }
+function eventNarrative(ev) {
+  const tool = String((ev && ev.tool) || "").trim();
+  const labels = Array.isArray(ev && ev.labels) ? ev.labels.map(String) : [];
+  const action = String((ev && ev.action) || "").toLowerCase();
+  const has = (label) => labels.indexOf(label) >= 0;
 
-function stopPlay() {
-  if (state.timer) {
-    clearInterval(state.timer);
-    state.timer = null;
+  if (action === "skipped") {
+    return "Skipped - containment removed this capability before the step could run.";
   }
+  if (action === "block") {
+    if (has("EXTERNAL_SEND") || tool === "http.post" || tool === "email.send") {
+      return "Send blocked - tainted data never crosses the boundary.";
+    }
+    return "Blocked - the gate stopped this call before it executed.";
+  }
+  if (action === "quarantine" || action === "isolate") {
+    return (tool === "hr_db.query" || has("RESTRICTED"))
+      ? "Sensitive store touched - Rule of Two fires; the tainted path is contained before egress."
+      : "Rule of Two fires - the tainted path is contained before egress.";
+  }
+  if (action === "narrow") {
+    return (tool === "hr_db.query" || has("RESTRICTED"))
+      ? "Sensitive store touched - Rule of Two fires; the capability is narrowed before the send."
+      : "Rule of Two fires - the capability is narrowed before the send.";
+  }
+  if (tool === "pdf.read") {
+    return has("UNTRUSTED")
+      ? "Untrusted content read - the poisoned document enters as tainted input."
+      : "Document read - inbound content enters the session.";
+  }
+  if (tool === "hr_db.query") {
+    return "Sensitive store touched - restricted HR records enter the session.";
+  }
+  if (tool === "pricing_api.read") {
+    return has("RESTRICTED")
+      ? "Sensitive store touched - restricted pricing enters the session."
+      : "Legitimate pricing lookup - allowed business context.";
+  }
+  if (tool === "http.post") {
+    return has("EXTERNAL_SEND")
+      ? "Exfiltration attempt - the send reaches the boundary."
+      : "Outbound call - destination checked against the allowlist.";
+  }
+  if (tool === "email.send") {
+    return has("CARRY")
+      ? "Send attempted - carried data is checked at the boundary."
+      : "Email send - outbound destination checked.";
+  }
+  if (tool === "purchase_request.create") {
+    return "Legit work - purchase request written inside the declared role.";
+  }
+  if (tool === "inter_agent.send") {
+    return "Cross-agent hand-off - delegation scope checked.";
+  }
+  if (has("CARRY")) return "Tainted data carried - provenance stays attached.";
+  if (has("UNTRUSTED")) return "Untrusted content touched - taint enters the session.";
+  if (has("RESTRICTED")) return "Sensitive store touched - restricted data enters the session.";
+  if (action === "allow") {
+    return "Allowed - the step stays inside contract, classes and ceilings.";
+  }
+  if (action === "hold") return "Held - the gate pauses the step for review.";
+  return "Step recorded - " + tool + " -> " + action + ".";
+}
+function stopPlay() {
+  if (state.timer) { clearInterval(state.timer); state.timer = null; }
   $("play").textContent = "play";
 }
-
 function setStepperEnabled() {
   const n = state.events.length;
   $("prev").disabled = n === 0 || state.idx <= 0;
@@ -291,25 +1865,23 @@ function setStepperEnabled() {
   $("play").disabled = n === 0;
   $("step-count").textContent = "step " + (n ? state.idx + 1 : 0) + " / " + n;
 }
-
 function renderReplay() {
-  const box = $("replay");
+  const box = $("replay-box");
   clear(box);
   const s = state.session;
   if (!s) {
-    box.appendChild(el("div", "hint", "Choose a scenario and run. Values here are live decisions, not the measured aggregate."));
+    box.appendChild(el("div", "hint",
+      "Choose a scenario and run. Values here are live decisions, not the measured aggregate."));
     $("step-count").textContent = "step 0 / 0";
     $("export").disabled = true;
-    $("run-hint").textContent = "No session loaded.";
+    $("run-hint").textContent = "No session loaded. Arrow keys step the timeline.";
     return;
   }
-
   const head = el("div", "replay-head");
-  const sid = el("div", "sid", s.session + " / " + s.attack + " / " + s.mode);
-  const outcome = el("div", "outcome",
-    (s.detected ? "ALERT" : "CLEAN") + " / leak " + s.leak_records + " / utility " + s.utility);
-  head.appendChild(sid);
-  head.appendChild(outcome);
+  head.appendChild(el("div", "sid", s.session + " / " + s.attack + " / " + s.mode));
+  head.appendChild(el("div", "outcome",
+    (s.detected ? "ALERT" : "CLEAN") + " / leak " + s.leak_records +
+    " / utility " + s.utility));
   box.appendChild(head);
 
   state.events.forEach((ev, i) => {
@@ -320,25 +1892,21 @@ function renderReplay() {
     row.appendChild(pill(ev.action));
     row.appendChild(el("span", "score", "score " + Number(ev.score || 0).toFixed(1)));
     if ((ev.reasons || []).length) row.title = ev.reasons.join(" | ");
+    row.appendChild(el("div", "ev-note", eventNarrative(ev)));
     box.appendChild(row);
-    if (i === state.idx) {
-      setTimeout(() => row.scrollIntoView({block: "nearest"}), 0);
-    }
+    if (i === state.idx) setTimeout(() => row.scrollIntoView({block: "nearest"}), 0);
   });
 
   if (state.alert) {
     const card = el("div", "alert-card");
-    card.appendChild(el("div", "head",
-      "score " + state.alert.score + " / " + state.alert.severity + " / " + state.alert.action_taken));
-    card.appendChild(el("div", "meta",
-      "confidence " + state.alert.confidence +
+    card.appendChild(el("div", "head", "score " + state.alert.score + " / " +
+      state.alert.severity + " / " + state.alert.action_taken));
+    card.appendChild(el("div", "meta", "confidence " + state.alert.confidence +
       " / baseline maturity " + state.alert.baseline_maturity));
     const ul = el("ul");
     (state.alert.reasons || []).forEach((r) => ul.appendChild(el("li", "", r)));
     card.appendChild(ul);
-    if (state.alert.counterfactual) {
-      card.appendChild(el("div", "cf", state.alert.counterfactual));
-    }
+    if (state.alert.counterfactual) card.appendChild(el("div", "cf", state.alert.counterfactual));
     box.appendChild(card);
   }
 
@@ -359,12 +1927,13 @@ async function runSession() {
   $("run").disabled = true;
   $("run-hint").textContent = "Running one live session...";
   try {
-    const q = new URLSearchParams({scenario, mode, n: "1",
+    const q = new URLSearchParams({scenario: scenario, mode: mode, n: "1",
       seed: String((state.index && state.index.summary && state.index.summary.seed) || 7),
       phase2: "true"});
     const r = await fetch("/run?" + q.toString(), {cache: "no-store"});
     const data = await r.json();
-    if (!r.ok) throw new Error(data.error || "run failed");
+    if (data && data.error) throw new Error(data.error);
+    if (!r.ok) throw new Error("run failed");
     const s = (data.sessions || [])[0];
     if (!s) throw new Error("no session returned");
     state.session = s;
@@ -373,12 +1942,9 @@ async function runSession() {
     state.idx = 0;
     renderReplay();
   } catch (err) {
-    state.session = null;
-    state.events = [];
-    state.alert = null;
-    state.idx = 0;
-    clear($("replay"));
-    $("replay").appendChild(el("div", "hint", "Run failed: " + err.message));
+    state.session = null; state.events = []; state.alert = null; state.idx = 0;
+    clear($("replay-box"));
+    $("replay-box").appendChild(el("div", "hint", "Run failed: " + err.message));
     $("run-hint").textContent = "No session loaded.";
     $("export").disabled = true;
     $("step-count").textContent = "step 0 / 0";
@@ -389,12 +1955,8 @@ async function runSession() {
 
 function exportAlert() {
   if (!state.alert || !state.session) return;
-  const payload = {
-    session: state.session.session,
-    attack: state.session.attack,
-    mode: state.session.mode,
-    alert: state.alert,
-  };
+  const payload = {session: state.session.session, attack: state.session.attack,
+                   mode: state.session.mode, alert: state.alert};
   const blob = new Blob([JSON.stringify(payload, null, 2) + "\n"],
                         {type: "application/json"});
   const url = URL.createObjectURL(blob);
@@ -414,10 +1976,10 @@ async function loadScenarios() {
     const data = await r.json();
     const sel = $("scenario");
     clear(sel);
-    Object.entries(data.scenarios || {}).forEach(([name, desc]) => {
+    Object.entries(data.scenarios || {}).forEach((pair) => {
       const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name + " - " + desc;
+      opt.value = pair[0];
+      opt.textContent = pair[0] + " - " + pair[1];
       sel.appendChild(opt);
     });
     const preferred = "a1_pdf_injection";
@@ -426,33 +1988,651 @@ async function loadScenarios() {
     $("run-hint").textContent = "Scenarios unavailable; is the API running?";
   }
 }
-
-function noMeasuredResults() {
-  state.index = null;
-  const stamp = $("run-stamp");
-  stamp.classList.add("no-data");
-  $("stamp-line").textContent = "NO MEASURED RESULTS";
-  $("stamp-sub").textContent = "The dashboard is live; only the aggregate exhibits are unavailable.";
-  $("exhibit-nav").textContent = "";
-  $("exhibit-count").textContent = "0 exhibits";
-  const box = $("exhibits");
-  clear(box);
-  const empty = el("div", "empty");
-  empty.appendChild(el("h3", "", "No measured results"));
-  empty.appendChild(el("p", "", "No placeholder numbers are shown. Generate the canonical run once, then regenerate the exhibits:"));
-  const code = el("code", "", "python -m tether.evaluate --seed 7 --ablation\npython -m tether.exhibits --write");
-  empty.appendChild(code);
-  empty.appendChild(el("p", "", "The live replay above still works because it runs the simulator directly."));
-  box.appendChild(empty);
+</script>
+<script>
+/* ------------------------------------------- corpus scorecard (charts) */
+function srow(id) {
+  const row = el("div", "srow");
+  row.appendChild(el("span", "srow-id", id));
+  const plot = el("div", "splot");
+  plot.appendChild(el("div", "strack a"));
+  plot.appendChild(el("div", "strack b"));
+  row.appendChild(plot);
+  const val = el("div", "sval");
+  const va = el("span", "a", "--");
+  const vb = el("span", "b", "--");
+  val.appendChild(va); val.appendChild(vb);
+  row.appendChild(val);
+  return {row: row, plot: plot, va: va, vb: vb};
+}
+function sbar(plot, cls, pct) {
+  const b = el("div", "sbar " + cls);
+  b.style.width = Math.max(0, Math.min(100, pct)) + "%";
+  plot.appendChild(b);
+}
+function swhisk(plot, top, lo, hi) {
+  const l = Math.max(0, Math.min(100, Number(lo) || 0));
+  const h = Math.max(0, Math.min(100, Number(hi) || 0));
+  const w = el("div", "swhisk");
+  w.style.top = top + "px";
+  w.style.left = l + "%";
+  w.style.width = Math.max(0.4, h - l) + "%";
+  plot.appendChild(w);
 }
 
-function renderHeader(data) {
-  const s = data.summary || {};
-  $("stamp-line").textContent =
-    "seed " + s.seed + " / " + s.attack_n + " sessions/attack";
-  $("stamp-sub").textContent =
-    (s.benign ?? "?") + " benign + " + (s.approved_change ?? "?") +
-    " approved change / unit: " + (s.unit || "n/a");
+function renderScorecard() {
+  const dbox = $("score-detect"), foot = $("score-foot"), badgeEl = $("score-badge");
+  clear(dbox); clear(foot);
+  const R = state.results;
+  const attacks = (R && R.attacks) || [];
+  if (!attacks.length) {
+    badgeEl.className = "badge warn";
+    badgeEl.textContent = "no run";
+    dbox.appendChild(el("div", "disclose",
+      "NO MEASURED RESULTS - the scorecard only appears from a generated run."));
+    return;
+  }
+  let caught1 = 0, caught2 = 0;
+
+  attacks.forEach((a) => {
+    const id = shortId(a.id);
+    const p1 = Number(a.detected_pct) || 0;
+    const p2o = phase2(a);
+    const p2 = p2o ? Number(p2o.detected_pct) : null;
+    const ci = a.detected_ci95 || [];
+
+    const r = srow(id);
+    sbar(r.plot, "a p1", p1);
+    if (ci.length === 2) swhisk(r.plot, 4.5, ci[0], ci[1]);
+    r.va.textContent = num(p1, 1);
+    if (p2 !== null) {
+      sbar(r.plot, "b p2", p2);
+      const ci2 = p2o.detected_ci95 || [];
+      if (ci2.length === 2) swhisk(r.plot, 18.5, ci2[0], ci2[1]);
+      r.vb.textContent = num(p2, 1);
+    } else {
+      r.vb.textContent = "-";
+    }
+    r.row.title = (a.name || a.id) + " - phase 1 " + num(p1, 1) + "% " + ciText(ci) +
+      (p2 !== null ? "  |  phase 2 " + num(p2, 1) + "% " + ciText(ci2(p2o)) : "");
+    dbox.appendChild(r.row);
+    if (p1 >= 95) caught1 += 1;
+    if (p2 !== null && p2 >= 95) caught2 += 1;
+
+  });
+
+  const f1 = el("span");
+  f1.appendChild(document.createTextNode("phase 1 catches "));
+  f1.appendChild(el("b", "", caught1 + " / " + attacks.length));
+  f1.appendChild(document.createTextNode(" corpora at or above 95%"));
+  foot.appendChild(f1);
+  const f2 = el("span");
+  f2.appendChild(document.createTextNode("phase 2 lifts that to "));
+  f2.appendChild(el("b", "", caught2 + " / " + attacks.length));
+  f2.appendChild(document.createTextNode(" across all corpora"));
+  foot.appendChild(f2);
+  badgeEl.className = "badge info";
+  badgeEl.textContent = "n = " + intFmt(attacks[0].n) + " sessions per corpus";
+}
+
+function ci2(p2o) { return (p2o && p2o.detected_ci95) || []; }
+
+/* ------------------------------------------- threshold sweep + ablation */
+function renderSweep() {
+  const table = $("sweep-table"), foot = $("sweep-foot");
+  clear(table); clear(foot);
+  const R = state.results;
+  const ts = R && R.threshold_sweep;
+  if (!ts || !Array.isArray(ts.rows) || !ts.rows.length) {
+    const tb = el("tbody");
+    const tr = el("tr");
+    const td = el("td", "", "NO MEASURED RESULTS - the sweep is only shown from a run.");
+    td.style.color = "var(--ink-3)";
+    tr.appendChild(td); tb.appendChild(tr); table.appendChild(tb);
+    return;
+  }
+  const aids = (R.attacks || []).map((a) => a.id);
+  const bandMatch = String(ts.note || "").match(/bands \(([^)]+)\)/);
+  const bandSet = new Set((bandMatch ? bandMatch[1].split("/") : [])
+    .map((s) => Number(s.trim())));
+
+  const thead = el("thead");
+  const htr = el("tr");
+  htr.appendChild(el("th", "", "score >="));
+  aids.forEach((id) => htr.appendChild(el("th", "num", shortId(id))));
+  htr.appendChild(el("th", "num", "FP / 1000"));
+  thead.appendChild(htr);
+  table.appendChild(thead);
+
+  const tbody = el("tbody");
+  ts.rows.forEach((row) => {
+    const tr = el("tr");
+    const tdT = el("td");
+    tdT.textContent = String(row.threshold);
+    if (bandSet.has(Number(row.threshold))) tdT.appendChild(el("span", "band"));
+    tr.appendChild(tdT);
+    aids.forEach((id) => {
+      const v = Number((row.attacks || {})[id]);
+      const cls = v >= 95 ? "c-ok" : (v > 0 ? "c-warn" : "c-dim");
+      tr.appendChild(el("td", cls, num(v, 1)));
+    });
+    const fp = Number(row.clean_false_alerts_per_1000);
+    tr.appendChild(el("td", fp === 0 ? "c-ok" : "c-bad", num(fp, 1)));
+    tr.addEventListener("click", () => {
+      tbody.querySelectorAll("tr").forEach((x) => x.classList.remove("sel"));
+      tr.classList.add("sel");
+      sweepSummary(row, aids);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  foot.appendChild(el("span", "",
+    (ts.unit || "score threshold -> % of sessions detected") +
+    (bandSet.size ? " - blue dot marks a shipped score band" : "")));
+  const s2 = el("span");
+  s2.appendChild(el("b", "", "click a row"));
+  s2.appendChild(document.createTextNode(" to read that threshold aloud"));
+  foot.appendChild(s2);
+}
+
+function sweepSummary(row, aids) {
+  const foot = $("sweep-foot");
+  clear(foot);
+  const dropped = aids.filter((id) => Number((row.attacks || {})[id]) === 0);
+  const s1 = el("span");
+  s1.appendChild(document.createTextNode("threshold " + row.threshold + " -> "));
+  s1.appendChild(el("b", "", dropped.length
+    ? dropped.map(shortId).join(" / ") + " fall to 0.0% detected"
+    : "no corpus falls to 0.0%"));
+  foot.appendChild(s1);
+  const s2 = el("span");
+  const fp = Number(row.clean_false_alerts_per_1000);
+  s2.appendChild(document.createTextNode("false alerts "));
+  s2.appendChild(el("b", "", num(fp, 1) + " / 1,000"));
+  s2.appendChild(document.createTextNode(fp > 0 ? " - unusable operating point" : " - clean"));
+  foot.appendChild(s2);
+}
+
+/* ------------------------------------------- own analytics: containment */
+function renderContainment() {
+  const lbox = $("ct-leak"), sbox = $("ct-steps"), foot = $("ct-foot"),
+        badgeEl = $("ct-badge"), maxEl = $("ct-leak-max");
+  clear(lbox); clear(sbox); clear(foot);
+  const R = state.results;
+  const attacks = (R && R.attacks) || [];
+  if (!attacks.length) {
+    badgeEl.className = "badge warn";
+    badgeEl.textContent = "no run";
+    lbox.appendChild(el("div", "disclose",
+      "NO MEASURED RESULTS - these charts only appear from a generated run."));
+    sbox.appendChild(el("div", "disclose",
+      "NO MEASURED RESULTS - these charts only appear from a generated run."));
+    return;
+  }
+  let maxLeak = 0, maxSteps = 0, zeroed = 0, fired = 0;
+  attacks.forEach((a) => {
+    maxLeak = Math.max(maxLeak, Number(a.records_out_none) || 0,
+                       Number(a.records_out_tether_median) || 0);
+    const st = a.median_steps_to_detect;
+    if (st !== null && st !== undefined) maxSteps = Math.max(maxSteps, Number(st) || 0);
+    if ((Number(a.records_out_tether_median) || 0) === 0 &&
+        (Number(a.records_out_none) || 0) > 0) zeroed += 1;
+    if (st !== null && st !== undefined) fired += 1;
+  });
+  maxLeak = maxLeak || 1;
+  maxSteps = maxSteps || 1;
+  maxEl.textContent = num(maxLeak, 0);
+
+  attacks.forEach((a) => {
+    const id = shortId(a.id);
+    const none = Number(a.records_out_none) || 0;
+    const teth = Number(a.records_out_tether_median) || 0;
+    const lr = srow(id);
+    sbar(lr.plot, "a none", none / maxLeak * 100);
+    sbar(lr.plot, "b teth", teth / maxLeak * 100);
+    lr.va.className = "a red";
+    lr.vb.className = "b grn";
+    lr.va.textContent = num(none, 1);
+    lr.vb.textContent = num(teth, 1);
+    lr.row.title = "median records out per session: no defense " + num(none, 1) +
+      " -> tether " + num(teth, 1) + " (" + ((R.meta || {}).unit_leak || "records") + ")";
+    lbox.appendChild(lr.row);
+
+    const st = a.median_steps_to_detect;
+    const sr = srow(id);
+    sr.plot.classList.add("one");
+    if (st === null || st === undefined) {
+      sr.va.className = "a warn";
+      sr.va.textContent = "no hit";
+      sr.row.title = (a.name || a.id) +
+        " - phase 1 never fired; the phase-2 drift budget is what catches it";
+    } else {
+      sbar(sr.plot, "a p1", (Number(st) || 0) / maxSteps * 100);
+      sr.va.textContent = num(st, 1);
+      sr.row.title = "median steps to detection " + num(st, 1) +
+        "; caught before harmful send " + num(a.caught_before_harmful_send_pct, 1) + "%";
+    }
+    sbox.appendChild(sr.row);
+  });
+
+  const f1 = el("span");
+  f1.appendChild(document.createTextNode("leak: "));
+  f1.appendChild(el("b", "", zeroed + " / " + attacks.length));
+  f1.appendChild(document.createTextNode(" corpora drop to zero records out under tether"));
+  foot.appendChild(f1);
+  const f2 = el("span");
+  f2.appendChild(document.createTextNode("speed: "));
+  f2.appendChild(el("b", "", fired + " / " + attacks.length));
+  f2.appendChild(document.createTextNode(" fire in phase 1; the rest are phase-2 catches"));
+  foot.appendChild(f2);
+  badgeEl.className = "badge info";
+  badgeEl.textContent = "n = " + intFmt(attacks[0].n) + " sessions per corpus";
+}
+
+/* --------------------------------------- own analytics: latency empirical CDF */
+function renderLatencyCdf() {
+  const svg = $("cdf-svg"), hot = $("cdf-hot");
+  const MONO = 'font-family="ui-monospace, monospace"';
+  const R = state.results;
+  const lat = R && R.latency_ms;
+  const cdf = (lat && Array.isArray(lat.cdf))
+    ? lat.cdf.map((p) => [Number(p[0]), Number(p[1])]).filter((p) => Number.isFinite(p[0]))
+    : [];
+  if (cdf.length < 2) {
+    hot.textContent = "no run";
+    svg.innerHTML = '<text x="210" y="86" text-anchor="middle" ' + MONO +
+      ' font-size="11" fill="#94a3b8">NO MEASURED RESULTS</text>';
+    return;
+  }
+  hot.textContent = "p95 " + num(lat.p95, 3) + " ms";
+
+  const W = 420, H = 172, ml = 30, mr = 14, top = 14, bot = 138;
+  const pos = cdf.filter((p) => p[0] > 0).map((p) => p[0]);
+  const xmin = pos.length ? Math.min.apply(null, pos) : 0.001;
+  const xmax = Math.max.apply(null, cdf.map((p) => p[0])) || 1;
+  const lx = (v) => Math.log10(Math.max(v, xmin * 0.9));
+  const x0 = lx(xmin * 0.9), x1 = lx(xmax) || 1;
+  const px = (v) => ml + ((lx(v) - x0) / (x1 - x0)) * (W - ml - mr);
+  const py = (p) => bot - (Math.max(0, Math.min(100, p)) / 100) * (bot - top);
+  let s = "";
+  [0, 50, 100].forEach((t) => {
+    const y = py(t).toFixed(1);
+    s += '<line x1="' + ml + '" y1="' + y + '" x2="' + (W - mr) + '" y2="' + y +
+         '" stroke="#e2e8f0" stroke-width="1"/>';
+    s += '<text x="' + (ml - 6) + '" y="' + (Number(y) + 3.5) + '" text-anchor="end" ' +
+         MONO + ' font-size="8" fill="#94a3b8">' + t + '</text>';
+  });
+  for (let e = Math.ceil(x0); e <= Math.floor(x1); e += 1) {
+    const v = Math.pow(10, e);
+    const x = px(v).toFixed(1);
+    s += '<line x1="' + x + '" y1="' + top + '" x2="' + x + '" y2="' + bot +
+         '" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2 3"/>';
+    s += '<text x="' + x + '" y="' + (bot + 13) + '" text-anchor="middle" ' + MONO +
+         ' font-size="8" fill="#94a3b8">' + num(v, v < 1 ? 1 : 0) + '</text>';
+  }
+  s += '<text x="' + (W - mr) + '" y="' + (bot + 26) + '" text-anchor="end" ' + MONO +
+       ' font-size="8" letter-spacing="0.06em" fill="#64748b">MILLISECONDS (LOG)</text>';
+  const line = cdf.map((p) => px(p[0]).toFixed(1) + "," + py(p[1]).toFixed(1)).join(" ");
+  s += '<polyline points="' + line + '" fill="none" stroke="#2563eb" stroke-width="1.8" ' +
+       'stroke-linejoin="round" stroke-linecap="round"/>';
+  const marks = [["p50", lat.p50, "#1d4ed8"], ["p95", lat.p95, "#d97706"],
+                 ["p99", lat.p99, "#dc2626"]];
+  marks.forEach((m, i) => {
+    const v = Number(m[1]);
+    if (!Number.isFinite(v) || v <= 0) return;
+    const x = px(v).toFixed(1);
+    s += '<line x1="' + x + '" y1="' + top + '" x2="' + x + '" y2="' + bot +
+         '" stroke="' + m[2] + '" stroke-width="1" stroke-dasharray="4 3" opacity="0.85"/>';
+    s += '<text x="' + (Number(x) + 4) + '" y="' + (top + 10 + i * 12) + '" ' + MONO +
+         ' font-size="8" font-weight="700" fill="' + m[2] + '">' + m[0] + " " +
+         num(v, 3) + "</text>";
+  });
+  const last = cdf[cdf.length - 1];
+  s += '<circle cx="' + px(last[0]).toFixed(1) + '" cy="' + py(last[1]).toFixed(1) +
+       '" r="3" fill="#0f172a"/>';
+  s += '<text x="' + (px(last[0]) - 6).toFixed(1) + '" y="' + (py(last[1]) - 7).toFixed(1) +
+       '" text-anchor="end" ' + MONO + ' font-size="8" font-weight="700" fill="#64748b">' +
+       "max " + num(last[0], 3) + "</text>";
+  s += '<line x1="' + ml + '" y1="' + bot + '" x2="' + (W - mr) + '" y2="' + bot +
+       '" stroke="#cbd5e1" stroke-width="1"/>';
+  svg.innerHTML = s;
+}
+
+function renderSweepChart() {
+  const svg = $("sweep-svg"), keys = $("sweep-keys"), hot = $("sweep-hot");
+  clear(keys);
+  const R = state.results;
+  const ts = R && R.threshold_sweep;
+  const rows = ts && Array.isArray(ts.rows) ? ts.rows.slice() : [];
+  if (!rows.length) {
+    hot.textContent = "no run";
+    svg.innerHTML = '<text x="330" y="160" text-anchor="middle" ' +
+      'font-family="ui-monospace, monospace" font-size="12" fill="#94a3b8">' +
+      'NO MEASURED RESULTS</text>';
+    return;
+  }
+  rows.sort((a, b) => Number(a.threshold) - Number(b.threshold));
+
+  const bandMatch = String(ts.note || "").match(/bands \(([^)]+)\)/);
+  const bands = (bandMatch ? bandMatch[1].split("/") : [])
+    .map((s) => Number(s.trim())).filter((n) => Number.isFinite(n));
+  hot.textContent = bands.length ? "shipped bands " + bands.join(" / ")
+                                 : "report-only sensitivity";
+
+  const aids = (R.attacks || []).map((a) => a.id);
+  const varying = aids.filter((id) => {
+    const vals = rows.map((r) => Number((r.attacks || {})[id]));
+    return vals.some((v) => v !== vals[0]);
+  });
+  const series = varying.length ? varying : aids.slice(0, 3);
+  const COLORS = ["#2563eb", "#d97706", "#059669", "#dc2626", "#475569", "#0891b2"];
+
+  const W = 660, H = 320, ml = 38, mr = 16;
+  const plotW = W - ml - mr;
+  const yTop = 18, yBot = 196;
+  const yOf = (p) => yBot - (Math.max(0, Math.min(100, p)) / 100) * (yBot - yTop);
+  const step = rows.length > 1 ? plotW / (rows.length - 1) : 0;
+  const xOf = (i) => ml + i * step;
+  const fps = rows.map((r) => Number(r.clean_false_alerts_per_1000) || 0);
+  const fpMax = Math.max.apply(null, fps.concat([1]));
+  const fpTop = 250, fpBase = 300;
+  const yFp = (v) => fpBase - (Math.max(0, v) / fpMax) * (fpBase - fpTop);
+  const MONO = 'font-family="ui-monospace, monospace"';
+  let s = '';
+
+  /* grid */
+  [0, 25, 50, 75, 100].forEach((t) => {
+    const y = yOf(t).toFixed(1);
+    s += '<line x1="' + ml + '" y1="' + y + '" x2="' + (ml + plotW) + '" y2="' + y +
+         '" stroke="#e2e8f0" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+    s += '<text x="' + (ml - 8) + '" y="' + (Number(y) + 3.5) + '" text-anchor="end" ' +
+         MONO + ' font-size="9" fill="#94a3b8">' + t + '</text>';
+  });
+  s += '<text x="' + ml + '" y="11" ' + MONO + ' font-size="9" letter-spacing="0.06em" ' +
+       'fill="#64748b">% DETECTED</text>';
+
+  /* shipped-band markers */
+  bands.forEach((b) => {
+    const i = rows.findIndex((r) => Number(r.threshold) === b);
+    if (i < 0) return;
+    const x = xOf(i).toFixed(1);
+    s += '<line x1="' + x + '" y1="' + yTop + '" x2="' + x + '" y2="' + yBot +
+         '" stroke="#2563eb" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>';
+  });
+
+  /* detection series */
+  series.forEach((id, si) => {
+    const color = COLORS[si % COLORS.length];
+    const pts = rows.map((r, i) => xOf(i).toFixed(1) + "," +
+      yOf(Number((r.attacks || {})[id]) || 0).toFixed(1)).join(" ");
+    s += '<polyline points="' + pts + '" fill="none" stroke="' + color +
+         '" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>';
+    rows.forEach((r, i) => {
+      const v = Number((r.attacks || {})[id]) || 0;
+      s += '<circle cx="' + xOf(i).toFixed(1) + '" cy="' + yOf(v).toFixed(1) +
+           '" r="2.2" fill="' + color + '"/>';
+    });
+  });
+
+  /* x axis + threshold labels */
+  s += '<line x1="' + ml + '" y1="' + yBot + '" x2="' + (ml + plotW) + '" y2="' + yBot +
+       '" stroke="#cbd5e1" stroke-width="1"/>';
+  rows.forEach((r, i) => {
+    const isBand = bands.indexOf(Number(r.threshold)) >= 0;
+    s += '<text x="' + xOf(i).toFixed(1) + '" y="' + (yBot + 16) + '" text-anchor="middle" ' +
+         MONO + ' font-size="9" font-weight="' + (isBand ? "700" : "500") + '" fill="' +
+         (isBand ? "#2563eb" : "#64748b") + '">' + r.threshold + '</text>';
+  });
+
+  /* false-alert strip */
+  s += '<text x="' + ml + '" y="240" ' + MONO + ' font-size="9" letter-spacing="0.06em" ' +
+       'fill="#64748b">FALSE ALERTS / 1,000 CLEAN SESSIONS (max ' + num(fpMax, 0) + ')</text>';
+  s += '<line x1="' + ml + '" y1="' + fpBase + '" x2="' + (ml + plotW) + '" y2="' + fpBase +
+       '" stroke="#cbd5e1" stroke-width="1"/>';
+  const bw = Math.min(26, step * 0.45);
+  rows.forEach((r, i) => {
+    const v = fps[i];
+    const x = xOf(i) - bw / 2;
+    if (v > 0) {
+      const y = yFp(v);
+      s += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) +
+           '" height="' + (fpBase - y).toFixed(1) + '" fill="#dc2626" rx="2"/>';
+      s += '<text x="' + xOf(i).toFixed(1) + '" y="' + (y - 5).toFixed(1) +
+           '" text-anchor="middle" ' + MONO + ' font-size="9" font-weight="700" ' +
+           'fill="#dc2626">' + num(v, 0) + '</text>';
+    } else {
+      s += '<rect x="' + x.toFixed(1) + '" y="' + (fpBase - 1.5) + '" width="' +
+           bw.toFixed(1) + '" height="1.5" fill="#cbd5e1"/>';
+    }
+  });
+
+  svg.innerHTML = s;
+
+  series.forEach((id, si) => {
+    const k = el("span");
+    const dot = el("i");
+    dot.style.background = COLORS[si % COLORS.length];
+    k.appendChild(dot);
+    k.appendChild(document.createTextNode(shortId(id) + " " +
+      String((R.attacks || []).filter((a) => a.id === id)[0].name || "").slice(0, 26)));
+    keys.appendChild(k);
+  });
+  const fk = el("span");
+  const fd = el("i");
+  fd.style.background = "#dc2626";
+  fk.appendChild(fd);
+  fk.appendChild(document.createTextNode("false alerts / 1,000"));
+  keys.appendChild(fk);
+}
+
+function renderAblation() {
+  const box = $("ab-rows"), strip = $("ab-strip"), badgeEl = $("ab-badge");
+  clear(box); clear(strip);
+  const R = state.results;
+  const ab = R && R.ablation;
+  if (!ab || !Array.isArray(ab.rows) || !ab.rows.length) {
+    badgeEl.className = "badge warn";
+    badgeEl.textContent = "no run";
+    box.appendChild(el("div", "disclose",
+      "NO MEASURED RESULTS - the ablation is only shown from a run."));
+    return;
+  }
+  let worst = null;
+  const scored = ab.rows.map((r) => {
+    let max = 0, argmax = null;
+    Object.entries(r.attacks || {}).forEach((pair) => {
+      const dp = Number(pair[1] && pair[1].delta_caught_pp) || 0;
+      if (dp > max) { max = dp; argmax = pair[0]; }
+      if (!worst || dp > worst.dp) worst = {dp: dp, id: pair[0], removed: r.removed};
+    });
+    return {r: r, max: max, argmax: argmax};
+  }).sort((a, b) => b.max - a.max);
+
+  badgeEl.className = "badge warn";
+  badgeEl.textContent = worst && worst.dp > 0
+    ? "-" + num(worst.dp, 1) + " pp if " + worst.removed + " removed"
+    : "no measured loss";
+
+  scored.forEach((s) => {
+    const row = el("div", "ab-row");
+    row.appendChild(el("span", "ab-name", s.r.removed));
+    const track = el("div", "track");
+    const fill = el("div", "fill " + (s.max > 0 ? "bad" : "ok"));
+    fill.style.width = Math.max(1.5, s.max) + "%";
+    track.appendChild(fill);
+    row.appendChild(track);
+    row.appendChild(el("span", "ab-val " + (s.max > 0 ? "" : "ok"),
+      s.max > 0 ? "-" + num(s.max, 1) + " pp" : "0 pp"));
+    row.title = s.argmax
+      ? "largest caught-before-send loss when " + s.r.removed + " is removed: " +
+        shortId(s.argmax) + " (-" + num(s.max, 1) + " pp)"
+      : "no measured loss when " + s.r.removed + " is removed";
+    box.appendChild(row);
+  });
+
+  const k1 = el("span");
+  k1.appendChild(document.createTextNode("base false alerts / 1000 "));
+  k1.appendChild(el("b", "", num((ab.base || {}).false_alerts_per_1000, 1)));
+  strip.appendChild(k1);
+  const k2 = el("span");
+  k2.appendChild(document.createTextNode("largest measured loss "));
+  k2.appendChild(el("b", "", worst && worst.dp > 0
+    ? worst.removed + " -> " + shortId(worst.id) + " -" + num(worst.dp, 1) + " pp"
+    : "0 pp"));
+  strip.appendChild(k2);
+}
+
+function buildLedgerCsv() {
+  const R = state.results;
+  if (!R || !Array.isArray(R.attacks) || !R.attacks.length) return "";
+  const idents = {};
+  ((((R.identity_arm) || {}).attacks) || []).forEach((a) => { idents[a.id] = a.detected_pct; });
+  const head = ["id", "name", "phase1_detected_pct", "ci95_lo", "ci95_hi",
+    "caught_before_harmful_send_pct", "phase2_detected_pct", "median_steps_to_detect",
+    "leak_median_none", "leak_median_tether", "identity_arm_pct", "status", "n_sessions"];
+  const lines = [head.join(",")];
+  R.attacks.forEach((a) => {
+    const p2 = phase2(a) || {};
+    const ci = a.detected_ci95 || [];
+    lines.push([
+      a.id, JSON.stringify(a.name || ""), a.detected_pct,
+      ci[0], ci[1], a.caught_before_harmful_send_pct,
+      p2.detected_pct === undefined ? "" : p2.detected_pct,
+      a.median_steps_to_detect === null || a.median_steps_to_detect === undefined
+        ? "" : a.median_steps_to_detect,
+      a.records_out_none, a.records_out_tether_median,
+      idents[a.id] === undefined ? "" : idents[a.id],
+      ledgerStatus(a).text, a.n,
+    ].join(","));
+  });
+  return lines.join("\n") + "\n";
+}
+
+function exportLedgerCsv() {
+  const csv = buildLedgerCsv();
+  if (!csv) return;
+  const blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "tether-attack-ledger.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ------------------------------------------- motion + scroll page chrome */
+function wireScrollChrome() {
+  const bar = $("progress"), top = $("totop");
+  const links = Array.from(document.querySelectorAll(".nav a"));
+  const sections = links
+    .map((a) => document.getElementById(a.getAttribute("href").slice(1)))
+    .filter(Boolean);
+  let ticking = false;
+
+  function update() {
+    ticking = false;
+    const y = window.scrollY || document.documentElement.scrollTop;
+    const span = document.documentElement.scrollHeight - window.innerHeight;
+    bar.style.width = (span > 0 ? Math.min(100, (y / span) * 100) : 0) + "%";
+    top.classList.toggle("show", y > 640);
+    let active = sections[0];
+    sections.forEach((s) => {
+      if (s.getBoundingClientRect().top <= 140) active = s;
+    });
+    const activeId = active ? "#" + active.id : "";
+    links.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === activeId));
+  }
+  window.addEventListener("scroll", () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }, {passive: true});
+  window.addEventListener("resize", update);
+  top.addEventListener("click", () => window.scrollTo({top: 0, behavior: "smooth"}));
+  update();
+}
+
+function wireMotion() {
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const targets = document.querySelectorAll(
+    ".stack > section, .section-head, .kpi, .stage, .exhibit, .card, .lc-row");
+  if (!targets.length) return;
+  document.documentElement.classList.add("js-motion");
+  let i = 0;
+  targets.forEach((t) => {
+    t.classList.add("reveal");
+    t.style.transitionDelay = ((i % 4) * 55) + "ms";
+    i += 1;
+  });
+  if (!("IntersectionObserver" in window)) {
+    targets.forEach((t) => t.classList.add("in"));
+    return;
+  }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        e.target.classList.add("in");
+        io.unobserve(e.target);
+      }
+    });
+  }, {rootMargin: "0px 0px -7% 0px", threshold: 0.05});
+  targets.forEach((t) => io.observe(t));
+}
+
+/* ------------------------------------------------------------- exhibits */
+function renderLadderByCorpus() {
+  const box = $("lc-rows"), legend = $("lc-legend"), badgeEl = $("lc-badge");
+  clear(box); clear(legend);
+  const R = state.results;
+  const usage = (R && R.ladder_usage) || {};
+  const keys = Object.keys(usage);
+  if (!keys.length) {
+    badgeEl.className = "badge warn";
+    badgeEl.textContent = "no run";
+    box.appendChild(el("div", "disclose",
+      "NO MEASURED RESULTS - ladder counts only appear from a generated run."));
+    return;
+  }
+  const order = keys.slice().sort((a, b) => {
+    const rank = (k) => (k === "benign" ? 0 : k === "legit_change" ? 1 :
+      2 + (Number(shortId(k).slice(1)) || 9));
+    return rank(a) - rank(b);
+  });
+  let grand = 0;
+  order.forEach((k) => {
+    const acts = (usage[k] || {}).actions || {};
+    const total = LADDER.reduce((s, r) => s + (Number(acts[r]) || 0), 0);
+    grand += total;
+    const row = el("div", "lc-row");
+    const name = el("span", "lc-name");
+    if (k === "benign" || k === "legit_change") {
+      name.textContent = k === "benign" ? "benign" : "approved change ";
+      if (k === "legit_change") name.appendChild(el("span", "", "(legit_change)"));
+    } else {
+      name.textContent = shortId(k) + " ";
+      name.appendChild(el("span", "", String(k).slice(shortId(k).length + 1)));
+    }
+    row.appendChild(name);
+    row.appendChild(stackBar(LADDER.filter((r) => Number(acts[r]) > 0).map((r) => ({
+      w: total ? (Number(acts[r]) || 0) / total * 100 : 0,
+      c: r === "allow" ? "#059669" : (r === "block" || r === "isolate") ? "#dc2626" : "#d97706",
+      title: r + " " + acts[r] + " / " + total + " (" +
+        num(total ? (Number(acts[r]) || 0) / total * 100 : 0, 1) + "%)",
+    }))));
+    row.appendChild(el("span", "lc-total", intFmt(total)));
+    row.title = LADDER.map((r) => r + "=" + (acts[r] || 0)).join("  ");
+    box.appendChild(row);
+  });
+
+  LADDER.forEach((r) => {
+    const chip = el("span", "rung " + LADDER_CLASS[r]);
+    chip.appendChild(el("b", "", ""));
+    chip.lastChild.textContent = r;
+    legend.appendChild(chip);
+  });
+  badgeEl.className = "badge info";
+  badgeEl.textContent = intFmt(grand) + " decisions across " + order.length + " corpora";
 }
 
 function renderNav(exhibits) {
@@ -461,8 +2641,12 @@ function renderNav(exhibits) {
   exhibits.forEach((e) => {
     const a = document.createElement("a");
     a.href = "?exhibit=" + encodeURIComponent(e.name);
-    a.textContent = e.id + " " + e.name;
+    a.textContent = e.id + " - " + e.name;
     a.dataset.name = e.name;
+    a.style.cssText = "padding:5px 10px;border-radius:9999px;border:1px solid var(--line);" +
+      "background:var(--panel);color:var(--ink-2);font:500 11px/1.4 var(--mono);" +
+      "letter-spacing:.04em;text-transform:uppercase;cursor:pointer;text-decoration:none;" +
+      "transition:background .12s,border-color .12s,color .12s";
     a.addEventListener("click", (ev) => {
       ev.preventDefault();
       history.replaceState(null, "", "?exhibit=" + encodeURIComponent(e.name));
@@ -477,10 +2661,140 @@ function focusExhibit(name) {
     node.classList.toggle("is-target", node.dataset.name === name);
   });
   document.querySelectorAll("#exhibit-nav a").forEach((node) => {
-    node.classList.toggle("active", node.dataset.name === name);
+    const on = node.dataset.name === name;
+    node.style.background = on ? "#eff6ff" : "#ffffff";
+    node.style.borderColor = on ? "#bfdbfe" : "#e2e8f0";
+    node.style.color = on ? "#2563eb" : "#475569";
   });
   const target = document.getElementById("exhibit-" + name);
   if (target) target.scrollIntoView({block: "start", behavior: "smooth"});
+}
+
+/* ------------------------------------------------- exhibit "So what?" lines
+   Verdicts are composed at runtime from results.json, with the INDEX.json
+   caption as the fallback. No measured number is typed into this file. */
+function measuredNum(v, digits) {
+  return v === null || v === undefined || !Number.isFinite(Number(v))
+    ? "--" : Number(v).toFixed(digits === undefined ? 1 : digits);
+}
+function captionTakeaway(e) {
+  const caption = String((e && e.caption) || "").trim();
+  if (!caption) return "No caption in INDEX.json - no verdict is asserted.";
+  const first = caption.split(". ")[0];
+  return first ? first + "." : caption;
+}
+function driftPeak(R, aid) {
+  const rows = (((R || {}).drift_trajectory || {})[aid]) || [];
+  return rows.reduce((m, r) => Math.max(m, Number(r[3]) || 0), 0);
+}
+const EXHIBIT_TAKEAWAYS = {
+  E1: function (R, e) {
+    const attacks = (R && R.attacks) || [];
+    const a3 = attacks.filter((a) => a.id === "a3_mimicry")[0];
+    const a4 = attacks.filter((a) => a.id === "a4_low_and_slow")[0];
+    if (!a3 || !a4) return captionTakeaway(e);
+    const p1a = Number(a3.detected_pct), p1b = Number(a4.detected_pct);
+    const p2a = Number((a3.phase2 || {}).detected_pct);
+    const p2b = Number((a4.phase2 || {}).detected_pct);
+    const missed = p1a < 50 && p1b < 50;
+    return (missed ? "Phase 1 misses a3/a4"
+                   : "Phase 1 leaves a3/a4 at " + measuredNum(p1a, 1) + "%/" +
+                     measuredNum(p1b, 1) + "%") +
+      " - Phase 2 catches " + measuredNum(p2a, 1) + "%/" + measuredNum(p2b, 1) +
+      "%. Misses shown, not hidden.";
+  },
+  E2: function (R, e) {
+    const attacks = (R && R.attacks) || [];
+    const a7 = attacks.filter((a) => a.id === "a7_persistent")[0];
+    const xs = (a7 && Array.isArray(a7.leak_samples_tether)) ? a7.leak_samples_tether : [];
+    if (!xs.length) return captionTakeaway(e);
+    const nz = xs.filter((v) => Number(v) > 0);
+    const peak = nz.reduce((m, v) => Math.max(m, Number(v) || 0), 0);
+    return "a7 residual tail: " + nz.length + "/" + xs.length + " sessions leak, max " +
+      measuredNum(peak, 0) + " records; median " +
+      measuredNum(a7.records_out_tether_median, 1) +
+      ". The tail is shown, not hidden.";
+  },
+  E3: function (R, e) {
+    if (!R || !R.drift_trajectory) return captionTakeaway(e);
+    return "Max per-session CUSUM: a3 " + measuredNum(driftPeak(R, "a3_mimicry"), 1) +
+      ", a4 " + measuredNum(driftPeak(R, "a4_low_and_slow"), 1) +
+      ", a7 " + measuredNum(driftPeak(R, "a7_persistent"), 1) +
+      " - a latch is policy state, not a moved threshold.";
+  },
+  E4: function (R, e) {
+    const rows = (((R || {}).ablation || {}).rows) || [];
+    if (!rows.length) return captionTakeaway(e);
+    let worst = null;
+    rows.forEach((row) => {
+      Object.entries(row.attacks || {}).forEach((pair) => {
+        const dp = Number(pair[1] && pair[1].delta_caught_pp) || 0;
+        if (!worst || dp > worst.dp) {
+          worst = {dp: dp, id: pair[0], removed: row.removed};
+        }
+      });
+    });
+    if (!worst) return captionTakeaway(e);
+    return "Remove " + worst.removed + ": " + shortId(worst.id) + " loses " +
+      measuredNum(worst.dp, 1) + " pp caught-before-send. Zero loss elsewhere means " +
+      "no loss, not 'unnecessary'.";
+  },
+  E5: function (R, e) {
+    const actions = (((R || {}).ladder_usage_total || {}).actions) || {};
+    const total = LADDER.reduce((s, k) => s + (Number(actions[k]) || 0), 0);
+    if (!total) return captionTakeaway(e);
+    return "All six rungs reached across " + intFmt(total) + " decisions; small rungs " +
+      "stay visibly small. Enforcement is counted separately.";
+  },
+  E6: function (R, e) {
+    const lat = (R && R.latency_ms) || {};
+    if (lat.p95 === undefined) return captionTakeaway(e);
+    return "p50 " + measuredNum(lat.p50, 3) + " / p95 " + measuredNum(lat.p95, 3) +
+      " / p99 " + measuredNum(lat.p99, 3) + " ms; max " + measuredNum(lat.max, 3) +
+      " ms is first-decision warm-up - plotted, not trimmed.";
+  },
+  E7: function (R, e) {
+    const arms = (((R || {}).identity_arm || {}).attacks) || [];
+    if (!arms.length) return captionTakeaway(e);
+    const values = (filter) => {
+      const out = [];
+      arms.filter(filter).forEach((a) => {
+        const v = measuredNum(a.detected_pct, 1) + "%";
+        if (out.indexOf(v) < 0) out.push(v);
+      });
+      return out.length ? out.join("/") : "--";
+    };
+    return "Identity evidence alone: content attacks a1-a4 " +
+      values((a) => /^a[1-4]/.test(a.id)) + "; identity attacks a5/a6/a9 " +
+      values((a) => /^a(5|6|9)_/.test(a.id)) +
+      ". A stolen signing key is out of scope.";
+  },
+  E8: function (R, e) {
+    const n = ((R && R.attacks) || []).length;
+    if (!n) return captionTakeaway(e);
+    return "The " + n + " corpora are mapped to their expected catcher and rung; " +
+      "categorical only - no measured rate is claimed here.";
+  },
+  E9: function (R, e) {
+    const b = (R && R.benign) || {};
+    if (b.utility_preserved_pct === undefined) return captionTakeaway(e);
+    return "Legit utility " + measuredNum(b.utility_preserved_pct, 1) + "% vs " +
+      measuredNum(R.attack_session_utility_pct, 1) + "% under attack; " +
+      measuredNum(b.false_alerts_per_1000_incl_legit_change, 1) +
+      " false alerts / 1,000. The gap is containment cost, not a false-positive rate.";
+  },
+};
+function exhibitTakeaway(e) {
+  const id = String((e && e.id) || "").toUpperCase();
+  const fn = EXHIBIT_TAKEAWAYS[id];
+  const verdict = fn ? fn(state.results, e) : "";
+  return verdict || captionTakeaway(e);
+}
+function takeawayEl(e) {
+  const box = el("div", "takeaway");
+  box.appendChild(el("span", "tag", "So what?"));
+  box.appendChild(el("span", "why", exhibitTakeaway(e)));
+  return box;
 }
 
 function renderExhibits(exhibits) {
@@ -497,15 +2811,18 @@ function renderExhibits(exhibits) {
     title.appendChild(el("div", "id", e.id + " / " + e.renderer));
     title.appendChild(el("h3", "", e.title));
     head.appendChild(title);
+
     const actions = el("div", "actions");
-    const svg = document.createElement("a");
-    svg.href = "/exhibits/" + encodeURIComponent(e.name) + ".svg";
-    svg.target = "_blank";
-    svg.rel = "noopener";
-    svg.textContent = "open SVG";
-    actions.appendChild(svg);
+    const svgLink = document.createElement("a");
+    svgLink.href = "/exhibits/" + encodeURIComponent(e.name) + ".svg";
+    svgLink.target = "_blank";
+    svgLink.rel = "noopener";
+    svgLink.className = "exlink";
+    svgLink.textContent = "open svg";
+    actions.appendChild(svgLink);
     const link = document.createElement("a");
     link.href = "?exhibit=" + encodeURIComponent(e.name);
+    link.className = "exlink";
     link.textContent = "deep link";
     link.addEventListener("click", (ev) => {
       ev.preventDefault();
@@ -515,6 +2832,8 @@ function renderExhibits(exhibits) {
     actions.appendChild(link);
     head.appendChild(actions);
     card.appendChild(head);
+
+    card.appendChild(takeawayEl(e));
 
     const fig = el("div", "fig");
     const img = document.createElement("img");
@@ -527,49 +2846,153 @@ function renderExhibits(exhibits) {
     card.appendChild(el("p", "caption", e.caption));
 
     const prov = el("div", "prov");
-    const source = el("div");
-    source.appendChild(el("b", "", "source "));
-    source.appendChild(el("span", "", e.source));
-    const unit = el("div");
-    unit.appendChild(el("b", "", "unit "));
-    unit.appendChild(el("span", "", e.unit));
-    const n = el("div");
-    n.appendChild(el("b", "", "n "));
-    n.appendChild(el("span", "", e.n));
-    prov.appendChild(source);
-    prov.appendChild(unit);
-    prov.appendChild(n);
+    [["source", e.source], ["unit", e.unit], ["n", e.n]].forEach((pair) => {
+      const row = el("div");
+      row.appendChild(el("b", "", pair[0] + " "));
+      row.appendChild(el("span", "", pair[1]));
+      prov.appendChild(row);
+    });
     card.appendChild(prov);
     box.appendChild(card);
   });
 }
 
-async function loadExhibits() {
-  try {
-    const r = await fetch("/exhibits", {cache: "no-store"});
-    if (!r.ok) {
-      noMeasuredResults();
-      return;
-    }
-    const data = await r.json();
-    if (!data || !Array.isArray(data.exhibits) || data.exhibits.length === 0) {
-      noMeasuredResults();
-      return;
-    }
-    state.index = data;
-    renderHeader(data);
-    renderNav(data.exhibits);
-    renderExhibits(data.exhibits);
-    const wanted = new URLSearchParams(location.search).get("exhibit");
-    if (wanted) {
-      setTimeout(() => focusExhibit(wanted), 80);
-    }
-  } catch (err) {
-    noMeasuredResults();
+function noExhibits() {
+  const box = $("exhibits");
+  clear(box);
+  $("exhibit-count").textContent = "0 exhibits";
+  const empty = el("div", "empty");
+  empty.appendChild(el("h3", "", "NO MEASURED RESULTS"));
+  empty.appendChild(el("p", "",
+    "No placeholder figures are shown. Generate the canonical run once, then regenerate " +
+    "the exhibits:"));
+  empty.appendChild(el("code", "",
+    "python -m tether.evaluate --seed 7 --ablation\npython -m tether.exhibits --write"));
+  empty.appendChild(el("p", "",
+    "The live replay above still works because it runs the simulator directly."));
+  box.appendChild(empty);
+}
+
+function renderCaveats() {
+  const list = $("caveats");
+  clear(list);
+  const R = state.results;
+  const items = (R && R.caveats) || ["results unavailable - only the live replay is running"];
+  items.forEach((c) => list.appendChild(el("li", "", c)));
+  if (!R) list.appendChild(el("li", "", "regenerate with `python -m tether.evaluate --seed 7`"));
+}
+
+/* ------------------------------------------- hero contrast + reproducibility */
+function heroPanel(label, value, unit, meta, tone, tagline) {
+  const panel = el("div", "hero-panel " + tone);
+  panel.appendChild(el("div", "hl", label));
+  const big = el("div", "big " + tone, value);
+  if (unit) big.appendChild(el("span", "unit", unit));
+  panel.appendChild(big);
+  if (meta) panel.appendChild(el("div", "meta", meta));
+  if (tagline) panel.appendChild(el("div", "tagline " + tone, tagline));
+  return panel;
+}
+
+function renderHero() {
+  const grid = $("hero-grid"), badgeEl = $("hero-badge");
+  if (!grid) return;
+  clear(grid);
+  const R = state.results;
+  if (!R) {
+    badgeEl.className = "badge warn";
+    badgeEl.textContent = "no measured run";
+    const empty = el("div", "hero-empty");
+    empty.appendChild(el("b", "", "NO MEASURED RESULTS. "));
+    empty.appendChild(document.createTextNode(
+      "The contrast strip is populated only from results.json; the live replay below still runs."));
+    grid.appendChild(empty);
+    return;
+  }
+
+  const attacks = R.attacks || [];
+  const b = R.benign || {};
+  const a1 = attacks.filter((a) => a.id === "a1_pdf_injection")[0] || attacks[0] || null;
+  const labelName = a1 ? (a1.name || shortId(a1.id)) : "measured corpus";
+  const leak = a1 ? a1.records_out_none : null;
+  const tether = a1 ? a1.records_out_tether_median : null;
+  const caught = a1 ? a1.caught_before_harmful_send_pct : null;
+  const blocked = Number(tether) === 0 && Number(caught) >= 95;
+
+  badgeEl.className = "badge info";
+  badgeEl.textContent = "measured" + (a1 ? " / " + shortId(a1.id) : "");
+
+  grid.appendChild(heroPanel(
+    "Without Tether", measuredNum(leak, 0), "median records out / session",
+    labelName + " - no enforcement", "bad",
+    measuredNum(leak, 0) + " records leave the boundary"));
+
+  grid.appendChild(heroPanel(
+    "With Tether", measuredNum(tether, 0), "median records out / session",
+    labelName + " - same contract", blocked ? "ok" : "warn",
+    blocked ? "send blocked" : "residual leak on record"));
+
+  const utility = b.utility_preserved_pct;
+  const utilTone = Number(utility) >= 99 ? "ok" : "warn";
+  grid.appendChild(heroPanel(
+    "Legit work", measuredNum(utility, 1), "% executed",
+    intFmt(b.legit_steps_executed) + " / " + intFmt(b.legit_steps_planned) + " legit steps",
+    utilTone,
+    measuredNum(b.false_alerts_per_1000_incl_legit_change, 1) + " false alerts / 1,000"));
+}
+
+function renderRepro() {
+  const box = $("repro"), seedEl = $("repro-seed"), digestEl = $("repro-digest"),
+        tail = $("repro-tail");
+  if (!box) return;
+  const R = state.results;
+  const index = state.index;
+  if (!R) {
+    seedEl.textContent = "--";
+    digestEl.textContent = "unavailable";
+    if (tail) tail.hidden = true;
+    box.title = "No measured results loaded; the reproducibility strip needs results.json.";
+    return;
+  }
+  if (tail) tail.hidden = false;
+  const meta = R.meta || {};
+  seedEl.textContent = meta.seed !== undefined ? String(meta.seed) : "--";
+  const digest = index && index.results_sha256;
+  digestEl.textContent = digest ? String(digest).slice(0, 16) + "..." : "--";
+  box.title = "Results digest " + (digest || "unavailable") +
+    ". Full manifest hash: results/MANIFEST.json. Seed-11 replication: results/VERIFY.json.";
+}
+
+/* ----------------------------------------------------------------- wire */
+function wireChrome() {
+  document.querySelectorAll(".nav a").forEach((a) => {
+    a.addEventListener("click", () => {
+      document.querySelectorAll(".nav a").forEach((b) => b.classList.remove("active"));
+      a.classList.add("active");
+    });
+  });
+  const copy = $("copy-cli");
+  if (copy) {
+    const icon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" ' +
+      'stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+      'stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/>' +
+      '<path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+    const check = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" ' +
+      'stroke="#059669" stroke-width="2.4" stroke-linecap="round" ' +
+      'stroke-linejoin="round"><path d="M4 12.5l5 5L20 7"/></svg>';
+    copy.addEventListener("click", () => {
+      const done = () => {
+        copy.innerHTML = check;
+        setTimeout(() => { copy.innerHTML = icon; }, 1800);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText("python -m tether.api").then(done, done);
+      } else { done(); }
+    });
   }
 }
 
-function wire() {
+function wireReplay() {
   $("run").addEventListener("click", runSession);
   $("prev").addEventListener("click", () => {
     stopPlay();
@@ -593,14 +3016,91 @@ function wire() {
   $("export").addEventListener("click", exportAlert);
   document.addEventListener("keydown", (ev) => {
     if (ev.target && /INPUT|SELECT|TEXTAREA/.test(ev.target.tagName)) return;
-    if (ev.key === "ArrowRight") { stopPlay(); if (state.idx < state.events.length - 1) { state.idx += 1; renderReplay(); } }
-    if (ev.key === "ArrowLeft") { stopPlay(); if (state.idx > 0) { state.idx -= 1; renderReplay(); } }
+    if (ev.key === "ArrowRight") {
+      stopPlay();
+      if (state.idx < state.events.length - 1) { state.idx += 1; renderReplay(); }
+    }
+    if (ev.key === "ArrowLeft") {
+      stopPlay();
+      if (state.idx > 0) { state.idx -= 1; renderReplay(); }
+    }
+    if (ev.key === "/") {
+      const box = $("vector-search");
+      if (box) { ev.preventDefault(); box.focus(); box.select(); }
+    }
   });
 }
 
-wire();
-loadScenarios();
-loadExhibits();
+function wireLedger() {
+  document.querySelectorAll("#ledger-seg button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#ledger-seg button").forEach((b) => b.classList.remove("on"));
+      btn.classList.add("on");
+      state.ledgerFilter = btn.dataset.filter;
+      renderLedger();
+    });
+  });
+  const search = $("vector-search");
+  if (search) {
+    search.addEventListener("input", () => {
+      state.ledgerQuery = search.value || "";
+      renderLedger();
+    });
+  }
+  const csv = $("export-csv");
+  if (csv) csv.addEventListener("click", exportLedgerCsv);
+  document.querySelectorAll("#drift-seg button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#drift-seg button").forEach((b) => b.classList.remove("on"));
+      btn.classList.add("on");
+      state.driftAid = btn.dataset.aid;
+      renderDrift();
+    });
+  });
+}
+
+async function init() {
+  wireChrome();
+  wireReplay();
+  wireLedger();
+  loadScenarios();
+  renderReplay();
+
+  await Promise.all([loadResults(), loadExhibits(), loadContract()]);
+
+  renderStatus();
+  renderTelemetry();
+  renderKpis();
+  renderHero();
+  renderRepro();
+  renderPipeline();
+  renderScorecard();
+  renderLedger();
+  renderDrift();
+  renderLatency();
+  renderLatencyCdf();
+  renderSweep();
+  renderSweepChart();
+  renderAblation();
+  renderLadderByCorpus();
+  renderContainment();
+  renderCaveats();
+
+  if (state.index) {
+    renderNav(state.index.exhibits);
+    renderExhibits(state.index.exhibits);
+    const wanted = new URLSearchParams(location.search).get("exhibit");
+    if (wanted) setTimeout(() => focusExhibit(wanted), 80);
+  } else {
+    clear($("exhibit-nav"));
+    noExhibits();
+  }
+
+  wireScrollChrome();
+  wireMotion();
+}
+
+init();
 </script>
 </body>
 </html>

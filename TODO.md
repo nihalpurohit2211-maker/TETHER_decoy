@@ -57,6 +57,22 @@ tests, `git add -A && git commit`, tag.
 
 </details>
 
+## Post-v2 UI pass (2026-10-26, visual only — no metric/result/claim changed)
+
+- [x] dashboard.html rebuilt in the light Stitch theme; every measured figure
+      read at runtime from /results, /exhibits, /contract
+- [x] own in-page analytics: scorecard (phase 1/2 + Wilson CI), containment +
+      speed (records out none->tether, steps to detection), latency CDF with
+      p50/p95/p99/max, threshold-sweep chart (matrix behind a disclosure),
+      ladder usage, ledger in-cell bars, ledger CSV export
+- [x] tether/exhibits.py theme tokens moved to the light palette; nine SVGs
+      regenerated with --write; `--check` byte-identical
+- [x] page chrome: reveal-on-scroll, progress bar, scroll-spy, back-to-top,
+      `/` focuses ledger search; all motion behind prefers-reduced-motion
+- [x] narrow-screen overflow fixed (inline grid-template removed, min-width:0
+      containment, 390px verified)
+- [ ] optional: dark-mode toggle, exhibit lightbox, M13b slides (light theme)
+
 ## Known doc drift to keep fixed
 
 - [x] TODO.md stale "BLOCKER STATUS (shell broken)" removed (D40)

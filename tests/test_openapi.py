@@ -1,6 +1,6 @@
 """OpenAPI contract tests (M13a).
 
-The spec is a judge-facing artifact: it must describe only routes that exist,
+The spec is a judge artifact: it must describe only routes that exist,
 only a local server, and exactly the generated exhibits in tether.exhibits.INDEX.
 """
 from __future__ import annotations
