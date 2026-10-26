@@ -206,3 +206,5 @@ at seed 7**, not in production.
 - `results/` — measured artifacts, MANIFEST, VERIFY, RESULTS_TABLE, exhibits/.
 - `PREREG.md` / `THREAT_MODEL.md` / `PLAN_V2.md` / `DECISIONS.md` — frozen
   metrics, adversary model, plan, and the why log.
+#   T E T H E R _ d e c o y  
+ 
