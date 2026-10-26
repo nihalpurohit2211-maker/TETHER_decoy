@@ -1,46 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 384" width="100%" role="img" aria-labelledby="exhibit-title" preserveAspectRatio="xMidYMid meet">
 <title id="exhibit-title">Ladder usage: every rung is reachable</title>
-<rect x="0.00" y="0.00" width="920.00" height="384.00" fill="#ffffff" />
-<rect x="0.00" y="0.00" width="3.00" height="384.00" fill="#2563eb" />
-<rect x="0.50" y="0.50" width="919.00" height="383.00" fill="none" stroke="#cbd5e1" stroke-width="1.0" />
-<text x="26.00" y="27.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#1d4ed8" text-anchor="start" font-weight="700" letter-spacing="2.4">TETHER / D3COY 1.0</text>
+<rect x="0.00" y="0.00" width="920.00" height="384.00" fill="#090d14" />
+<rect x="0.00" y="0.00" width="3.00" height="384.00" fill="#06b6d4" />
+<rect x="0.50" y="0.50" width="919.00" height="383.00" fill="none" stroke="#1e293b" stroke-width="1.0" />
+<text x="26.00" y="27.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#22d3ee" text-anchor="start" font-weight="700" letter-spacing="2.4">TETHER / D3COY 1.0</text>
 <text x="894.00" y="27.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="end" font-weight="400" letter-spacing="1.2">GENERATED FROM results/</text>
-<text x="26.00" y="55.00" font-size="17" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" fill="#0f172a" text-anchor="start" font-weight="700" letter-spacing="0.4">Ladder usage: every rung is reachable</text>
+<text x="26.00" y="55.00" font-size="17" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" fill="#dfe2ed" text-anchor="start" font-weight="700" letter-spacing="0.4">Ladder usage: every rung is reachable</text>
 <text x="26.00" y="72.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400" letter-spacing="0.8">Full tether arm, all attack corpora. n = 4,517 decisions; linear scale, so the small rungs stay visibly small.</text>
-<text x="26.00" y="121.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#059669" text-anchor="start" font-weight="700">allow</text>
+<text x="26.00" y="121.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#10b981" text-anchor="start" font-weight="700">allow</text>
 <text x="92.00" y="121.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400">/ log</text>
-<rect x="196.00" y="109.00" width="347.07" height="16.00" fill="#059669" opacity="0.82" />
-<text x="894.00" y="121.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#0f172a" text-anchor="end" font-weight="700">2,545</text>
+<rect x="196.00" y="109.00" width="347.07" height="16.00" fill="#10b981" opacity="0.82" />
+<text x="894.00" y="121.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#dfe2ed" text-anchor="end" font-weight="700">2,545</text>
 <text x="822.00" y="121.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="end" font-weight="400">56.3%</text>
-<line x1="20.00" y1="138.00" x2="900.00" y2="138.00" stroke="#cbd5e1" stroke-width="0.5" opacity="0.55" />
-<text x="26.00" y="163.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#d97706" text-anchor="start" font-weight="700">hold</text>
+<line x1="20.00" y1="138.00" x2="900.00" y2="138.00" stroke="#1e293b" stroke-width="0.5" opacity="0.55" />
+<text x="26.00" y="163.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#f59e0b" text-anchor="start" font-weight="700">hold</text>
 <text x="92.00" y="163.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400">/ annotate</text>
-<rect x="196.00" y="151.00" width="78.69" height="16.00" fill="#d97706" opacity="0.82" />
-<text x="894.00" y="163.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#0f172a" text-anchor="end" font-weight="700">577</text>
+<rect x="196.00" y="151.00" width="78.69" height="16.00" fill="#f59e0b" opacity="0.82" />
+<text x="894.00" y="163.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#dfe2ed" text-anchor="end" font-weight="700">577</text>
 <text x="822.00" y="163.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="end" font-weight="400">12.8%</text>
-<line x1="20.00" y1="180.00" x2="900.00" y2="180.00" stroke="#cbd5e1" stroke-width="0.5" opacity="0.55" />
-<text x="26.00" y="205.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#d97706" text-anchor="start" font-weight="700">narrow</text>
+<line x1="20.00" y1="180.00" x2="900.00" y2="180.00" stroke="#1e293b" stroke-width="0.5" opacity="0.55" />
+<text x="26.00" y="205.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#f59e0b" text-anchor="start" font-weight="700">narrow</text>
 <text x="92.00" y="205.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400">/ narrow</text>
-<rect x="196.00" y="193.00" width="2.00" height="16.00" fill="#d97706" opacity="0.82" />
-<text x="894.00" y="205.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#0f172a" text-anchor="end" font-weight="700">4</text>
+<rect x="196.00" y="193.00" width="2.00" height="16.00" fill="#f59e0b" opacity="0.82" />
+<text x="894.00" y="205.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#dfe2ed" text-anchor="end" font-weight="700">4</text>
 <text x="822.00" y="205.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="end" font-weight="400">0.1%</text>
-<line x1="20.00" y1="222.00" x2="900.00" y2="222.00" stroke="#cbd5e1" stroke-width="0.5" opacity="0.55" />
-<text x="26.00" y="247.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#d97706" text-anchor="start" font-weight="700">quarantine</text>
+<line x1="20.00" y1="222.00" x2="900.00" y2="222.00" stroke="#1e293b" stroke-width="0.5" opacity="0.55" />
+<text x="26.00" y="247.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#f59e0b" text-anchor="start" font-weight="700">quarantine</text>
 <text x="92.00" y="247.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400">/ quarantine</text>
-<rect x="196.00" y="235.00" width="2.00" height="16.00" fill="#d97706" opacity="0.82" />
-<text x="894.00" y="247.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#0f172a" text-anchor="end" font-weight="700">6</text>
+<rect x="196.00" y="235.00" width="2.00" height="16.00" fill="#f59e0b" opacity="0.82" />
+<text x="894.00" y="247.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#dfe2ed" text-anchor="end" font-weight="700">6</text>
 <text x="822.00" y="247.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="end" font-weight="400">0.1%</text>
-<line x1="20.00" y1="264.00" x2="900.00" y2="264.00" stroke="#cbd5e1" stroke-width="0.5" opacity="0.55" />
-<text x="26.00" y="289.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#dc2626" text-anchor="start" font-weight="700">isolate</text>
+<line x1="20.00" y1="264.00" x2="900.00" y2="264.00" stroke="#1e293b" stroke-width="0.5" opacity="0.55" />
+<text x="26.00" y="289.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#ef4444" text-anchor="start" font-weight="700">isolate</text>
 <text x="92.00" y="289.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400">/ isolate</text>
-<rect x="196.00" y="277.00" width="188.47" height="16.00" fill="#dc2626" opacity="0.82" />
-<text x="894.00" y="289.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#0f172a" text-anchor="end" font-weight="700">1,382</text>
+<rect x="196.00" y="277.00" width="188.47" height="16.00" fill="#ef4444" opacity="0.82" />
+<text x="894.00" y="289.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#dfe2ed" text-anchor="end" font-weight="700">1,382</text>
 <text x="822.00" y="289.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="end" font-weight="400">30.6%</text>
-<line x1="20.00" y1="306.00" x2="900.00" y2="306.00" stroke="#cbd5e1" stroke-width="0.5" opacity="0.55" />
-<text x="26.00" y="331.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#dc2626" text-anchor="start" font-weight="700">block</text>
+<line x1="20.00" y1="306.00" x2="900.00" y2="306.00" stroke="#1e293b" stroke-width="0.5" opacity="0.55" />
+<text x="26.00" y="331.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#ef4444" text-anchor="start" font-weight="700">block</text>
 <text x="92.00" y="331.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400">/ enforcement</text>
-<rect x="196.00" y="319.00" width="2.00" height="16.00" fill="#dc2626" opacity="0.82" />
-<text x="894.00" y="331.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#0f172a" text-anchor="end" font-weight="700">3</text>
+<rect x="196.00" y="319.00" width="2.00" height="16.00" fill="#ef4444" opacity="0.82" />
+<text x="894.00" y="331.00" font-size="12" font-family="Consolas, 'Courier New', monospace" fill="#dfe2ed" text-anchor="end" font-weight="700">3</text>
 <text x="822.00" y="331.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="end" font-weight="400">0.1%</text>
 <text x="196.00" y="374.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400">counts are gateway decisions, not sessions</text>
 </svg>

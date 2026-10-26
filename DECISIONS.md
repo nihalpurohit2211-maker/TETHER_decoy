@@ -419,3 +419,19 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   exhibit. This is a documentation fix:
   no detector, threshold, attack, metric or `results/` artifact changed, and
   the digest is unchanged.
+
+- D66 (post-v2 UI pass, part 2: dark re-theme). The dashboard and the nine
+  exhibit SVGs were re-themed from the light "Stitch" palette to the dark
+  "Tactical Cyber-Brutalism" palette in the second supplied reference doc
+  (DESIGN.md: obsidian canvas, hairline borders, sharp 0px corners, emerald
+  nominal / cyan telemetry / crimson breach / amber warning). Both
+  `dashboard.html` `:root` and the `tether/exhibits.py` palette constants were
+  changed together and the exhibits regenerated with `--write` so `--check`
+  stays byte-identical. The reference `code.html` pulls Tailwind from a CDN;
+  that was deliberately not copied - the dashboard remains one self-contained
+  file with no external fonts, scripts or images. Only
+  `tests/test_exhibits.py`'s colour-token list was re-pointed; all honesty
+  checks (runtime-sourced numbers, no hardcoded measured values, no external
+  URLs, empty state, `?exhibit=`, CSV export, alert-JSON export) are unchanged
+  and passing. Visual-only: no detector, threshold, attack, metric, result or
+  claim changed, and the seed-7 results digest is unchanged.

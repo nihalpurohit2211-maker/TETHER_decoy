@@ -148,39 +148,45 @@ overwrite `results/results.json`, but it does rewrite `MANIFEST.json`,
 
 ## Last test result
 
-2026-10-26 17:3x: `Ran 132 tests ... OK`, EXIT=0 after the post-v2 UI pass
-(`dashboard.html` and `tether/exhibits.py` theme). `docs_check.py` 10/10 PASS.
-Exhibits `--check` PASS (9 SVGs and `INDEX.json` byte-identical after
-regeneration).
+2026-10-26: `Ran 132 tests ... OK`, EXIT=0 after the post-v2 UI pass, part 2
+(dark "Tactical Cyber-Brutalism" re-theme of `dashboard.html` and the
+`tether/exhibits.py` palette). `docs_check.py` 10/10 PASS. Exhibits `--check`
+PASS (9 SVGs and `INDEX.json` byte-identical after regeneration). Server smoke
+test: `/`, `/results`, `/exhibits`, `/contract` all 200.
 
 Earlier, 2026-10-25 22:58: same 132 tests OK; `docs_check.py` 10/10 PASS;
 exhibits `--check` PASS; `verify.py` 9/9 hypotheses PASS with the digest and
 manifest hash quoted above.
 
-## Post-v2 UI pass (2026-10-26, uncommitted)
+## Post-v2 UI pass (2026-10-26, visual only)
 
 Visual-only work. No detector, threshold, attack, metric, result or claim
 changed. `results/results.json`, `PREREG.md` and the evidence chain are
-untouched; `verify.py` inputs are identical.
+untouched; `verify.py` inputs are identical. The dashboard and the nine exhibit
+SVGs now use the dark "Tactical Cyber-Brutalism" theme (second supplied Stitch
+reference doc): obsidian canvas `#090d14`, slate panels `#0f172a`, hairline
+borders `#1e293b`, sharp 0px corners, emerald nominal, cyan telemetry, crimson
+breach, amber warning.
 
-- `dashboard.html` was rebuilt in the light "Stitch" theme (supplied as
-  `stitch_local_frontend_ui_revamp.zip`: DESIGN.md, code.html, screen.png).
-  Every measured figure is read at runtime from `/results`, `/exhibits` and
-  `/contract`; missing data renders the explicit `NO MEASURED RESULTS` state.
-  Added in-page charts, all computed from `results.json` and never typed:
-  corpus scorecard (phase 1 and phase 2 with Wilson CI whiskers), containment
-  and speed (median records out none to tether, median steps to detection),
-  latency empirical CDF with p50/p95/p99/max markers, threshold-sweep line chart
-  with the full matrix behind a disclosure, ledger in-cell bars, and ladder
-  usage by corpus. Also reveal-on-scroll, progress bar, scroll-spy, back-to-top,
-  ledger filters, CSV export and `?exhibit=` deep links.
-- `tether/exhibits.py`: theme tokens moved from the dark palette to the light
-  one (BG/PANEL/EDGE/ACCENT/TEXT/NUM/OK/WARN), and FONT_TITLE to a sans stack.
-  Phase-2 bars are amber; red is reserved for "no defense" and "block".
-  Regenerated with `python -m tether.exhibits --write`; `--check` passes, so the
-  exhibits are still derived byte for byte from `results.json`.
-- `tests/test_exhibits.py`: only the colour-token list was re-pointed at the new
-  palette. The protections that matter (no hardcoded measured numbers, no
+- `dashboard.html` was rebuilt in the light Stitch theme first, then re-themed
+  to the dark palette. Every measured figure is read at runtime from
+  `/results`, `/exhibits` and `/contract`; missing data renders the explicit
+  `NO MEASURED RESULTS` state. In-page charts, all computed from
+  `results.json` and never typed: corpus scorecard (phase 1 and phase 2 with
+  Wilson CI whiskers), containment and speed, latency empirical CDF with
+  p50/p95/p99/max markers, threshold-sweep line chart with the full matrix
+  behind a disclosure, ledger in-cell bars, and ladder usage by corpus. Also
+  reveal-on-scroll, progress bar, scroll-spy, back-to-top, ledger filters, CSV
+  export and `?exhibit=` deep links. The reference `code.html` shipped a
+  Tailwind CDN; it was not copied - the dashboard stays one self-contained
+  file with no external fonts, scripts or images.
+- `tether/exhibits.py`: theme tokens are the matching dark palette
+  (BG/PANEL/PANEL2/EDGE/ACCENT/TEXT/NUM/OK/WARN), and FONT_TITLE is a sans
+  stack. Phase-2 bars are amber; red is reserved for "no defense" and "block".
+  Regenerated with `python -m tether.exhibits --write`; `--check` passes, so
+  the exhibits are still derived byte for byte from `results.json`.
+- `tests/test_exhibits.py`: only the colour-token list was re-pointed at the
+  new palette. The protections that matter (no hardcoded measured numbers, no
   external URLs, `/exhibits`, `?exhibit=`, `NO MEASURED RESULTS`,
   `export alert JSON`) are unchanged and passing.
 
@@ -191,8 +197,10 @@ continuation, keep the honesty rules: standard library only, no network, no
 hardcoded measured numbers, every figure carries seed, n and unit. Keep
 `python -m tether.exhibits --check` green after any exhibit change, and re-run
 the 132 tests plus `docs_check.py` before committing. The only optional
-technical item is M13b (slides). If it is built, use the light theme to match
-the console.
+technical item is M13b (slides). If it is built, use the dark console theme to
+match. If the palette is ever changed again, change `dashboard.html` `:root`
+and the `tether/exhibits.py` constants together, then regenerate with
+`python -m tether.exhibits --write`, or `--check` will fail.
 
 ## File map
 

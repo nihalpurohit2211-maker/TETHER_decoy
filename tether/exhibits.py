@@ -31,19 +31,20 @@ RESULTS_PATH = os.path.join(ROOT, "results", "results.json")
 EXHIBIT_DIR = os.path.join(ROOT, "results", "exhibits")
 
 # D3COY theme tokens (PLAN_V2 section 4). No gradients, no glass, no emoji.
-# Light theme: white canvas, slate ink, blue accent - matches dashboard.html,
-# which embeds these exhibits as <img> (system fonts only, no network).
-BG = "#ffffff"
-PANEL = "#f8fafc"
-PANEL2 = "#f1f5f9"
-EDGE = "#cbd5e1"
-ACCENT = "#2563eb"
-ACCENT_SOFT = "#1d4ed8"
-TEXT = "#0f172a"
+# Dark "Tactical Cyber-Brutalism" theme: obsidian canvas, slate panels, emerald
+# nominal / cyan telemetry / crimson breach - matches dashboard.html, which
+# embeds these exhibits as <img> (system fonts only, no network).
+BG = "#090d14"
+PANEL = "#0f172a"
+PANEL2 = "#0b1120"
+EDGE = "#1e293b"
+ACCENT = "#06b6d4"
+ACCENT_SOFT = "#22d3ee"
+TEXT = "#dfe2ed"
 DIM = "#64748b"
-NUM = "#dc2626"
-OK = "#059669"
-WARN = "#d97706"
+NUM = "#ef4444"
+OK = "#10b981"
+WARN = "#f59e0b"
 
 FONT_TITLE = "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif"
 FONT_BODY = "'Segoe UI', Arial, sans-serif"

@@ -43,16 +43,17 @@ Checkpoint protocol if anything changes: rewrite `HANDOFF.md`, append
 `HISTORY.md`, add `DECISIONS.md` entries, update `TODO.md`, this file and
 `TRANSFER.md`, run the tests, then `git add -A && git commit`.
 
-## UI state as of 2026-10-26 (post-v2, uncommitted)
+## UI state as of 2026-10-26 (post-v2)
 
-`dashboard.html` was rebuilt in a light "Stitch" theme. It has in-page charts
-computed at runtime from `results.json`: corpus scorecard, containment and
-speed, latency empirical CDF, threshold-sweep chart, ladder usage, ledger
-in-cell bars and CSV export. `tether/exhibits.py` now uses the same light
-palette, and the nine exhibit SVGs were regenerated with
-`python -m tether.exhibits --write` (`--check` passes). Only
-`tests/test_exhibits.py`'s colour-token list changed; the honesty checks are
-intact.
+`dashboard.html` uses the dark "Tactical Cyber-Brutalism" theme (obsidian
+canvas, hairline borders, sharp 0px corners, emerald nominal / cyan telemetry /
+crimson breach / amber warning). It has in-page charts computed at runtime from
+`results.json`: corpus scorecard, containment and speed, latency empirical CDF,
+threshold-sweep chart, ladder usage, ledger in-cell bars and CSV export.
+`tether/exhibits.py` uses the matching dark palette, and the nine exhibit SVGs
+were regenerated with `python -m tether.exhibits --write` (`--check` passes).
+Only `tests/test_exhibits.py`'s colour-token list changed; the honesty checks
+are intact.
 
 Next session: serve with `python -m tether.api` (port 8765), open
 `http://127.0.0.1:8765/`, and confirm 132 tests, `docs_check.py` 10/10 and

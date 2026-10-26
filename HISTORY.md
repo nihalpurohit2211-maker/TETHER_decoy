@@ -366,3 +366,35 @@ are recorded as approximate wall-clock text from the session clock
   containment); motion gated behind prefers-reduced-motion.
 - Verification: 132 tests OK, docs_check 10/10, exhibits --check PASS.
 - No detector, threshold, attack, metric, result or claim changed.
+
+
+## 2026-10-26 - post-v2 UI pass, part 2: dark "Tactical Cyber-Brutalism" re-theme (visual only)
+
+- New Stitch reference doc supplied (stitch_local_frontend_ui_revamp.zip,
+  SHA256 8493C78E...C31DDA, replacing the earlier light-theme zip). Its
+  DESIGN.md is a dark "Carbon Monolith / Tactical Cyber-Brutalism" system:
+  obsidian canvas, hairline borders, sharp 0px corners, emerald nominal,
+  cyan telemetry, crimson breach, amber warning. It ships a Tailwind-CDN
+  code.html; that CDN was NOT copied - the dashboard stays one self-contained
+  file with zero external resources (HARD RULE 1).
+- dashboard.html re-themed light -> dark. `:root` tokens rewritten to the dark
+  prose palette (canvas #090d14, panel #0f172a, hairline #1e293b, ink #dfe2ed,
+  ok #10b981, warn #f59e0b, bad #ef4444, info/cyan #06b6d4). The "modern
+  accents" block rewritten: violet/blue gradients removed, drop-shadows
+  replaced with hairlines, card/kpi/exhibit corner-radius set to 0 (Shape
+  Level 0 sharp), emerald/cyan brand + progress + KPI accent bars. In-page SVG
+  charts (drift CUSUM, latency CDF, threshold sweep) recoloured - gridlines
+  #1e293b, baselines #334155, latch marker amber-on-dark, cyan series line,
+  light end-dots. Exhibit-nav deep-link inline styles darkened. Every measured
+  number is still read at runtime from /results, /exhibits and /contract;
+  nothing measured was hardcoded, rounded or copied.
+- tether/exhibits.py palette constants moved to the same dark set; nine SVGs
+  regenerated with `python -m tether.exhibits --write`; `--check` byte-identical.
+- tests/test_exhibits.py: only the colour-token list re-pointed at the new dark
+  palette (obsidian canvas, slate panel, hairline, light ink, emerald, crimson).
+  The honesty protections (no hardcoded measured numbers, no external URLs,
+  /exhibits, ?exhibit=, NO MEASURED RESULTS, export alert JSON) are unchanged.
+- Verification: 132 tests OK, docs_check.py 10/10 PASS, exhibits --check PASS.
+  Server smoke test: /, /results, /exhibits, /contract all 200.
+- No detector, threshold, attack, metric, result or claim changed. results/,
+  PREREG.md and the evidence chain are untouched; the digest is unchanged.

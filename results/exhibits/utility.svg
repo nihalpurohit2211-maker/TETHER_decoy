@@ -1,27 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 340" width="100%" role="img" aria-labelledby="exhibit-title" preserveAspectRatio="xMidYMid meet">
 <title id="exhibit-title">Containment vs utility: the trade-off</title>
-<rect x="0.00" y="0.00" width="920.00" height="340.00" fill="#ffffff" />
-<rect x="0.00" y="0.00" width="3.00" height="340.00" fill="#2563eb" />
-<rect x="0.50" y="0.50" width="919.00" height="339.00" fill="none" stroke="#cbd5e1" stroke-width="1.0" />
-<text x="26.00" y="27.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#1d4ed8" text-anchor="start" font-weight="700" letter-spacing="2.4">TETHER / D3COY 1.0</text>
+<rect x="0.00" y="0.00" width="920.00" height="340.00" fill="#090d14" />
+<rect x="0.00" y="0.00" width="3.00" height="340.00" fill="#06b6d4" />
+<rect x="0.50" y="0.50" width="919.00" height="339.00" fill="none" stroke="#1e293b" stroke-width="1.0" />
+<text x="26.00" y="27.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#22d3ee" text-anchor="start" font-weight="700" letter-spacing="2.4">TETHER / D3COY 1.0</text>
 <text x="894.00" y="27.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="end" font-weight="400" letter-spacing="1.2">GENERATED FROM results/</text>
-<text x="26.00" y="55.00" font-size="17" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" fill="#0f172a" text-anchor="start" font-weight="700" letter-spacing="0.4">Containment vs utility: the trade-off</text>
+<text x="26.00" y="55.00" font-size="17" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" fill="#dfe2ed" text-anchor="start" font-weight="700" letter-spacing="0.4">Containment vs utility: the trade-off</text>
 <text x="26.00" y="72.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400" letter-spacing="0.8">Utility and containment are reported separately. Attack-session utility is the containment cost (D55), not a false-positive rate.</text>
-<text x="26.00" y="99.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#0f172a" text-anchor="start" font-weight="400">legitimate utility preserved</text>
+<text x="26.00" y="99.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#dfe2ed" text-anchor="start" font-weight="400">legitimate utility preserved</text>
 <text x="26.00" y="117.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400">n = 1,000 legitimate sessions (900 ordinary + 100 approved change)</text>
-<rect x="268.00" y="87.00" width="456.00" height="18.00" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="0.7" />
-<rect x="268.00" y="87.00" width="456.00" height="18.00" fill="#059669" opacity="0.84" />
-<text x="894.00" y="100.00" font-size="16" font-family="Consolas, 'Courier New', monospace" fill="#dc2626" text-anchor="end" font-weight="700">100.0%</text>
-<line x1="723.73" y1="109.00" x2="724.00" y2="109.00" stroke="#0f172a" stroke-width="0.8" opacity="0.70" />
+<rect x="268.00" y="87.00" width="456.00" height="18.00" fill="#0b1120" stroke="#1e293b" stroke-width="0.7" />
+<rect x="268.00" y="87.00" width="456.00" height="18.00" fill="#10b981" opacity="0.84" />
+<text x="894.00" y="100.00" font-size="16" font-family="Consolas, 'Courier New', monospace" fill="#ef4444" text-anchor="end" font-weight="700">100.0%</text>
+<line x1="723.73" y1="109.00" x2="724.00" y2="109.00" stroke="#dfe2ed" stroke-width="0.8" opacity="0.70" />
 <text x="268.00" y="129.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400">95% CI [99.94, 100.00]</text>
-<text x="26.00" y="191.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#0f172a" text-anchor="start" font-weight="400">attack-session utility</text>
+<text x="26.00" y="191.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#dfe2ed" text-anchor="start" font-weight="400">attack-session utility</text>
 <text x="26.00" y="209.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400">n = 1,800 attack sessions</text>
-<rect x="268.00" y="179.00" width="456.00" height="18.00" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="0.7" />
-<rect x="268.00" y="179.00" width="268.13" height="18.00" fill="#d97706" opacity="0.84" />
-<text x="894.00" y="192.00" font-size="16" font-family="Consolas, 'Courier New', monospace" fill="#dc2626" text-anchor="end" font-weight="700">58.8%</text>
-<text x="26.00" y="283.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#0f172a" text-anchor="start" font-weight="400">false alerts (incl. approved change)</text>
+<rect x="268.00" y="179.00" width="456.00" height="18.00" fill="#0b1120" stroke="#1e293b" stroke-width="0.7" />
+<rect x="268.00" y="179.00" width="268.13" height="18.00" fill="#f59e0b" opacity="0.84" />
+<text x="894.00" y="192.00" font-size="16" font-family="Consolas, 'Courier New', monospace" fill="#ef4444" text-anchor="end" font-weight="700">58.8%</text>
+<text x="26.00" y="283.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#dfe2ed" text-anchor="start" font-weight="400">false alerts (incl. approved change)</text>
 <text x="26.00" y="301.00" font-size="9" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400">n = 1,000 sessions; unit = per 1,000</text>
-<text x="268.00" y="288.00" font-size="26" font-family="Consolas, 'Courier New', monospace" fill="#059669" text-anchor="start" font-weight="700">0.0</text>
+<text x="268.00" y="288.00" font-size="26" font-family="Consolas, 'Courier New', monospace" fill="#10b981" text-anchor="start" font-weight="700">0.0</text>
 <text x="342.00" y="288.00" font-size="10" font-family="Consolas, 'Courier New', monospace" fill="#64748b" text-anchor="start" font-weight="400">per 1,000 sessions</text>
-<text x="894.00" y="284.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#dc2626" text-anchor="end" font-weight="700">benign isolates 0</text>
+<text x="894.00" y="284.00" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#ef4444" text-anchor="end" font-weight="700">benign isolates 0</text>
 </svg>

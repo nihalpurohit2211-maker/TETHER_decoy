@@ -65,13 +65,15 @@ tests, `git add -A && git commit`, tag.
       speed (records out none->tether, steps to detection), latency CDF with
       p50/p95/p99/max, threshold-sweep chart (matrix behind a disclosure),
       ladder usage, ledger in-cell bars, ledger CSV export
-- [x] tether/exhibits.py theme tokens moved to the light palette; nine SVGs
-      regenerated with --write; `--check` byte-identical
 - [x] page chrome: reveal-on-scroll, progress bar, scroll-spy, back-to-top,
       `/` focuses ledger search; all motion behind prefers-reduced-motion
 - [x] narrow-screen overflow fixed (inline grid-template removed, min-width:0
       containment, 390px verified)
-- [ ] optional: dark-mode toggle, exhibit lightbox, M13b slides (light theme)
+- [x] part 2: re-themed light -> dark "Tactical Cyber-Brutalism" (obsidian
+      canvas, hairlines, sharp 0px corners, emerald/cyan/crimson/amber) in both
+      dashboard.html and tether/exhibits.py; nine SVGs regenerated, --check
+      byte-identical; test colour-token list updated
+- [ ] optional: exhibit lightbox, M13b slides (match the console theme)
 
 ## Known doc drift to keep fixed
 

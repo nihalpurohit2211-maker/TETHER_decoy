@@ -6,16 +6,16 @@
 <title>TETHER // D3COY - identity drift detection console</title>
 <style>
   :root{
-    --canvas:#f8fafc; --panel:#ffffff; --wash:#f8fafc; --wash-2:#f1f5f9;
-    --line:#e2e8f0; --line-hi:#cbd5e1; --line-hot:#94a3b8;
-    --ink:#0f172a; --ink-2:#475569; --ink-3:#64748b; --ink-4:#94a3b8;
-    --ok:#059669; --ok-bg:#ecfdf5; --ok-line:#a7f3d0;
-    --warn:#d97706; --warn-ink:#b45309; --warn-bg:#fffbeb; --warn-line:#fde68a;
-    --bad:#dc2626; --bad-bg:#fef2f2; --bad-line:#fecaca;
-    --info:#2563eb; --info-bg:#eff6ff; --info-line:#bfdbfe;
+    --canvas:#090d14; --panel:#0f172a; --wash:#0b1120; --wash-2:#16202e;
+    --line:#1e293b; --line-hi:#2b3a4f; --line-hot:#334155;
+    --ink:#dfe2ed; --ink-2:#94a3b8; --ink-3:#64748b; --ink-4:#475569;
+    --ok:#10b981; --ok-bg:rgba(16,185,129,.12); --ok-line:rgba(16,185,129,.34);
+    --warn:#f59e0b; --warn-ink:#fbbf24; --warn-bg:rgba(245,158,11,.12); --warn-line:rgba(245,158,11,.34);
+    --bad:#ef4444; --bad-bg:rgba(239,68,68,.12); --bad-line:rgba(239,68,68,.4);
+    --info:#06b6d4; --info-bg:rgba(6,182,212,.12); --info-line:rgba(6,182,212,.4);
     --sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
-    --lift:0 1px 3px 0 rgba(15,23,42,.08),0 1px 2px -1px rgba(15,23,42,.08);
+    --lift:0 0 0 1px var(--line-hi);
     --gutter:20px; --margin:32px;
   }
   *{box-sizing:border-box}
@@ -46,7 +46,7 @@
   .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:4px;
         border:1px solid var(--line);background:var(--wash);color:var(--ink-2);
         font:500 11px/1.4 var(--mono);white-space:nowrap}
-  .chip.ok{background:rgba(5,150,105,.08);border-color:var(--ok-line);color:var(--ok)}
+  .chip.ok{background:rgba(16,185,129,.12);border-color:var(--ok-line);color:var(--ok)}
   .chip.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)}
   .chip.bad{background:var(--bad-bg);border-color:var(--bad-line);color:var(--bad)}
   .dot{width:6px;height:6px;border-radius:9999px;background:currentColor;flex:0 0 auto}
@@ -57,7 +57,7 @@
          font:400 13px/1.2 var(--sans);transition:background .12s,color .12s;
          border:1px solid transparent}
   .nav a:hover{background:var(--wash-2);color:var(--ink);text-decoration:none}
-  .nav a.active{background:#e8edf6;color:var(--ink);font-weight:500}
+  .nav a.active{background:var(--info-bg);border-color:var(--info-line);color:var(--info);font-weight:600}
   .cli{display:none;align-items:center;gap:8px;padding:5px 8px;border-radius:4px;
        background:var(--wash);border:1px solid var(--line);color:var(--ink-2);
        font:500 11px/1.2 var(--mono)}
@@ -213,8 +213,8 @@
   .cellbar{position:relative;height:3px;border-radius:9999px;background:var(--wash-2);
            margin-top:6px;overflow:hidden;min-width:34px}
   .cellbar i{position:absolute;left:0;top:0;bottom:0;border-radius:9999px;
-             background:linear-gradient(90deg,#60a5fa,#2563eb)}
-  .cellbar.p2 i{background:linear-gradient(90deg,#fbbf24,#d97706)}
+             background:linear-gradient(90deg,#22d3ee,#06b6d4)}
+  .cellbar.p2 i{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
 
   /* ----------------------------------------------------- chart cards */
   .chart-box{background:var(--wash-2);border:1px solid var(--line);border-radius:4px;padding:14px}
@@ -344,7 +344,7 @@
           cursor:pointer;transition:background .12s,border-color .12s,color .12s}
   .exlink:hover{background:var(--wash);border-color:var(--line-hi);color:var(--ink);
                 text-decoration:none}
-  .fig{border:1px solid var(--line);border-radius:8px;background:#ffffff;line-height:0;
+  .fig{border:1px solid var(--line);border-radius:8px;background:#090d14;line-height:0;
        overflow:hidden}
   .fig img{display:block;width:100%;height:auto}
   .caption{margin:14px 0 10px;color:var(--ink-2);font-size:13px;line-height:1.55;max-width:110ch}
@@ -510,65 +510,61 @@
   details.more > summary:hover{color:var(--ink)}
 </style>
 <style>
-  /* --------------------------------------------- modern accents: light + funky */
+  /* ------------------------------------- dark tactical accents (Shape L0 sharp) */
   body{background-color:var(--canvas);
        background-image:
-         radial-gradient(880px 420px at 6% -12%, rgba(37,99,235,.12), transparent 62%),
-         radial-gradient(760px 400px at 99% 0%, rgba(5,150,105,.10), transparent 60%),
-         radial-gradient(1100px 620px at 50% 120%, rgba(124,58,237,.07), transparent 62%);
+         radial-gradient(900px 460px at 8% -12%, rgba(16,185,129,.10), transparent 60%),
+         radial-gradient(820px 440px at 99% 0%, rgba(6,182,212,.08), transparent 58%);
        background-attachment:fixed}
-  .topbar{background:rgba(255,255,255,.82);
-          -webkit-backdrop-filter:saturate(160%) blur(12px);
-          backdrop-filter:saturate(160%) blur(12px)}
-  .brand .mark{background:linear-gradient(135deg,#2563eb,#7c3aed 55%,#059669);
-               box-shadow:0 5px 16px -8px rgba(37,99,235,.95)}
-  .progress{background:linear-gradient(90deg,#2563eb,#7c3aed 45%,#059669 80%,#d97706);
-            box-shadow:0 0 12px rgba(37,99,235,.5)}
-  .telemetry{background:linear-gradient(90deg,rgba(37,99,235,.07),
-             rgba(5,150,105,.06) 55%,rgba(124,58,237,.06))}
-  .card,.kpi,.exhibit{border-radius:12px}
-  .card{box-shadow:0 1px 2px rgba(15,23,42,.04),0 18px 36px -30px rgba(15,23,42,.55);
-        transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+  .topbar{background:rgba(9,13,20,.86);
+          -webkit-backdrop-filter:saturate(140%) blur(10px);
+          backdrop-filter:saturate(140%) blur(10px)}
+  .brand .mark{background:linear-gradient(135deg,#10b981,#06b6d4);
+               box-shadow:0 0 0 1px rgba(16,185,129,.35)}
+  .progress{background:linear-gradient(90deg,#10b981,#06b6d4 62%,#f59e0b);
+            box-shadow:0 0 10px rgba(6,182,212,.45)}
+  .telemetry{background:linear-gradient(90deg,rgba(16,185,129,.06),
+             rgba(6,182,212,.05) 55%,rgba(6,182,212,.03))}
+  .card,.kpi,.exhibit{border-radius:0}
+  .card{box-shadow:none;
+        transition:border-color .18s ease}
   .kpi{position:relative;overflow:hidden}
   .kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;
-        background:linear-gradient(90deg,#2563eb,rgba(37,99,235,0) 92%)}
-  .kpi:nth-child(2)::before{background:linear-gradient(90deg,#7c3aed,rgba(124,58,237,0) 92%)}
-  .kpi:nth-child(3)::before{background:linear-gradient(90deg,#059669,rgba(5,150,105,0) 92%)}
-  .kpi:nth-child(4)::before{background:linear-gradient(90deg,#d97706,rgba(217,119,6,0) 92%)}
-  .stage,.exhibit{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+        background:linear-gradient(90deg,#10b981,rgba(16,185,129,0) 92%)}
+  .kpi:nth-child(2)::before{background:linear-gradient(90deg,#06b6d4,rgba(6,182,212,0) 92%)}
+  .kpi:nth-child(3)::before{background:linear-gradient(90deg,#f59e0b,rgba(245,158,11,0) 92%)}
+  .kpi:nth-child(4)::before{background:linear-gradient(90deg,#ef4444,rgba(239,68,68,0) 92%)}
+  .stage,.exhibit{transition:border-color .18s ease}
   .js-motion .reveal.in.card,.js-motion .reveal.in.kpi,.js-motion .reveal.in.stage,
   .js-motion .reveal.in.exhibit{transition:opacity .5s ease,transform .34s cubic-bezier(.22,.61,.36,1),
-        border-color .18s ease,box-shadow .18s ease}
-  .card:hover,.kpi:hover,.stage:hover,.exhibit:hover{transform:translateY(-2px);
-        border-color:var(--line-hi);
-        box-shadow:0 2px 6px rgba(15,23,42,.06),0 26px 48px -30px rgba(15,23,42,.6)}
+        border-color .18s ease}
+  .card:hover,.kpi:hover,.stage:hover,.exhibit:hover{border-color:var(--line-hot)}
   .js-motion .reveal.in.card:hover,.js-motion .reveal.in.kpi:hover,
   .js-motion .reveal.in.stage:hover,.js-motion .reveal.in.exhibit:hover{
-        transform:translateY(-2px)}
+        border-color:var(--line-hot)}
   @supports ((-webkit-background-clip:text) or (background-clip:text)){
-    #command-h,.section-title{background-image:linear-gradient(95deg,#0f172a 10%,#1d4ed8 58%,#7c3aed 100%);
+    #command-h,.section-title{background-image:linear-gradient(95deg,#dfe2ed 10%,#10b981 58%,#06b6d4 100%);
       -webkit-background-clip:text;background-clip:text;color:transparent}
   }
-  .btn{transition:transform .15s ease,box-shadow .15s ease,background .12s,border-color .12s}
-  .btn:hover:not(:disabled){transform:translateY(-1px)}
-  .btn.primary{background:linear-gradient(135deg,#0f172a,#1d4ed8);border-color:#1d4ed8;
-        border-radius:9999px;box-shadow:0 10px 22px -14px rgba(29,78,216,.95)}
-  .btn.primary:hover:not(:disabled){background:linear-gradient(135deg,#0f172a,#1d4ed8);
-        border-color:#1d4ed8;filter:brightness(1.16);
-        box-shadow:0 14px 28px -14px rgba(29,78,216,.9)}
-  .btn.danger{border-radius:9999px;box-shadow:0 10px 22px -16px rgba(220,38,38,.9)}
-  .nav a.active{background:linear-gradient(135deg,#e8edf6,#eef2ff);border-color:var(--info-line);
+  .btn{transition:background .12s,border-color .12s}
+  .btn.primary{background:linear-gradient(135deg,#10b981,#06b6d4);border-color:#10b981;
+        border-radius:0;color:#003824;
+        box-shadow:0 0 0 1px rgba(16,185,129,.4)}
+  .btn.primary:hover:not(:disabled){background:linear-gradient(135deg,#10b981,#06b6d4);
+        border-color:#06b6d4;filter:brightness(1.1)}
+  .btn.danger{border-radius:0;box-shadow:0 0 0 1px rgba(239,68,68,.4)}
+  .nav a.active{background:var(--info-bg);border-color:var(--info-line);
         color:var(--info);font-weight:600}
-  .chip .dot,.status .dot{box-shadow:0 0 7px currentColor}
-  .fill.ok{background:linear-gradient(90deg,#34d399,#059669)}
-  .fill.warn{background:linear-gradient(90deg,#fbbf24,#d97706)}
-  .fill.bad{background:linear-gradient(90deg,#f87171,#dc2626)}
-  .sbar.p1{background:linear-gradient(90deg,#60a5fa,#2563eb)}
-  .sbar.p2{background:linear-gradient(90deg,#fbbf24,#d97706)}
+  .chip .dot,.status .dot{box-shadow:0 0 6px currentColor}
+  .fill.ok{background:linear-gradient(90deg,#34d399,#10b981)}
+  .fill.warn{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
+  .fill.bad{background:linear-gradient(90deg,#f87171,#ef4444)}
+  .sbar.p1{background:linear-gradient(90deg,#22d3ee,#06b6d4)}
+  .sbar.p2{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
   #command{position:relative}
   #command::before{content:"";position:absolute;top:-64px;left:50%;width:560px;height:220px;
-        transform:translateX(-50%);border-radius:9999px;filter:blur(74px);opacity:.42;z-index:-1;
-        background:radial-gradient(closest-side,rgba(37,99,235,.6),rgba(37,99,235,0));
+        transform:translateX(-50%);border-radius:9999px;filter:blur(78px);opacity:.34;z-index:-1;
+        background:radial-gradient(closest-side,rgba(16,185,129,.5),rgba(6,182,212,0));
         animation:drift 16s ease-in-out infinite;pointer-events:none}
   @keyframes drift{0%,100%{transform:translateX(-50%) translateY(0)}
                    50%{transform:translateX(-50%) translateY(-16px)}}
@@ -591,8 +587,7 @@
 <style>
   /* ------------------------------------------------- hero contrast strip */
   .hero-contrast{margin:0 0 var(--gutter);background:var(--panel);border:1px solid var(--line);
-    border-radius:12px;padding:16px 18px;box-shadow:0 1px 2px rgba(15,23,42,.04),
-    0 18px 36px -30px rgba(15,23,42,.55)}
+    border-radius:0;padding:16px 18px;box-shadow:none}
   .hero-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 18px;
     align-items:baseline;margin-bottom:12px}
   .hero-sub{margin:12px 0 0;color:var(--ink-2);font-size:13px;line-height:1.5}
@@ -623,7 +618,7 @@
   .hero-empty b{color:var(--ink)}
 
   /* ------------------------------------------------------ stakes banner */
-  .stakes{border-bottom:1px solid var(--line);background:rgba(255,255,255,.72)}
+  .stakes{border-bottom:1px solid var(--line);background:rgba(9,13,20,.72)}
   .stakes-in{padding:7px var(--margin);font:500 11.5px/1.55 var(--mono);color:var(--ink-3);
     letter-spacing:.015em}
   .stakes-in b{color:var(--ink-2);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
@@ -1241,7 +1236,7 @@ function cdfSpark(lat) {
     (p[0] / xmax * 100).toFixed(2) + "," + (100 - p[1]).toFixed(2)).join(" ");
   const box = el("div");
   box.innerHTML = '<svg class="spark" viewBox="0 0 100 100" preserveAspectRatio="none">' +
-    '<polyline points="' + inner + '" fill="none" stroke="#059669" stroke-width="2.5" ' +
+    '<polyline points="' + inner + '" fill="none" stroke="#10b981" stroke-width="2.5" ' +
     'vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>';
   return box;
 }
@@ -1252,7 +1247,7 @@ function barsSpark(values) {
     const b = el("span");
     const h = Math.max(4, Math.min(100, v));
     b.style.cssText = "flex:1;border-radius:2px;height:" + h +
-      "%;background:" + (v >= 95 ? "#059669" : "#d97706");
+      "%;background:" + (v >= 95 ? "#10b981" : "#f59e0b");
     b.title = num(v, 1) + "% of sessions detected";
     box.appendChild(b);
   });
@@ -1331,7 +1326,7 @@ function renderKpis() {
   t2.appendChild(top2);
   t2.appendChild(stackBar(LADDER.map((k) => ({
     w: totalDecisions ? (Number(ladder[k]) || 0) / totalDecisions * 100 : 0,
-    c: k === "allow" ? "#059669" : (k === "block" || k === "isolate") ? "#dc2626" : "#d97706",
+    c: k === "allow" ? "#10b981" : (k === "block" || k === "isolate") ? "#ef4444" : "#f59e0b",
     title: k + " " + (ladder[k] || 0),
   }))));
   const rows2 = el("div", "kpi-rows");
@@ -1656,7 +1651,7 @@ function renderDrift() {
 
   if (!curve.length) {
     svg.innerHTML =
-      '<line x1="6" y1="140" x2="354" y2="140" stroke="#cbd5e1" stroke-width="1" ' +
+      '<line x1="6" y1="140" x2="354" y2="140" stroke="#334155" stroke-width="1" ' +
       'vector-effect="non-scaling-stroke"/>' +
       '<text x="180" y="78" text-anchor="middle" ' +
       'font-family="ui-monospace, monospace" font-size="11" fill="#94a3b8">' +
@@ -1672,10 +1667,10 @@ function renderDrift() {
   [0.25, 0.5, 0.75].forEach((t) => {
     const y = py(ymax * t).toFixed(1);
     grid += '<line x1="' + x0 + '" y1="' + y + '" x2="' + x1 + '" y2="' + y +
-            '" stroke="#e2e8f0" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+            '" stroke="#1e293b" stroke-width="1" vector-effect="non-scaling-stroke"/>';
   });
   const baseline = '<line x1="' + x0 + '" y1="' + y1 + '" x2="' + x1 + '" y2="' + y1 +
-                   '" stroke="#cbd5e1" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+                   '" stroke="#334155" stroke-width="1" vector-effect="non-scaling-stroke"/>';
 
   const pts = curve.map((c, i) => px(i).toFixed(1) + "," + py(c[0]).toFixed(1));
   const line = pts.join(" ");
@@ -1686,27 +1681,27 @@ function renderDrift() {
   if (latchIdx >= 0) {
     const lx = px(latchIdx).toFixed(1), ly = py(curve[latchIdx][0]).toFixed(1);
     latchMark =
-      '<circle cx="' + lx + '" cy="' + ly + '" r="7" fill="#fffbeb" ' +
-      'stroke="#fde68a" stroke-width="1"/>' +
-      '<circle cx="' + lx + '" cy="' + ly + '" r="3.4" fill="#d97706"/>' +
+      '<circle cx="' + lx + '" cy="' + ly + '" r="7" fill="rgba(245,158,11,.14)" ' +
+      'stroke="#f59e0b" stroke-width="1"/>' +
+      '<circle cx="' + lx + '" cy="' + ly + '" r="3.4" fill="#f59e0b"/>' +
       '<text x="' + (px(latchIdx) + 8).toFixed(1) + '" y="' +
       Math.max(14, py(curve[latchIdx][0]) - 8).toFixed(1) +
       '" font-family="ui-monospace, monospace" font-size="9" font-weight="600" ' +
-      'fill="#b45309">LATCH</text>';
+      'fill="#fbbf24">LATCH</text>';
   }
 
   svg.innerHTML =
     '<defs><linearGradient id="driftGrad" x1="0" x2="0" y1="0" y2="1">' +
-    '<stop offset="0%" stop-color="#fde68a" stop-opacity="0.75"/>' +
-    '<stop offset="100%" stop-color="#fde68a" stop-opacity="0.05"/>' +
+    '<stop offset="0%" stop-color="#f59e0b" stop-opacity="0.28"/>' +
+    '<stop offset="100%" stop-color="#f59e0b" stop-opacity="0.02"/>' +
     '</linearGradient></defs>' +
     grid + baseline +
     '<polygon points="' + area + '" fill="url(#driftGrad)"/>' +
-    '<polyline points="' + line + '" fill="none" stroke="#213145" stroke-width="2" ' +
+    '<polyline points="' + line + '" fill="none" stroke="#22d3ee" stroke-width="2" ' +
     'stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>' +
     latchMark +
     '<circle cx="' + lastX.toFixed(1) + '" cy="' + lastY.toFixed(1) +
-    '" r="3.6" fill="#0f172a"/>';
+    '" r="3.6" fill="#dfe2ed"/>';
 
   axis.appendChild(el("span", "", "session 0"));
   axis.appendChild(el("span", "", curve.length + " sessions, first-seen order"));
@@ -2259,7 +2254,7 @@ function renderLatencyCdf() {
   [0, 50, 100].forEach((t) => {
     const y = py(t).toFixed(1);
     s += '<line x1="' + ml + '" y1="' + y + '" x2="' + (W - mr) + '" y2="' + y +
-         '" stroke="#e2e8f0" stroke-width="1"/>';
+         '" stroke="#1e293b" stroke-width="1"/>';
     s += '<text x="' + (ml - 6) + '" y="' + (Number(y) + 3.5) + '" text-anchor="end" ' +
          MONO + ' font-size="8" fill="#94a3b8">' + t + '</text>';
   });
@@ -2267,17 +2262,17 @@ function renderLatencyCdf() {
     const v = Math.pow(10, e);
     const x = px(v).toFixed(1);
     s += '<line x1="' + x + '" y1="' + top + '" x2="' + x + '" y2="' + bot +
-         '" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2 3"/>';
+         '" stroke="#1e293b" stroke-width="1" stroke-dasharray="2 3"/>';
     s += '<text x="' + x + '" y="' + (bot + 13) + '" text-anchor="middle" ' + MONO +
          ' font-size="8" fill="#94a3b8">' + num(v, v < 1 ? 1 : 0) + '</text>';
   }
   s += '<text x="' + (W - mr) + '" y="' + (bot + 26) + '" text-anchor="end" ' + MONO +
        ' font-size="8" letter-spacing="0.06em" fill="#64748b">MILLISECONDS (LOG)</text>';
   const line = cdf.map((p) => px(p[0]).toFixed(1) + "," + py(p[1]).toFixed(1)).join(" ");
-  s += '<polyline points="' + line + '" fill="none" stroke="#2563eb" stroke-width="1.8" ' +
+  s += '<polyline points="' + line + '" fill="none" stroke="#06b6d4" stroke-width="1.8" ' +
        'stroke-linejoin="round" stroke-linecap="round"/>';
-  const marks = [["p50", lat.p50, "#1d4ed8"], ["p95", lat.p95, "#d97706"],
-                 ["p99", lat.p99, "#dc2626"]];
+  const marks = [["p50", lat.p50, "#22d3ee"], ["p95", lat.p95, "#f59e0b"],
+                 ["p99", lat.p99, "#ef4444"]];
   marks.forEach((m, i) => {
     const v = Number(m[1]);
     if (!Number.isFinite(v) || v <= 0) return;
@@ -2290,12 +2285,12 @@ function renderLatencyCdf() {
   });
   const last = cdf[cdf.length - 1];
   s += '<circle cx="' + px(last[0]).toFixed(1) + '" cy="' + py(last[1]).toFixed(1) +
-       '" r="3" fill="#0f172a"/>';
+       '" r="3" fill="#dfe2ed"/>';
   s += '<text x="' + (px(last[0]) - 6).toFixed(1) + '" y="' + (py(last[1]) - 7).toFixed(1) +
        '" text-anchor="end" ' + MONO + ' font-size="8" font-weight="700" fill="#64748b">' +
        "max " + num(last[0], 3) + "</text>";
   s += '<line x1="' + ml + '" y1="' + bot + '" x2="' + (W - mr) + '" y2="' + bot +
-       '" stroke="#cbd5e1" stroke-width="1"/>';
+       '" stroke="#334155" stroke-width="1"/>';
   svg.innerHTML = s;
 }
 
@@ -2326,7 +2321,7 @@ function renderSweepChart() {
     return vals.some((v) => v !== vals[0]);
   });
   const series = varying.length ? varying : aids.slice(0, 3);
-  const COLORS = ["#2563eb", "#d97706", "#059669", "#dc2626", "#475569", "#0891b2"];
+  const COLORS = ["#06b6d4", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#22d3ee"];
 
   const W = 660, H = 320, ml = 38, mr = 16;
   const plotW = W - ml - mr;
@@ -2345,7 +2340,7 @@ function renderSweepChart() {
   [0, 25, 50, 75, 100].forEach((t) => {
     const y = yOf(t).toFixed(1);
     s += '<line x1="' + ml + '" y1="' + y + '" x2="' + (ml + plotW) + '" y2="' + y +
-         '" stroke="#e2e8f0" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+         '" stroke="#1e293b" stroke-width="1" vector-effect="non-scaling-stroke"/>';
     s += '<text x="' + (ml - 8) + '" y="' + (Number(y) + 3.5) + '" text-anchor="end" ' +
          MONO + ' font-size="9" fill="#94a3b8">' + t + '</text>';
   });
@@ -2358,7 +2353,7 @@ function renderSweepChart() {
     if (i < 0) return;
     const x = xOf(i).toFixed(1);
     s += '<line x1="' + x + '" y1="' + yTop + '" x2="' + x + '" y2="' + yBot +
-         '" stroke="#2563eb" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>';
+         '" stroke="#06b6d4" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>';
   });
 
   /* detection series */
@@ -2377,19 +2372,19 @@ function renderSweepChart() {
 
   /* x axis + threshold labels */
   s += '<line x1="' + ml + '" y1="' + yBot + '" x2="' + (ml + plotW) + '" y2="' + yBot +
-       '" stroke="#cbd5e1" stroke-width="1"/>';
+       '" stroke="#334155" stroke-width="1"/>';
   rows.forEach((r, i) => {
     const isBand = bands.indexOf(Number(r.threshold)) >= 0;
     s += '<text x="' + xOf(i).toFixed(1) + '" y="' + (yBot + 16) + '" text-anchor="middle" ' +
          MONO + ' font-size="9" font-weight="' + (isBand ? "700" : "500") + '" fill="' +
-         (isBand ? "#2563eb" : "#64748b") + '">' + r.threshold + '</text>';
+         (isBand ? "#06b6d4" : "#64748b") + '">' + r.threshold + '</text>';
   });
 
   /* false-alert strip */
   s += '<text x="' + ml + '" y="240" ' + MONO + ' font-size="9" letter-spacing="0.06em" ' +
        'fill="#64748b">FALSE ALERTS / 1,000 CLEAN SESSIONS (max ' + num(fpMax, 0) + ')</text>';
   s += '<line x1="' + ml + '" y1="' + fpBase + '" x2="' + (ml + plotW) + '" y2="' + fpBase +
-       '" stroke="#cbd5e1" stroke-width="1"/>';
+       '" stroke="#334155" stroke-width="1"/>';
   const bw = Math.min(26, step * 0.45);
   rows.forEach((r, i) => {
     const v = fps[i];
@@ -2397,13 +2392,13 @@ function renderSweepChart() {
     if (v > 0) {
       const y = yFp(v);
       s += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) +
-           '" height="' + (fpBase - y).toFixed(1) + '" fill="#dc2626" rx="2"/>';
+           '" height="' + (fpBase - y).toFixed(1) + '" fill="#ef4444" rx="2"/>';
       s += '<text x="' + xOf(i).toFixed(1) + '" y="' + (y - 5).toFixed(1) +
            '" text-anchor="middle" ' + MONO + ' font-size="9" font-weight="700" ' +
-           'fill="#dc2626">' + num(v, 0) + '</text>';
+           'fill="#ef4444">' + num(v, 0) + '</text>';
     } else {
       s += '<rect x="' + x.toFixed(1) + '" y="' + (fpBase - 1.5) + '" width="' +
-           bw.toFixed(1) + '" height="1.5" fill="#cbd5e1"/>';
+           bw.toFixed(1) + '" height="1.5" fill="#334155"/>';
     }
   });
 
@@ -2420,7 +2415,7 @@ function renderSweepChart() {
   });
   const fk = el("span");
   const fd = el("i");
-  fd.style.background = "#dc2626";
+  fd.style.background = "#ef4444";
   fk.appendChild(fd);
   fk.appendChild(document.createTextNode("false alerts / 1,000"));
   keys.appendChild(fk);
@@ -2616,7 +2611,7 @@ function renderLadderByCorpus() {
     row.appendChild(name);
     row.appendChild(stackBar(LADDER.filter((r) => Number(acts[r]) > 0).map((r) => ({
       w: total ? (Number(acts[r]) || 0) / total * 100 : 0,
-      c: r === "allow" ? "#059669" : (r === "block" || r === "isolate") ? "#dc2626" : "#d97706",
+      c: r === "allow" ? "#10b981" : (r === "block" || r === "isolate") ? "#ef4444" : "#f59e0b",
       title: r + " " + acts[r] + " / " + total + " (" +
         num(total ? (Number(acts[r]) || 0) / total * 100 : 0, 1) + "%)",
     }))));
@@ -2662,9 +2657,9 @@ function focusExhibit(name) {
   });
   document.querySelectorAll("#exhibit-nav a").forEach((node) => {
     const on = node.dataset.name === name;
-    node.style.background = on ? "#eff6ff" : "#ffffff";
-    node.style.borderColor = on ? "#bfdbfe" : "#e2e8f0";
-    node.style.color = on ? "#2563eb" : "#475569";
+    node.style.background = on ? "rgba(6,182,212,.12)" : "#0f172a";
+    node.style.borderColor = on ? "rgba(6,182,212,.5)" : "#1e293b";
+    node.style.color = on ? "#22d3ee" : "#94a3b8";
   });
   const target = document.getElementById("exhibit-" + name);
   if (target) target.scrollIntoView({block: "start", behavior: "smooth"});
@@ -2978,7 +2973,7 @@ function wireChrome() {
       'stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/>' +
       '<path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
     const check = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" ' +
-      'stroke="#059669" stroke-width="2.4" stroke-linecap="round" ' +
+      'stroke="#10b981" stroke-width="2.4" stroke-linecap="round" ' +
       'stroke-linejoin="round"><path d="M4 12.5l5 5L20 7"/></svg>';
     copy.addEventListener("click", () => {
       const done = () => {
