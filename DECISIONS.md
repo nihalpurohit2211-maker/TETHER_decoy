@@ -435,3 +435,20 @@ slide-deck snapshot in PROJECT_BRIEF.md section 9 and PROJECT_BRIEF.md itself;
   URLs, empty state, `?exhibit=`, CSV export, alert-JSON export) are unchanged
   and passing. Visual-only: no detector, threshold, attack, metric, result or
   claim changed, and the seed-7 results digest is unchanged.
+- D67 (hosted live replay via a Vercel serverless function). The dashboard's
+  live replay previously failed on Vercel because /run was rewritten to a canned
+  static-run.json error (a static site cannot run the Python simulator). The
+  user chose to make it genuinely live with a Vercel serverless Python function
+  rather than precompute sessions to static JSON. `api/run.py` is stdlib-only
+  (a BaseHTTPRequestHandler named `handler`, Vercel's supported pattern; no
+  framework, no external deps) and imports run_scenario_sessions /
+  parse_run_params / known_scenario from `tether.api`, so the hosted replay runs
+  the exact same simulator code as the local API and returns the same
+  {"sessions":[...]} shape - `dashboard.html` is unchanged, preserving the
+  "never hardcode measured numbers" rule (every field still comes from a real
+  simulation). Only `tether/contract.json` needs bundling (the /run path never
+  reads contract.sig.json). `vercel.json` reprints /run to /api/run; all other
+  routes stay static. A hosted `n` cap of 4 bounds compute on the public
+  endpoint (the dashboard sends n=1). Python stays stdlib-only; no third-party
+  dependency was added. Verified end-to-end over HTTP: dashboard GET 200,
+  unknown scenario 404, bad mode 400, n=20 clamped to 4.

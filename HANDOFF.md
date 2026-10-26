@@ -148,10 +148,14 @@ overwrite `results/results.json`, but it does rewrite `MANIFEST.json`,
 
 ## Last test result
 
-2026-10-26: `Ran 132 tests ... OK`, EXIT=0 after the post-v2 UI pass, part 2
-(dark "Tactical Cyber-Brutalism" re-theme of `dashboard.html` and the
-`tether/exhibits.py` palette). `docs_check.py` 10/10 PASS. Exhibits `--check`
-PASS (9 SVGs and `INDEX.json` byte-identical after regeneration). Server smoke
+2026-10-26 (serverless replay): `Ran 132 tests ... OK`, EXIT=0 after adding
+`api/run.py` (hosted live replay) and repointing `/run` to it in `vercel.json`.
+`docs_check.py` 10/10 PASS. Exhibits `--check` PASS. End-to-end HTTP test of the
+function: dashboard GET 200 (full session shape), unknown scenario 404, bad mode
+400, `n=20` clamped to the hosted cap of 4.
+
+2026-10-26 (dark re-theme): same 132 tests OK; `docs_check.py` 10/10 PASS;
+exhibits `--check` PASS (9 SVGs and `INDEX.json` byte-identical). Server smoke
 test: `/`, `/results`, `/exhibits`, `/contract` all 200.
 
 Earlier, 2026-10-25 22:58: same 132 tests OK; `docs_check.py` 10/10 PASS;
@@ -190,6 +194,39 @@ breach, amber warning.
   external URLs, `/exhibits`, `?exhibit=`, `NO MEASURED RESULTS`,
   `export alert JSON`) are unchanged and passing.
 
+## Live replay on the hosted site (2026-10-26, serverless function)
+
+The dashboard's live replay previously failed on Vercel: `/run` was rewritten
+to a canned `static-run.json` that returned "Live replay needs the local Python
+API." It now runs on the hosted site via a stdlib-only serverless function.
+
+- `api/run.py` (new): a `BaseHTTPRequestHandler` named `handler` (Vercel's
+  supported Python function pattern; no framework, no external deps). It
+  reuses `tether.api.run_scenario_sessions`, `parse_run_params` and
+  `known_scenario` directly, so the hosted replay runs the exact same simulator
+  code as `python -m tether.api` and returns the same `{"sessions":[...]}`
+  shape the dashboard already expects - no change to `dashboard.html`. Query
+  params are parsed from the GET query string; errors map to 400 (bad params)
+  and 404 (unknown scenario), matching the local API.
+- The `/run` code path opens only `tether/contract.json` (via
+  `load_contract`); it does **not** need `contract.sig.json` (that is read only
+  by `load_verified_contract`, a different path). The whole `tether/` package
+  plus `contract.json` are bundled with the function; `.gitignore` excludes only
+  caches/venvs, so they are tracked and ship.
+- `vercel.json`: `/run` now rewrites to `/api/run` instead of
+  `/static-run.json`. All other routes (`/`, `/results`, `/exhibits`,
+  `/exhibits/*.svg`, `/contract`, `/scenarios`) stay pure-static rewrites.
+- `static-run.json` was deleted (referenced by nothing once `/run` pointed at
+  the function).
+- Hosted guard: `api/run.py` caps `n` at 4 (the local API allows 20) so a
+  public stranger cannot burn function seconds on big batch runs. The dashboard
+  only ever sends `n=1`, so this is a deployment safeguard, not a behaviour
+  change. Raise `_HOSTED_MAX_N` deliberately if needed.
+- Verified: a local end-to-end HTTP test served `api/run.py`'s handler and
+  issued the exact dashboard GET (200 with full session shape), an unknown
+  scenario (404), a bad mode (400), and `n=20` (clamped to 4). No third-party
+  dependencies were added; Python stays stdlib-only.
+
 ## Next action
 
 No required work. The project is done and reproducible at `v2`. For a UI-only
@@ -200,7 +237,9 @@ the 132 tests plus `docs_check.py` before committing. The only optional
 technical item is M13b (slides). If it is built, use the dark console theme to
 match. If the palette is ever changed again, change `dashboard.html` `:root`
 and the `tether/exhibits.py` constants together, then regenerate with
-`python -m tether.exhibits --write`, or `--check` will fail.
+`python -m tether.exhibits --write`, or `--check` will fail. For the hosted
+replay, `api/run.py` must keep importing the simulator from `tether.api` (do
+not fork the logic), and remember Vercel's function cold-start on first click.
 
 ## File map
 
@@ -211,6 +250,8 @@ and the `tether/exhibits.py` constants together, then regenerate with
 - `EXHIBITS.md`: E1-E9 exhibit contract (VERIFIED)
 - `BENCHMARK.md`: judge benchmark card (enforced generated claims block)
 - `openapi.json`: 10-route API contract, 9 exhibit names
+- `api/run.py`: stdlib-only Vercel serverless function for hosted `/run`
+  (reuses `tether.api.run_scenario_sessions`); `vercel.json` rewrites `/run` to it
 - `HANDOFF.md`, `HISTORY.md`, `DECISIONS.md` (D1-D65), `TODO.md`,
   `RESUME_PROMPT.md`
 - `TRANSFER.md`: endpoints, payloads and dashboard map (final v2 note)

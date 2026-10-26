@@ -100,8 +100,12 @@ substitute zeros or placeholder charts. The API contract is `openapi.json`:
 ten routes, and the exhibit route accepts only the nine declared basenames.
 
 `vercel.json` serves the dashboard and measured results as static files. The
-exhibits and charts work there. Live replay still needs the Python API, so the
-static deployment shows a message pointing at `python -m tether.api`.
+exhibits and charts work there. Live replay also works there: `/run` is routed
+to a stdlib-only serverless function (`api/run.py`) that imports the same
+simulator code the local API uses, so the hosted replay runs the identical
+`run_scenario_sessions` path and returns the same response shape. The hosted
+function caps `n` at 4 to bound compute on a public endpoint (the dashboard
+sends `n=1`). To run everything locally instead, use `python -m tether.api`.
 
 ## Scenarios
 

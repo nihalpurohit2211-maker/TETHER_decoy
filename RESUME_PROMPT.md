@@ -58,3 +58,11 @@ are intact.
 Next session: serve with `python -m tether.api` (port 8765), open
 `http://127.0.0.1:8765/`, and confirm 132 tests, `docs_check.py` 10/10 and
 exhibits `--check` are green before touching anything.
+
+Live replay now also works on the hosted Vercel site: `/run` is rewritten to a
+stdlib-only serverless function (`api/run.py`) that imports the simulator from
+`tether.api`, so it returns the same `{"sessions":[...]}` shape with no change
+to `dashboard.html`. `vercel.json` points `/run` at `/api/run`; the old
+`static-run.json` was removed. The hosted function caps `n` at 4 (the dashboard
+sends `n=1`). Keep `api/run.py` importing from `tether.api` - do not fork the
+simulator logic.

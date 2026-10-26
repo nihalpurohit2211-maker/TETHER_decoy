@@ -398,3 +398,40 @@ are recorded as approximate wall-clock text from the session clock
   Server smoke test: /, /results, /exhibits, /contract all 200.
 - No detector, threshold, attack, metric, result or claim changed. results/,
   PREREG.md and the evidence chain are untouched; the digest is unchanged.
+
+## 2026-10-26 - make live replay work on the hosted site (Vercel serverless /run)
+
+- Problem: the dashboard's live replay failed on Vercel with "Run failed: Live
+  replay needs the local Python API...". Cause: the static deploy rewrote /run
+  to static-run.json, a canned error, because a static site cannot execute the
+  Python simulator. The user chose Option A (Vercel serverless Python) over
+  precomputed static JSON.
+- api/run.py (new): a stdlib-only BaseHTTPRequestHandler named `handler`
+  (Vercel's supported Python function pattern; no framework, no external deps).
+  It imports run_scenario_sessions, parse_run_params and known_scenario from
+  tether.api and reuses them directly, so the hosted replay runs the exact same
+  simulator code as `python -m tether.api` and returns the identical
+  {"sessions":[...]} shape the dashboard already expects. dashboard.html was
+  NOT changed. Query params parsed from the GET query string; errors map to 400
+  (bad params) and 404 (unknown scenario), matching the local API.
+- File-bundle investigation: the /run code path opens only tether/contract.json
+  (via load_contract). It does NOT need contract.sig.json - that is read only by
+  load_verified_contract, a different path the replay never uses. new_authority,
+  default_registry and _drift_anchor are pure in-memory. The whole tether/
+  package plus contract.json ship with the function; .gitignore excludes only
+  caches/venvs, so they are tracked.
+- vercel.json: /run now rewrites to /api/run instead of /static-run.json. All
+  other routes (/ , /results, /exhibits, /exhibits/*.svg, /contract, /scenarios)
+  stay pure-static rewrites. static-run.json was deleted (referenced by nothing
+  once /run pointed at the function).
+- Hosted guard: api/run.py caps n at 4 (local API allows 20) so a public
+  stranger cannot burn function seconds on big batch runs. The dashboard only
+  ever sends n=1, so this is a deployment safeguard, not a behaviour change.
+- Verification: local end-to-end HTTP test served api/run.py's handler and
+  issued the exact dashboard GET -> 200 with full session shape (detected,
+  leak_records, utility, timeline, alert); unknown scenario -> 404; bad mode ->
+  400; n=20 -> clamped to 4. Full checks: 132 tests OK, docs_check.py 10/10
+  PASS, exhibits --check PASS. README's stale "replay needs the local API"
+  paragraph was rewritten; the README claims block still matches results.json.
+- No detector, threshold, attack, metric, result or claim changed. results/,
+  PREREG.md and the evidence chain are untouched; the digest is unchanged.

@@ -6,6 +6,6 @@
     { "source": "/exhibits/:name.svg", "destination": "/results/exhibits/:name.svg" },
     { "source": "/contract", "destination": "/tether/contract.json" },
     { "source": "/scenarios", "destination": "/scenarios.json" },
-    { "source": "/run", "destination": "/static-run.json" }
+    { "source": "/run", "destination": "/api/run" }
   ]
 }

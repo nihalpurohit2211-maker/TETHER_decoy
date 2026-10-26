@@ -73,6 +73,10 @@ tests, `git add -A && git commit`, tag.
       canvas, hairlines, sharp 0px corners, emerald/cyan/crimson/amber) in both
       dashboard.html and tether/exhibits.py; nine SVGs regenerated, --check
       byte-identical; test colour-token list updated
+- [x] hosted live replay: api/run.py (stdlib-only Vercel serverless function
+      reusing tether.api.run_scenario_sessions); vercel.json /run -> /api/run;
+      static-run.json removed; hosted n-cap 4; end-to-end HTTP verified
+      (200/404/400 + clamp). dashboard.html unchanged.
 - [ ] optional: exhibit lightbox, M13b slides (match the console theme)
 
 ## Known doc drift to keep fixed
